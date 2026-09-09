@@ -1,0 +1,172 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+html,
+body {
+  font-family: "Poppins", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+button,
+textarea,
+select {
+  font-family: inherit;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+* body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.main-body {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100vh;
+}
+.main-body .side-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+}
+.main-body .side-content .design-animate {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+}
+.main-body .side-content .motto {
+  display: flex;
+  flex-direction: column;
+  padding: 30px;
+  overflow: visible;
+}
+.main-body .auth-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  background-color: #1b1b1b;
+  width: 50%;
+  height: 100vh;
+}
+.main-body .auth-container .auth-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  border-radius: 6px;
+  box-shadow: 2px 4px 12px 1px rgba(0, 0, 0, 0.25);
+  padding: 20px;
+  width: 300px;
+  background-color: #f0f0f0;
+  gap: 15px;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease-in-out;
+}
+.main-body .auth-container .auth-panel .logo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  gap: 0;
+}
+.main-body .auth-container .auth-panel .logo img {
+  width: 100px;
+  height: auto;
+}
+.main-body .auth-container .auth-panel .logo h1 {
+  line-height: 0;
+}
+.main-body .auth-container .auth-panel form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  gap: 15px;
+}
+.main-body .auth-container .auth-panel form input {
+  background-color: #f0f0f0;
+  background-clip: padding-box;
+  box-sizing: border-box;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid;
+  border-color: #6b6b6b;
+  outline-color: #a50034;
+  padding: 5px;
+  padding-left: 10px;
+  width: 100%;
+}
+.main-body .auth-container .auth-panel form .text {
+  transition: box-shadow 0.3s ease-in-out;
+}
+.main-body .auth-container .auth-panel form .text:focus {
+  box-shadow: 4px 4px 12px 1px #a50034;
+}
+.main-body .auth-container .auth-panel form .btn {
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #a50034;
+  border-color: #700023;
+  transition: background-color 0.3s ease-in-out, transform 0.1s ease-in-out;
+}
+.main-body .auth-container .auth-panel form .btn:hover {
+  background-color: #700023;
+}
+.main-body .auth-container .auth-panel form .btn:active {
+  transform: scale(0.98);
+}
+.main-body .auth-container.right-panel-active .login-panel {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+.main-body .auth-container.right-panel-active .register-panel {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+.main-body .login-panel {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+.main-body .register-panel {
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
+}
+
+#registermessage {
+  display: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+#loginmessage {
+  display: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8rem;
+  text-align: center;
+}/*# sourceMappingURL=style.css.map */

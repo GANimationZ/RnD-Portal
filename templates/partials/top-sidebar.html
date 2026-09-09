@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block head %}
+  <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar/styles.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="app">
+  <aside class="sidebar is-collapsed" id="sidebar">
+    <div class="sidebar__top">
+      <div class="sidebar__brand">
+        <div class="sidebar__logo">
+          <img src="{{ url_for('static', filename='assets/img/logo.png') }}" alt="" />
+        </div>
+        <span class="sidebar__brand-name">RnD Portal</span>
+      </div>
+      <button class="sidebar__toggle" id="toggleBtn" title="Expand">
+        <i class="bx bx-chevron-left" id="toggleIcon"></i>
+      </button>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar__footer" id="footer"></div>
+    <div class="profile">
+      <div class="profile__avatar">RA</div>
+      <div class="profile__info">
+        <div class="profile__name">Rani Aditya</div>
+        <div class="profile__email">rani@nimbus.io</div>
+      </div>
+      <div class="logout">
+        <button class="lobtn" id="logoutBtn"><i class=" bx bxs-door-open"></i></button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div class="in-topbar">
+        <p class="path" id="topbarPath">RnD Portal &gt; Workspace</p>
+        <h2 class="header" id="topbarTitle">Dashboard</h2>
+        <p class="desc" id="topbarDesc">Production Verification Electric . Urgent─Important triage</p>
+      </div>
+    </div>
+    <div class="in-content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='javascript/sidebar/script.js') }}"></script>
+{% endblock %}
