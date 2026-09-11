@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 
 {% block head %}
-  <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <!-- Basic Icons -->
+  <link href="https://cdn.boxicons.com/3.0.8/fonts/basic/boxicons.min.css" rel="stylesheet">
+  <!-- Filled Icons -->
+  <link href="https://cdn.boxicons.com/3.0.8/fonts/filled/boxicons-filled.min.css" rel="stylesheet">
+  <!-- Brand Icons -->
+  <link href="https://cdn.boxicons.com/3.0.8/fonts/brands/boxicons-brands.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar/styles.css') }}" />
 {% endblock %}
 
@@ -13,7 +18,10 @@
         <div class="sidebar__logo">
           <img src="{{ url_for('static', filename='assets/img/logo.png') }}" alt="" />
         </div>
-        <span class="sidebar__brand-name">RnD Portal</span>
+        <div class="sidebar__text">
+          <span class="sidebar__brand-name">RnD Portal</span>
+          <span class="sidebar__brand-desc">LGEIN CBT • Production Verification</span>
+        </div>
       </div>
       <button class="sidebar__toggle" id="toggleBtn" title="Expand">
         <i class="bx bx-chevron-left" id="toggleIcon"></i>
@@ -24,11 +32,10 @@
     <div class="profile">
       <div class="profile__avatar">RA</div>
       <div class="profile__info">
-        <div class="profile__name">Rani Aditya</div>
-        <div class="profile__email">rani@nimbus.io</div>
+        <div class="profile__name">{{ username }}</div>
       </div>
       <div class="logout">
-        <button class="lobtn" id="logoutBtn"><i class=" bx bxs-door-open"></i></button>
+        <button class="lobtn" id="logoutBtn"><i class=" bxf bx-door-open-alt"></i></button>
       </div>
     </div>
   </aside>
@@ -36,9 +43,9 @@
   <main class="content">
     <div class="topbar">
       <div class="in-topbar">
-        <p class="path" id="topbarPath">RnD Portal &gt; Workspace</p>
-        <h2 class="header" id="topbarTitle">Dashboard</h2>
-        <p class="desc" id="topbarDesc">Production Verification Electric . Urgent─Important triage</p>
+        <p class="path" id="topbarPath">RnD Portal &gt; -</p>
+        <h2 class="header" id="topbarTitle">-</h2>
+        <p class="desc" id="topbarDesc">Production Verification Electric • Urgent─Important triage</p>
       </div>
     </div>
     <div class="in-content">
@@ -49,5 +56,8 @@
 {% endblock %}
 
 {% block script %}
+<script>
+  window.ACTIVE_NAV = "{{ active_nav }}";
+</script>
 <script src="{{ url_for('static', filename='javascript/sidebar/script.js') }}"></script>
 {% endblock %}

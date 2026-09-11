@@ -1,0 +1,249 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+html,
+body {
+  font-family: "Poppins", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+button,
+textarea,
+select {
+  font-family: inherit;
+}
+
+.nav__bar {
+  display: flex;
+  background-color: white;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nav__bar::-webkit-scrollbar {
+  display: none;
+}
+.nav__bar .flex-1 {
+  color: #6b6b6b;
+  flex-shrink: 0;
+  white-space: nowrap;
+  justify-content: center;
+  padding: 10px 20px;
+  margin: 0 5px;
+  font-size: 12px;
+  font-weight: 300;
+  max-height: 32px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.nav__bar .flex-1:hover {
+  border-bottom: 3px solid #a50034;
+  background-color: #bfbfbf;
+}
+.nav__bar .flex-1.active {
+  border-bottom: 3px solid #a50034;
+  background-color: rgba(191, 191, 191, 0.25);
+}
+
+.main-body-content {
+  padding: 0 20px;
+}
+.main-body-content .body {
+  width: 100%;
+  display: none;
+}
+.main-body-content .body.active {
+  display: block;
+}
+.main-body-content .body .activity-filters {
+  display: flex;
+  flex-direction: column;
+  margin: 15px 0;
+  padding: 15px;
+  gap: 10px;
+  width: 100%;
+  background-color: white;
+  border-radius: 12px;
+  border: 1px solid #a50034;
+}
+.main-body-content .body .activity-filters .search_and_filters form {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.main-body-content .body .activity-filters .search_and_filters form label {
+  color: #a50034;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.main-body-content .body .activity-filters .search_and_filters form input,
+.main-body-content .body .activity-filters .search_and_filters form select {
+  border-radius: 6px;
+  border-color: #f0f0f0;
+  outline: none;
+  width: 100%;
+}
+.main-body-content .body .activity-filters .search_and_filters form .category,
+.main-body-content .body .activity-filters .search_and_filters form .event {
+  border: 1px solid #1b1b1b;
+}
+.main-body-content .body .activity-filters .btns {
+  display: flex;
+  justify-content: space-between;
+}
+.main-body-content .body .activity-filters .btns button {
+  background-color: white;
+  border: none;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 0 20px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  justify-content: center;
+  color: #6b6b6b;
+  font-size: 400;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.main-body-content .body .activity-filters .btns button:hover {
+  border: 1px solid #525252;
+}
+.main-body-content .body .activity-filters .btns .execute_btns {
+  margin: 0;
+  padding: 0;
+}
+.main-body-content .body .activity-filters .btns .execute_btns button {
+  border: 1px solid #a50034;
+  color: #a50034;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.main-body-content .body .activity-filters .btns .execute_btns button:hover {
+  background-color: rgba(107, 107, 107, 0.2);
+  border-color: #700023;
+  color: #700023;
+}
+.main-body-content .body .preview_total {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+  gap: 10px;
+}
+.main-body-content .body .preview_total .ttl_issues {
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  width: 100%;
+  border-radius: 8px;
+  background-color: white;
+}
+.main-body-content .body .preview_total .ttl_issues .pv_text {
+  font-size: 12px;
+  color: #6b6b6b;
+}
+.main-body-content .body .preview_total .ttl_issues .pv_number {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.main-body-content .body .preview_total .red {
+  box-shadow: inset 3px 0 0 0 red;
+}
+.main-body-content .body .preview_total .yellow {
+  box-shadow: inset 3px 0 0 0 yellow;
+}
+.main-body-content .body .preview_total .green {
+  box-shadow: inset 3px 0 0 0 green;
+}
+.main-body-content .body .preview_total .blue {
+  box-shadow: inset 3px 0 0 0 blue;
+}
+.main-body-content .body .grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 280px;
+  gap: 15px;
+  width: 100%;
+  margin: 10px 0;
+}
+.main-body-content .body .grid-container .stats_grid {
+  background-color: white;
+  padding: 16px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.main-body-content .body .grid-container .stats_grid .stats_text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #6b6b6b;
+  margin-bottom: 8px;
+}
+.main-body-content .body .grid-container .stats_grid .chart-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table th,
+.main-body-content .body .grid-container .stats_grid .matrix-table td {
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  border: 1px solid #eee;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table thead tr th {
+  background: #dde1e8;
+  color: #444;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid #b7bcc6;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table .corner-cell {
+  font-size: 11px;
+  font-style: italic;
+  color: #777;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table .category-badge-cell {
+  text-align: left;
+  padding-left: 10px;
+  background: #fff;
+  border-bottom: 2px solid #b7bcc6;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table .category-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table td {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table .total-cell {
+  background: #f0f2f5 !important;
+  font-weight: 700;
+  color: #333;
+}
+.main-body-content .body .grid-container .stats_grid .matrix-table .total-row th,
+.main-body-content .body .grid-container .stats_grid .matrix-table .total-row td {
+  background: #e8eaed;
+  font-weight: 700;
+  color: #222;
+  border-top: 2px solid #ccc;
+}/*# sourceMappingURL=style.css.map */

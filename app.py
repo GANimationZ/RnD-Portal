@@ -43,7 +43,7 @@ def login_required(f):
 @app.route('/', methods=['GET'])
 def onboard():
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('workspace/kpi-dashboard'))
     return render_template('auth/auth.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -98,18 +98,52 @@ def login():
 
     return jsonify({'message': f'Welcome back, {username}!'}), 200
 
-
-@app.route('/dashboard', methods=['GET'])
+@app.route('/workspace/kpi-dashboard', methods=['GET'])
 @login_required
-def dashboard():
-    return render_template('dashboard/index.html', username=session.get('username'))
+def kpi_dashboard():
+    return render_template('workspace/kpi_dashboard.html', active_nav='kpi-dashboard', username=session.get('username'))
 
+@app.route('/workspace/tv-design-concept', methods=['GET'])
+@login_required
+def tv_design_concept():
+    return render_template('workspace/tv_design_concept.html', active_nav='analyse', username=session.get('username'))
+
+@app.route('/workspace/issue-monitor', methods=['GET'])
+@login_required
+def issue_monitor():
+    all_users = User.query.all()
+    
+    return render_template('workspace/issue_monitor.html', active_nav='issue-monitor', username=session.get('username'), users=all_users)
+
+@app.route('/workspace/mainboard-tool', methods=['GET'])
+@login_required
+def mainboard_tool():
+    return render_template('workspace/mainboard_tool.html', active_nav='mb-tool', username=session.get('username'))
+
+@app.route('/workspace/asset-locator', methods=['GET'])
+@login_required
+def asset_locator():
+    return render_template('workspace/asset_locator.html', active_nav='asset-equiptment', username=session.get('username'))
+
+@app.route('/workspace/material-cost', methods=['GET'])
+@login_required
+def material_cost():
+    return render_template('workspace/material_cost.html', active_nav='material-cost', username=session.get('username'))
+
+@app.route('/team/structure', methods=['GET'])
+@login_required
+def org_structure():
+    return render_template('team/structure.html', active_nav='structure', username=session.get('username'))
+
+@app.route('/team/others', methods=['GET'])
+@login_required
+def team_others():
+    return render_template('team/others.html', active_nav='others', username=session.get('username'))
 
 @app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
     return jsonify({'message': 'Logged out.'}), 200
-
 
 if __name__ == '__main__':
     with app.app_context():

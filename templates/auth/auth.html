@@ -1,53 +1,90 @@
 {% extends "base.html" %}
 
 {% block title %}<title>RnD Portal</title>{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/style.css') }}">{% endblock %}
+{% block styles %}<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/auth/style.css') }}"
+/>{% endblock %}
 
 {% block body %}
-<div class="main-body">
+  <div class="main-body">
     <div class="side-content">
-        <div class="design-animate">
-            <video autoplay loop muted playsinline>
-                <source src="{{ url_for('static', filename='assets/video/auth.webm') }}" type="video/webm">
-            </video>
-        </div>
-        <div class="motto">
-            <h2>Digitalize Solutions</h2>
-            <p>Issues? No worries. We'll handle it for you!</p>
-        </div>
+      <div class="design-animate">
+        <video autoplay loop muted playsinline>
+          <source
+            src="{{ url_for('static', filename='assets/video/auth.webm') }}"
+            type="video/webm"
+          />
+        </video>
+      </div>
+      <div class="motto">
+        <h2>Digitalize Solutions</h2>
+        <p>Issues? No worries. We'll handle it for you!</p>
+      </div>
     </div>
 
     <div class="auth-container" id="authContainer">
-        <div class="auth-panel login-panel">
-            <div class="logo">
-                <img src="{{ url_for('static', filename='assets/img/logo.png') }}" alt="">
-            </div>
-            <h1>RnD Portal</h1>
-            <form class="textbox" id="login">
-                <input type="text" id="loginUsername" placeholder="Username" class="text">
-                <input type="password" id="loginPassword" placeholder="Password" class="text">
-                <input type="submit" value="Login" class="btn">
-            </form>
-            <p id="loginmessage"></p>
-            <a href="register" id="toRegister">Create new account?</a>
+      <div class="auth-panel login-panel">
+        <div class="logo">
+          <img
+            src="{{ url_for('static', filename='assets/img/logo.png') }}"
+            alt=""
+          />
         </div>
+        <h1>RnD Portal</h1>
+        <form class="textbox" id="login">
+          <input
+            type="text"
+            id="loginUsername"
+            placeholder="Username"
+            class="text"
+          />
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="Password"
+            class="text"
+          />
+          <input type="submit" value="Login" class="btn" />
+        </form>
+        <p id="loginmessage"></p>
+        <a href="" id="toRegister">Create new account?</a>
+      </div>
 
-        <div class="auth-panel register-panel">
-            <div class="logo">
-                <img src="{{ url_for('static', filename='assets/img/logo.png') }}" alt="">
-            </div>
-            <h1>RnD Portal</h1>
-            <form class="textbox" id="register">
-                <input type="text" id="username" placeholder="Username" class="text">
-                <input type="password" id="password" placeholder="Password" class="text">
-                <input type="password" id="retype" placeholder="Retype Password" class="text">
-                <input type="submit" value="Register" class="btn">
-            </form>
-            <p id="registermessage"></p>
-            <a href="login" id="toLogin">Already been verified?</a>
+      <div class="auth-panel register-panel">
+        <div class="logo">
+          <img
+            src="{{ url_for('static', filename='assets/img/logo.png') }}"
+            alt=""
+          />
         </div>
+        <h1>RnD Portal</h1>
+        <form class="textbox" id="register">
+          <input
+            type="text"
+            id="username"
+            placeholder="Username"
+            class="text"
+          />
+          <input
+            type="password"
+            id="password"
+            placeholder="Password"
+            class="text"
+          />
+          <input
+            type="password"
+            id="retype"
+            placeholder="Retype Password"
+            class="text"
+          />
+          <input type="submit" value="Register" class="btn" />
+        </form>
+        <p id="registermessage"></p>
+        <a href="" id="toLogin">Already been verified?</a>
+      </div>
     </div>
-</div>
+  </div>
 {% endblock %}
 
 {% block script %}<script src="{{ url_for('static', filename='javascript/auth/script.js') }}"></script>{% endblock %}

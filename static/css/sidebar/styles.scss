@@ -12,8 +12,9 @@ $transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   cursor: pointer;
   font-size: $ps;
-  font-weight: $h5w;
+  font-weight: $h6w;
   color: $tertiary-color;
+  text-decoration: none;
   background: if($active, $primary-color, transparent);
   transition:
     background 0.3s ease,
@@ -21,6 +22,7 @@ $transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover:not(.is-active) {
     background: $primary-hover-color;
+    border-left: 2px solid $tertiary-color;
   }
 }
 
@@ -68,7 +70,8 @@ body {
     .submenu,
     .footer-item__label,
     .profile__info,
-    .lobtn {
+    .nav-group__label,
+    .logout {
       display: none;
     }
 
@@ -89,6 +92,8 @@ body {
 
     .profile {
       justify-content: center;
+      padding-left: 0; // baris baru
+      padding-right: 0; // baris baru
     }
   }
 }
@@ -110,6 +115,11 @@ body {
   gap: 10px;
   overflow: hidden;
   min-width: 0;
+
+  .sidebar__text {
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 .sidebar__logo {
@@ -131,6 +141,15 @@ body {
   color: $tertiary-color;
   font-weight: 600;
   font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__brand-desc {
+  color: $secondary-hover-color;
+  font-weight: 300;
+  font-size: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -182,35 +201,23 @@ body {
 
 .nav-group__label {
   padding: 12px 16px 4px;
-  font-size: 11px;
-  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: $secondary-color;
   white-space: nowrap;
   overflow: hidden;
-
-  &.is-collapsed {
-    .sidebar__brand,
-    .nav-item__label,
-    .nav-item__chevron,
-    .submenu,
-    .footer-item__label,
-    .profile__info,
-    .nav-group__label,   // baris baru
-    .lobtn {
-      display: none;
-    }
-  }
 }
 
 .nav-item {
   @include nav-button;
   justify-content: space-between;
   padding: 9px 16px;
+  font-size: 12px;
+  font-weight: $h4s;
 
   &.is-active {
     background: $primary-hover-color;
+    border-left: 2px solid $tertiary-color;
   }
 }
 
@@ -231,6 +238,7 @@ body {
 
 .nav-item__label {
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .nav-item__chevron {
@@ -343,12 +351,6 @@ body {
   white-space: nowrap;
 }
 
-.profile__email {
-  color: $secondary-color;
-  font-size: 11.5px;
-  white-space: nowrap;
-}
-
 .lobtn {
   position: absolute;
   bottom: 12px;
@@ -374,13 +376,14 @@ body {
 // Main Content
 .in-content,
 .in-topbar {
-  margin-left: 55px;
+  margin-left: 50px;
   min-height: 100vh;
 }
 
 .content {
   width: 100%;
-  height: 100px;
+  flex: 1;
+  min-height: 100vh;
 
   .topbar {
     padding: 10px;

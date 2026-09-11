@@ -1,51 +1,54 @@
 // ---- Ikon Boxicons ----
 const icons = {
-  grid: 'bxs-dashboard',
-  chart: 'bxs-bar-chart-alt-2',
-  analyse: 'bxs-analyse',
-  none: 'bx-empty-set',
-  settings: 'bxs-cog',
-  chevron: 'bxs-chevron-down',
-  team: 'bxs-group', // ganti sesuai icon yang kamu mau untuk item Team
+  chart: 'bx-chart-bar-big-columns',
+  concept: 'bx-monitor-wallpaper',
+  issue: 'bx-alert-triangle',
+  tool: 'bx-spanner',
+  pin: 'bx-location-pin',
+  dollar: 'bx-dollar-circle',
+  chevron: 'bx-chevron-down',
+  team: 'bx-community',
+  folder: 'bx-folder',
+  door: 'bx-door-open-alt',
+  cog: 'bx-cog',
 };
 
 function iconTag(name) {
-  return `<i class="bx ${icons[name]}"></i>`;
+  return `<i class="bxf ${icons[name]}"></i>`;
 }
 
 // ---- Struktur menu, dikelompokkan per kategori ----
-// dropdown/children tetap didukung di renderNav di bawah, tapi sengaja
-// tidak dipakai dulu (tidak ada item yang diisi `children`)
 const NAV_GROUPS = [
   {
     label: 'Workspace',
     items: [
+      { id: 'kpi-dashboard', label: 'Team KPI Dashboard', icon: 'chart', href: '/workspace/kpi-dashboard' },
+      { id: 'analyse', label: 'TV Design Concept', icon: 'concept', href: '/workspace/tv-design-concept' },
       {
-        id: 'dashboard',
-        label: 'Dashboard',
-        icon: 'grid',
-        desc: 'Production Verification Electric . Urgent─Important triage',
+        id: 'issue-monitor',
+        label: 'LVT/MNT ─ Issue Monitoring',
+        icon: 'issue',
+        href: '/workspace/issue-monitor',
       },
-      { id: 'statistic', label: 'Statistic', icon: 'chart' },
-      { id: 'analyse', label: 'Analyse', icon: 'analyse' },
-      { id: 'not-available', label: 'Not Available', icon: 'none' },
-      { id: 'statistic-2', label: 'Statistic', icon: 'chart' }, // TODO: ganti label/id sesuai maksud aslinya
+      { id: 'mb-tool', label: 'Mainboard Tool', icon: 'tool', href: '/workspace/mainboard-tool' },
+      { id: 'asset-equiptment', label: 'Asset/Equipmet Locator', icon: 'pin', href: '/workspace/asset-locator' },
+      { id: 'material-cost', label: 'Material Cost Analysis', icon: 'dollar', href: '/workspace/material-cost' },
     ],
   },
   {
     label: 'Team',
     items: [
-      { id: 'team-1', label: 'Team Item 1', icon: 'team' },
-      { id: 'team-2', label: 'Team Item 2', icon: 'team' },
+      { id: 'structure', label: 'Organization Structure', icon: 'team', href: '/team/structure' },
+      { id: 'others', label: 'Others', icon: 'folder', href: '/team/others' },
     ],
   },
 ];
 
-const FOOTER_ITEMS = [{ id: 'settings', label: 'Pengaturan', icon: 'settings' }];
+const FOOTER_ITEMS = [{ id: 'settings', label: 'Settings', icon: 'cog' }];
 
 // ---- State ----
 let openMenu = null;
-let active = 'dashboard';
+let active = window.ACTIVE_NAV || 'kpi-dashboard';
 let collapsed = true;
 
 // ---- Render menu navigasi utama (dengan label kategori) ----
@@ -66,7 +69,8 @@ function renderNav() {
 
       const wrapper = document.createElement('div');
 
-      const btn = document.createElement('button');
+      const btn = document.createElement('a');
+      btn.href = item.href;
       btn.className = 'nav-item' + (isActive ? ' is-active' : '');
       btn.title = collapsed ? item.label : '';
       btn.innerHTML = `
@@ -85,7 +89,7 @@ function renderNav() {
       });
       wrapper.appendChild(btn);
 
-      // Dropdown/submenu: disimpan, belum dipakai (tidak ada item ber-children saat ini)
+      // Dropdown/submenu (Unused)
       if (hasChildren) {
         const submenu = document.createElement('div');
         submenu.className = 'submenu' + (isOpen && !collapsed ? ' is-open' : '');
@@ -113,7 +117,7 @@ function renderNav() {
   });
 }
 
-// ---- Render menu footer (tidak diubah dulu) ----
+// Render Menu Footer (Unused)
 function renderFooter() {
   const footer = document.getElementById('footer');
   footer.innerHTML = '';
@@ -135,7 +139,7 @@ function renderFooter() {
   });
 }
 
-// ---- Cari item aktif beserta grup & (kalau ada) parent-nya ----
+// findActiveChildren (Unused)
 function findActiveItem() {
   for (const group of NAV_GROUPS) {
     for (const item of group.items) {
@@ -149,18 +153,16 @@ function findActiveItem() {
   return null;
 }
 
-// ---- Update topbar: judul & breadcrumb ikut tombol aktif ----
+// ---- Update topbar ----
 function updateTopbar() {
   const found = findActiveItem();
   if (!found) return;
 
   const pathEl = document.getElementById('topbarPath');
   const titleEl = document.getElementById('topbarTitle');
-  const descEl = document.getElementById('topbarDesc');
 
   pathEl.textContent = `RnD Portal > ${found.group.label}`;
   titleEl.textContent = found.item.label;
-  descEl.textContent = found.item.desc || '';
 }
 
 function renderAll() {
@@ -173,14 +175,25 @@ function renderAll() {
 const sidebar = document.getElementById('sidebar');
 const toggleBtn = document.getElementById('toggleBtn');
 
-toggleBtn.addEventListener('click', () => {
+toggleBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
   collapsed = !collapsed;
   sidebar.classList.toggle('is-collapsed', collapsed);
   toggleBtn.title = collapsed ? 'Expand' : 'Collapse';
   renderAll();
 });
 
-// ---- Inisialisasi ----
+document.addEventListener('click', (e) => {
+  if (collapsed) return;
+  if (sidebar.contains(e.target)) return;
+
+  collapsed = true;
+  sidebar.classList.add('is-collapsed');
+  toggleBtn.title = 'Expand';
+  renderAll();
+});
+
+// ---- Initialize ----
 renderAll();
 
 // ---- Logout ----

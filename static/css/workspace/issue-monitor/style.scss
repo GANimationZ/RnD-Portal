@@ -1,0 +1,289 @@
+@use "../../base" as *;
+
+// Navbar
+.nav__bar {
+  display: flex;
+  background-color: white;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .flex-1 {
+    color: $secondary-color;
+    flex-shrink: 0;
+    white-space: nowrap;
+    justify-content: center;
+    padding: 10px 20px;
+    margin: 0 5px;
+    font-size: 12px;
+    font-weight: 300;
+    max-height: 32px;
+    cursor: pointer;
+
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-bottom: 3px solid $primary-color;
+      background-color: $fourtiary-color;
+    }
+
+    &.active {
+      border-bottom: 3px solid $primary-color;
+      background-color: rgba($color: $fourtiary-color, $alpha: 0.25);
+    }
+  }
+}
+
+.main-body-content {
+  padding: 0 20px;
+
+  .body {
+    width: 100%;
+    display: none;
+
+    &.active {
+      display: block;
+    }
+
+    .activity-filters {
+      display: flex;
+      flex-direction: column;
+      margin: 15px 0;
+      padding: 15px;
+      gap: 10px;
+      width: 100%;
+      background-color: white;
+      border-radius: 12px;
+      border: 1px solid $primary-color;
+
+      .search_and_filters {
+        form {
+          display: flex;
+          flex: 1;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+
+          label {
+            color: $primary-color;
+            font-size: 12px;
+            white-space: nowrap;
+          }
+
+          input,
+          select {
+            border-radius: 6px;
+            border-color: $tertiary-color;
+            outline: none;
+            width: 100%;
+          }
+
+          .category,
+          .event {
+            border: 1px solid $fiftiary-color;
+          }
+        }
+      }
+
+      .btns {
+        display: flex;
+        justify-content: space-between;
+
+        button {
+          background-color: white;
+          border: none;
+          border: 1px solid $tertiary-color;
+          border-radius: 6px;
+          padding: 0 20px;
+          flex-shrink: 0;
+          white-space: nowrap;
+          justify-content: center;
+          color: $secondary-color;
+          font-size: $ps;
+          font-weight: $h6w;
+          cursor: pointer;
+
+          transition: all 0.3s ease;
+
+          &:hover {
+            border: 1px solid $secondary-hover-color;
+          }
+        }
+
+        .execute_btns {
+          margin: 0;
+          padding: 0;
+
+          button {
+            border: 1px solid $primary-color;
+            color: $primary-color;
+            cursor: pointer;
+
+            transition: all 0.3s ease;
+
+            &:hover {
+              background-color: rgba($color: $secondary-color, $alpha: 0.2);
+              border-color: $primary-hover-color;
+              color: $primary-hover-color;
+            }
+          }
+        }
+      }
+    }
+
+    .preview_total {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      gap: 10px;
+
+      .ttl_issues {
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
+        width: 100%;
+        border-radius: 8px;
+        background-color: white;
+
+        .pv_text {
+          font-size: 12px;
+          color: $secondary-color;
+        }
+
+        .pv_number {
+          font-size: $h3s;
+          font-weight: $h3w;
+        }
+      }
+
+      @mixin shadow($color: rgba(0, 0, 0, 0.3)) {
+        box-shadow: inset 3px 0 0 0 $color;
+      }
+
+      .red {
+        @include shadow(red);
+      }
+
+      .yellow {
+        @include shadow(yellow);
+      }
+
+      .green {
+        @include shadow(green);
+      }
+
+      .blue {
+        @include shadow(blue);
+      }
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: 280px;
+      gap: 15px;
+      width: 100%;
+      margin: 10px 0;
+
+      .stats_grid {
+        background-color: white;
+        padding: 16px;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .stats_text {
+          font-size: 16px;
+          font-weight: 700;
+          color: $secondary-color;
+          margin-bottom: 8px;
+        }
+
+        .chart-wrapper {
+          position: relative;
+          flex: 1;
+          min-height: 0;
+        }
+
+        .matrix-table-wrapper {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+        }
+
+        .matrix-table {
+          width: 100%;
+          border-collapse: collapse;
+
+          th,
+          td {
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            border: 1px solid #eee;
+          }
+
+          thead tr {
+            th {
+              background: #dde1e8; // lebih tua dari sebelumnya (#fafafa), beda level dari data
+              color: #444;
+              font-weight: 600;
+              white-space: nowrap;
+              border-bottom: 2px solid #b7bcc6; // garis pembatas di bawah judul atas
+            }
+          }
+
+          .corner-cell {
+            font-size: 11px;
+            font-style: italic;
+            color: #777;
+          }
+
+          .category-badge-cell {
+            text-align: left;
+            padding-left: 10px;
+            background: #fff; // beda dari header event, tetap netral
+            border-bottom: 2px solid #b7bcc6; // sejajar dgn border-bottom header row
+          }
+
+          .category-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 999px; // ini yang bikin melingkar penuh (pill)
+            font-weight: 600;
+            font-size: 12px;
+            white-space: nowrap;
+          }
+
+          td {
+            color: #1a1a1a;
+            font-weight: 500;
+          }
+
+          .total-cell {
+            background: #f0f2f5 !important;
+            font-weight: 700;
+            color: #333;
+          }
+
+          .total-row {
+            th,
+            td {
+              background: #e8eaed;
+              font-weight: 700;
+              color: #222;
+              border-top: 2px solid #ccc;
+            }
+          }
+        }
+      }
+    }
+  }
+}
