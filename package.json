@@ -2,5 +2,9 @@
   "devDependencies": {
     "prettier": "^3.9.6",
     "prettier-plugin-jinja-template": "^2.2.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "chartjs-plugin-datalabels": "^2.2.0"
   }
 }

@@ -1,6 +1,10 @@
 {% extends "partials/top-sidebar.html" %}
 {% block title %}<title>Workspace - RnD Portal</title>{% endblock %}
 {% block styles %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/workspace/issue-monitor/style.css') }}"
+  />
 {% endblock %}
 {% block content %}
   <div class="nav__bar">
@@ -148,13 +152,28 @@
         <h1>Test2</h1>
       </div>
     </div>
+    <div class="body" data-panel="issue-register">
+      <h1>Register an Issue</h1>
+      <form action="" method="post">
+        <input
+          type="text"
+          placeholder="Please Insert a title for the Issue"
+          required
+        />
+        <textarea
+          placeholder="Please Provide a Description about the Issue you are trying to input"
+          required
+        ></textarea>
+        <input type="date" required>
+        <input type="file" required>
+      </form>
+    </div>
+    <div class="body" data-panel="input-issue">
+      <h1>Test2</h1>
+    </div>
   </div>
 {% endblock %}
 {% block script %}
   {{ super() }}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script
-    type="module"
-    src="{{ url_for('static', filename='javascript/workspace/issue-monitor.js')}}"
-  ></script>
+  <script src="{{ url_for('static', filename='javascript/workspace/issue-monitor.js')}}"></script>
 {% endblock %}
