@@ -1,4 +1,4 @@
-# Imports
+# --- Package Import ----
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_scss import Scss
 from flask_sqlalchemy import SQLAlchemy
@@ -7,21 +7,23 @@ from datetime import datetime
 from functools import wraps
 import secrets
 
-# App Setup
+# ---- App Setup ----
 app = Flask(__name__)
 Scss(app)
 
+# ---- App Configuration ----
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 db = SQLAlchemy(app)
 
-# Data Rows
+# ---- SQLite Database for Dummy Model ----
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(255), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+    # ---- Password Hash Generation ----
     def set_password(self, password):
         self.password_hash = generate_password_hash(password, method='scrypt')
 
@@ -31,6 +33,7 @@ class User(db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
+# ---- Define Barrier ----
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -39,7 +42,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
+# ---- Web Routing ----
 @app.route('/', methods=['GET'])
 def onboard():
     if 'user_id' in session:
@@ -76,7 +79,6 @@ def register():
         return jsonify({'message': f'User {username} successfully created.'}), 201
 
     return render_template('auth/auth.html')
-
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -145,6 +147,7 @@ def logout():
     session.clear()
     return jsonify({'message': 'Logged out.'}), 200
 
+# ---- Running and Debugging ----
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

@@ -57,77 +57,6 @@ select {
 .main-body-content .body.active {
   display: block;
 }
-.main-body-content .body .activity-filters {
-  display: flex;
-  flex-direction: column;
-  margin: 15px 0;
-  padding: 15px;
-  gap: 10px;
-  width: 100%;
-  background-color: white;
-  border-radius: 12px;
-  border: 1px solid #a50034;
-}
-.main-body-content .body .activity-filters .search_and_filters form {
-  display: flex;
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-.main-body-content .body .activity-filters .search_and_filters form label {
-  color: #a50034;
-  font-size: 12px;
-  white-space: nowrap;
-}
-.main-body-content .body .activity-filters .search_and_filters form input,
-.main-body-content .body .activity-filters .search_and_filters form select {
-  border-radius: 6px;
-  border-color: #f0f0f0;
-  outline: none;
-  width: 100%;
-}
-.main-body-content .body .activity-filters .search_and_filters form .category,
-.main-body-content .body .activity-filters .search_and_filters form .event {
-  border: 1px solid #1b1b1b;
-}
-.main-body-content .body .activity-filters .btns {
-  display: flex;
-  justify-content: space-between;
-}
-.main-body-content .body .activity-filters .btns button {
-  background-color: white;
-  border: none;
-  border: 1px solid #f0f0f0;
-  border-radius: 6px;
-  padding: 0 20px;
-  flex-shrink: 0;
-  white-space: nowrap;
-  justify-content: center;
-  color: #6b6b6b;
-  font-size: 400;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.main-body-content .body .activity-filters .btns button:hover {
-  border: 1px solid #525252;
-}
-.main-body-content .body .activity-filters .btns .execute_btns {
-  margin: 0;
-  padding: 0;
-}
-.main-body-content .body .activity-filters .btns .execute_btns button {
-  border: 1px solid #a50034;
-  color: #a50034;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.main-body-content .body .activity-filters .btns .execute_btns button:hover {
-  background-color: rgba(107, 107, 107, 0.2);
-  border-color: #700023;
-  color: #700023;
-}
 .main-body-content .body .preview_total {
   display: flex;
   justify-content: space-between;
@@ -172,6 +101,7 @@ select {
 }
 .main-body-content .body .grid-container .stats_grid {
   background-color: white;
+  border: 1px solid #a50034;
   padding: 16px;
   border-radius: 6px;
   display: flex;
@@ -193,6 +123,8 @@ select {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #a50034 #6b6b6b;
 }
 .main-body-content .body .grid-container .stats_grid .matrix-table {
   width: 100%;
@@ -246,4 +178,141 @@ select {
   font-weight: 700;
   color: #222;
   border-top: 2px solid #ccc;
+}
+.main-body-content .body .register-issue {
+  background-color: white;
+  border: 1px solid #a50034;
+  border-radius: 6px;
+}
+.main-body-content .body .register-issue form {
+  display: flex;
+  flex-direction: column;
+  margin: 15px 20px;
+  gap: 15px;
+}
+.main-body-content .body .register-issue form input,
+.main-body-content .body .register-issue form textarea {
+  padding: 5px;
+  outline-color: #a50034;
+  border: 1px solid #bfbfbf;
+  border-radius: 6px;
+  font-size: 400;
+  transition: all 0.3s ease;
+}
+.main-body-content .body .register-issue form input:focus,
+.main-body-content .body .register-issue form textarea:focus {
+  transform: scale(1.05);
+}
+.main-body-content .body .register-issue form textarea {
+  width: 100%;
+  height: 200px;
+  resize: none;
+}
+.main-body-content .body .register-issue form #sub_btn {
+  color: white;
+  background-color: #a50034;
+  transition: all 0.3s ease;
+}
+.main-body-content .body .register-issue form #sub_btn:hover {
+  background-color: #700023;
+  transform: scale(1.05);
+}
+.main-body-content .body .activity-filters {
+  display: flex;
+  flex-direction: column;
+  margin: 15px 0;
+  padding: 15px;
+  gap: 10px;
+  width: 100%;
+  background-color: white;
+  border-radius: 12px;
+  border: 1px solid #a50034;
+}
+.main-body-content .body .activity-filters .search_and_filters form {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.main-body-content .body .activity-filters .search_and_filters form label {
+  color: #a50034;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.main-body-content .body .activity-filters .search_and_filters form input,
+.main-body-content .body .activity-filters .search_and_filters form select {
+  border-radius: 6px;
+  outline-color: #a50034;
+  width: 100%;
+}
+.main-body-content .body .activity-filters .search_and_filters form .category,
+.main-body-content .body .activity-filters .search_and_filters form .event {
+  border: 1px solid #1b1b1b;
+}
+.main-body-content .body .activity-filters .btns {
+  display: flex;
+  justify-content: space-between;
+}
+.main-body-content .body .activity-filters .btns button {
+  background-color: white;
+  border: none;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 0 20px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  justify-content: center;
+  color: #6b6b6b;
+  font-size: 400;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.main-body-content .body .activity-filters .btns button:hover {
+  border: 1px solid #525252;
+}
+.main-body-content .body .activity-filters .btns .execute_btns {
+  margin: 0;
+  padding: 0;
+}
+.main-body-content .body .activity-filters .btns .execute_btns button {
+  border: 1px solid #a50034;
+  color: #a50034;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.main-body-content .body .activity-filters .btns .execute_btns button:hover {
+  background-color: rgba(107, 107, 107, 0.2);
+  border-color: #700023;
+  color: #700023;
+}
+.main-body-content .body .list {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: white;
+  border: 1px solid #a50034;
+  border-radius: 6px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.main-body-content .body .list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.main-body-content .body .list table thead,
+.main-body-content .body .list table th {
+  background: #dde1e8;
+  color: #444;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid #b7bcc6;
+}
+.main-body-content .body .list table .center {
+  text-align: center;
+}
+.main-body-content .body .list table .right {
+  text-align: right;
 }/*# sourceMappingURL=style.css.map */

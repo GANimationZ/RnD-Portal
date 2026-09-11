@@ -51,91 +51,7 @@
       display: block;
     }
 
-    .activity-filters {
-      display: flex;
-      flex-direction: column;
-      margin: 15px 0;
-      padding: 15px;
-      gap: 10px;
-      width: 100%;
-      background-color: white;
-      border-radius: 12px;
-      border: 1px solid $primary-color;
-
-      .search_and_filters {
-        form {
-          display: flex;
-          flex: 1;
-          justify-content: center;
-          align-items: center;
-          gap: 10px;
-
-          label {
-            color: $primary-color;
-            font-size: 12px;
-            white-space: nowrap;
-          }
-
-          input,
-          select {
-            border-radius: 6px;
-            border-color: $tertiary-color;
-            outline: none;
-            width: 100%;
-          }
-
-          .category,
-          .event {
-            border: 1px solid $fiftiary-color;
-          }
-        }
-      }
-
-      .btns {
-        display: flex;
-        justify-content: space-between;
-
-        button {
-          background-color: white;
-          border: none;
-          border: 1px solid $tertiary-color;
-          border-radius: 6px;
-          padding: 0 20px;
-          flex-shrink: 0;
-          white-space: nowrap;
-          justify-content: center;
-          color: $secondary-color;
-          font-size: $ps;
-          font-weight: $h6w;
-          cursor: pointer;
-
-          transition: all 0.3s ease;
-
-          &:hover {
-            border: 1px solid $secondary-hover-color;
-          }
-        }
-
-        .execute_btns {
-          margin: 0;
-          padding: 0;
-
-          button {
-            border: 1px solid $primary-color;
-            color: $primary-color;
-            cursor: pointer;
-
-            transition: all 0.3s ease;
-
-            &:hover {
-              background-color: rgba($color: $secondary-color, $alpha: 0.2);
-              border-color: $primary-hover-color;
-              color: $primary-hover-color;
-            }
-          }
-        }
-      }
-    }
+    // ---- Body Dashboard ---- //
 
     .preview_total {
       display: flex;
@@ -193,6 +109,7 @@
 
       .stats_grid {
         background-color: white;
+        border: 1px solid $primary-color;
         padding: 16px;
         border-radius: 6px;
         display: flex;
@@ -216,6 +133,9 @@
           flex: 1;
           min-height: 0;
           overflow-y: auto;
+
+          scrollbar-width: thin;
+          scrollbar-color: $primary-color $secondary-color;
         }
 
         .matrix-table {
@@ -232,11 +152,11 @@
 
           thead tr {
             th {
-              background: #dde1e8; // lebih tua dari sebelumnya (#fafafa), beda level dari data
+              background: #dde1e8;
               color: #444;
               font-weight: 600;
               white-space: nowrap;
-              border-bottom: 2px solid #b7bcc6; // garis pembatas di bawah judul atas
+              border-bottom: 2px solid #b7bcc6;
             }
           }
 
@@ -249,14 +169,14 @@
           .category-badge-cell {
             text-align: left;
             padding-left: 10px;
-            background: #fff; // beda dari header event, tetap netral
-            border-bottom: 2px solid #b7bcc6; // sejajar dgn border-bottom header row
+            background: #fff;
+            border-bottom: 2px solid #b7bcc6;
           }
 
           .category-badge {
             display: inline-block;
             padding: 4px 14px;
-            border-radius: 999px; // ini yang bikin melingkar penuh (pill)
+            border-radius: 999px;
             font-weight: 600;
             font-size: 12px;
             white-space: nowrap;
@@ -282,6 +202,173 @@
               border-top: 2px solid #ccc;
             }
           }
+        }
+      }
+    }
+
+    // ---- Body Issue Register ---- //
+    .register-issue {
+      background-color: white;
+      border: 1px solid $primary-color;
+      border-radius: 6px;
+
+      form {
+        display: flex;
+        flex-direction: column;
+        margin: 15px 20px;
+        gap: 15px;
+
+        input,
+        textarea {
+          padding: 5px;
+          outline-color: $primary-color;
+          border: 1px solid $fourtiary-color;
+          border-radius: 6px;
+          font-size: $ps;
+
+          transition: all 0.3s ease;
+
+          &:focus {
+            transform: scale(1.05);
+          }
+        }
+
+        textarea {
+          width: 100%;
+          height: 200px;
+          resize: none;
+        }
+
+        #sub_btn {
+          color: white;
+          background-color: $primary-color;
+
+          transition: all 0.3s ease;
+
+          &:hover {
+            background-color: $primary-hover-color;
+            transform: scale(1.05);
+          }
+        }
+      }
+    }
+
+    // ---- Body List Issue ---- //
+    .activity-filters {
+      display: flex;
+      flex-direction: column;
+      margin: 15px 0;
+      padding: 15px;
+      gap: 10px;
+      width: 100%;
+      background-color: white;
+      border-radius: 12px;
+      border: 1px solid $primary-color;
+
+      .search_and_filters {
+        form {
+          display: flex;
+          flex: 1;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+
+          label {
+            color: $primary-color;
+            font-size: 12px;
+            white-space: nowrap;
+          }
+
+          input,
+          select {
+            border-radius: 6px;
+            outline-color: $primary-color;
+            width: 100%;
+          }
+
+          .category,
+          .event {
+            border: 1px solid $fiftiary-color;
+          }
+        }
+      }
+
+      .btns {
+        display: flex;
+        justify-content: space-between;
+
+        button {
+          background-color: white;
+          border: none;
+          border: 1px solid $tertiary-color;
+          border-radius: 6px;
+          padding: 0 20px;
+          flex-shrink: 0;
+          white-space: nowrap;
+          justify-content: center;
+          color: $secondary-color;
+          font-size: $ps;
+          font-weight: $h6w;
+          cursor: pointer;
+
+          transition: all 0.3s ease;
+
+          &:hover {
+            border: 1px solid $secondary-hover-color;
+          }
+        }
+
+        .execute_btns {
+          margin: 0;
+          padding: 0;
+
+          button {
+            border: 1px solid $primary-color;
+            color: $primary-color;
+            cursor: pointer;
+
+            transition: all 0.3s ease;
+
+            &:hover {
+              background-color: rgba($color: $secondary-color, $alpha: 0.2);
+              border-color: $primary-hover-color;
+              color: $primary-hover-color;
+            }
+          }
+        }
+      }
+    }
+
+    .list {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: white;
+      border: 1px solid $primary-color;
+      border-radius: 6px;
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+
+        thead,
+        th {
+          background: #dde1e8;
+          color: #444;
+          font-weight: 600;
+          white-space: nowrap;
+          border-bottom: 2px solid #b7bcc6;
+        }
+
+        .center {
+          text-align: center;
+        }
+
+        .right {
+          text-align: right;
         }
       }
     }

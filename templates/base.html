@@ -25,6 +25,11 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/base.css') }}"
     />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='vendor/flatpickr/flatpickr.min.css') }}"
+    />
+    <script src="{{ url_for('static', filename='vendor/flatpickr/flatpickr.min.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/chartjs/chartjs-plugin-datalabels.min.js') }}"></script>
     {% block head %}{% endblock %}

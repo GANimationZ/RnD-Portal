@@ -1,3 +1,4 @@
+// ---- Navbar for Panel switching ---- //
 const navBar = document.querySelector(".nav__bar");
 const panels = document.querySelectorAll(".main-body-content .body");
 
@@ -24,9 +25,14 @@ navBar.addEventListener("click", (e) => {
   }
 });
 
-// Matrix Table Chart
+// ---- Panel Dashboard ---- //
+// Area fungsi untuk panel dashboard
+
+// ---- Matrix Table Chart ---- //
 Chart.register(ChartDataLabels);
 
+// ---- Define Data ---- (Dummy Data) //
+// Categories //
 const categoryData = [
   { label: "PCBA/SMT", value: 1, color: "#b32e2e" },
   { label: "SQA", value: 4, color: "#dd3d3d" },
@@ -35,6 +41,7 @@ const categoryData = [
   { label: "CSS/SVC", value: 0, color: "#2e92cc" },
 ];
 
+// Event //
 const eventData = [
   { label: "PV", value: 3, color: "#143820" },
   { label: "Pre-MP", value: 2, color: "#e24b4a" },
@@ -42,6 +49,7 @@ const eventData = [
   { label: "Field", value: 0, color: "#e24b4a" },
 ];
 
+// Status //
 const statusData = [
   { label: "Open", value: 3, color: "#143820" },
   { label: "HOLD", value: 2, color: "#e24b4a" },
@@ -51,21 +59,7 @@ const statusData = [
   { label: "Open - analysis requested", value: 0, color: "#215227" },
 ];
 
-const categories = categoryData.map((d) => d.label);
-const categoryColors = Object.fromEntries(
-  categoryData.map((d) => [d.label, d.color]),
-);
-
-const event = eventData.map((e) => e.label);
-const eventColors = Object.fromEntries(
-  eventData.map((e) => [e.label, e.color]),
-);
-
-const status = statusData.map((s) => s.label);
-const statusColors = Object.fromEntries(
-  statusData.map((s) => [s.label, s.color]),
-);
-
+// Matrix (Issue x Event) //
 const events = ["PV", "PRE-MP", "MP", "FIELD"];
 const matrixData = [
   [1, 0, 0, 0],
@@ -75,6 +69,26 @@ const matrixData = [
   [0, 0, 0, 0],
 ];
 
+// ---- Define Mapping and Colors ---- //
+// Categories //
+const categories = categoryData.map((d) => d.label);
+const categoryColors = Object.fromEntries(
+  categoryData.map((d) => [d.label, d.color]),
+);
+
+// Event //
+const event = eventData.map((e) => e.label);
+const eventColors = Object.fromEntries(
+  eventData.map((e) => [e.label, e.color]),
+);
+
+// Status //
+const status = statusData.map((s) => s.label);
+const statusColors = Object.fromEntries(
+  statusData.map((s) => [s.label, s.color]),
+);
+
+// Matrix (Issue x Event) //
 const maxValue = Math.max(...categoryData.map((d) => d.value));
 
 function getHeatColor(value, max) {
@@ -83,6 +97,155 @@ function getHeatColor(value, max) {
   return `hsl(341, 100%, ${lightness}%)`;
 }
 
+// ---- Fucntion Render Chart ---- //
+// Categories //
+const ctc = document.getElementById("category");
+new Chart(ctc, {
+  type: "bar",
+  data: {
+    labels: categoryData.map((d) => d.label),
+    datasets: [
+      {
+        label: "Jumlah Issue",
+        data: categoryData.map((d) => d.value),
+        backgroundColor: categoryData.map((d) => d.color),
+        borderRadius: 4,
+        categoryPercentage: 1.0,
+        barPercentage: 0.9,
+      },
+    ],
+  },
+  options: {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { left: 0, right: 36 } },
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        anchor: "end",
+        align: "end",
+        clamp: true,
+        offset: 4,
+        color: "#333",
+        font: { weight: "bold", size: 11 },
+        formatter: (value) => value,
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        max: maxValue,
+        grid: { display: true },
+        ticks: { display: false },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { crossAlign: "far", padding: 0 },
+      },
+    },
+  },
+});
+
+// Event //
+const cte = document.getElementById("event");
+new Chart(cte, {
+  type: "bar",
+  data: {
+    labels: eventData.map((e) => e.label),
+    datasets: [
+      {
+        label: "Jumlah Issue",
+        data: eventData.map((e) => e.value),
+        backgroundColor: eventData.map((e) => e.color),
+        borderRadius: 4,
+        categoryPercentage: 1.0,
+        barPercentage: 0.9,
+      },
+    ],
+  },
+  options: {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { left: 0, right: 36 } },
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        anchor: "end",
+        align: "end",
+        clamp: true,
+        offset: 4,
+        color: "#333",
+        font: { weight: "bold", size: 11 },
+        formatter: (value) => value,
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        max: maxValue,
+        grid: { display: true },
+        ticks: { display: false },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { crossAlign: "far", padding: 0 },
+      },
+    },
+  },
+});
+
+// Status //
+const cts = document.getElementById("status");
+new Chart(cts, {
+  type: "bar",
+  data: {
+    labels: statusData.map((s) => s.label),
+    datasets: [
+      {
+        label: "Jumlah Issue",
+        data: statusData.map((s) => s.value),
+        backgroundColor: eventData.map((s) => s.color),
+        borderRadius: 4,
+        categoryPercentage: 1.0,
+        barPercentage: 0.9,
+      },
+    ],
+  },
+  options: {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { left: 0, right: 36 } },
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        anchor: "end",
+        align: "end",
+        clamp: true,
+        offset: 4,
+        color: "#333",
+        font: { weight: "bold", size: 11 },
+        formatter: (value) => value,
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        max: maxValue,
+        grid: { display: true },
+        ticks: { display: false },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { crossAlign: "far", padding: 0 },
+      },
+    },
+  },
+});
+
+// Matrix (Issue x Event) //
 function renderMatrixTable() {
   const table = document.getElementById("matrixTable");
   const max = Math.max(...matrixData.flat());
@@ -153,149 +316,15 @@ function renderMatrixTable() {
   tbody.appendChild(totalRow);
 }
 
-// Bar Chart
-const ctc = document.getElementById("category");
-new Chart(ctc, {
-  type: "bar",
-  data: {
-    labels: categoryData.map((d) => d.label),
-    datasets: [
-      {
-        label: "Jumlah Issue",
-        data: categoryData.map((d) => d.value),
-        backgroundColor: categoryData.map((d) => d.color),
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      },
-    ],
-  },
-  options: {
-    indexAxis: "y",
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: { padding: { left: 0, right: 36 } },
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-        anchor: "end",
-        align: "end",
-        clamp: true,
-        offset: 4,
-        color: "#333",
-        font: { weight: "bold", size: 11 },
-        formatter: (value) => value,
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: maxValue,
-        grid: { display: true },
-        ticks: { display: false },
-      },
-      y: {
-        grid: { display: false },
-        ticks: { crossAlign: "far", padding: 0 },
-      },
-    },
-  },
-});
-
-const cte = document.getElementById("event");
-new Chart(cte, {
-  type: "bar",
-  data: {
-    labels: eventData.map((e) => e.label),
-    datasets: [
-      {
-        label: "Jumlah Issue",
-        data: eventData.map((e) => e.value),
-        backgroundColor: eventData.map((e) => e.color),
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      },
-    ],
-  },
-  options: {
-    indexAxis: "y",
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: { padding: { left: 0, right: 36 } },
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-        anchor: "end",
-        align: "end",
-        clamp: true,
-        offset: 4,
-        color: "#333",
-        font: { weight: "bold", size: 11 },
-        formatter: (value) => value,
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: maxValue,
-        grid: { display: true },
-        ticks: { display: false },
-      },
-      y: {
-        grid: { display: false },
-        ticks: { crossAlign: "far", padding: 0 },
-      },
-    },
-  },
-});
-
-const cts = document.getElementById("status");
-new Chart(cts, {
-  type: "bar",
-  data: {
-    labels: statusData.map((s) => s.label),
-    datasets: [
-      {
-        label: "Jumlah Issue",
-        data: statusData.map((s) => s.value),
-        backgroundColor: eventData.map((s) => s.color),
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      },
-    ],
-  },
-  options: {
-    indexAxis: "y",
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: { padding: { left: 0, right: 36 } },
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-        anchor: "end",
-        align: "end",
-        clamp: true,
-        offset: 4,
-        color: "#333",
-        font: { weight: "bold", size: 11 },
-        formatter: (value) => value,
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: maxValue,
-        grid: { display: true },
-        ticks: { display: false },
-      },
-      y: {
-        grid: { display: false },
-        ticks: { crossAlign: "far", padding: 0 },
-      },
-    },
-  },
-});
-
 renderMatrixTable();
+
+// ---- Panel Issue Register ---- //
+// Area fungsi untuk panel mendaftarkan issue
+
+// DateTime Placeholder
+flatpickr("#issueDate", {
+  dateFormat: "Y-m-d",
+  altInput: true,
+  altFormat: "d/m/Y",
+  allowInput: true,
+});

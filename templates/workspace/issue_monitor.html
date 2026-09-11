@@ -1,3 +1,4 @@
+{# ---- Define / Extends ---- #}
 {% extends "partials/top-sidebar.html" %}
 {% block title %}<title>Workspace - RnD Portal</title>{% endblock %}
 {% block styles %}
@@ -6,6 +7,8 @@
     href="{{ url_for('static', filename='css/workspace/issue-monitor/style.css') }}"
   />
 {% endblock %}
+
+{# ---- Top Content ---- #}
 {% block content %}
   <div class="nav__bar">
     <span class="nav-item__left flex-1 active" data-tab="dashboard"
@@ -15,70 +18,16 @@
       <i class="bxf bx-plus"></i>
       Issue Register</span
     >
-    <span class="nav-item__left flex-1" data-tab="input-issue">
-      List Issue</span
-    >
+    <span class="nav-item__left flex-1" data-tab="list-issue">List Issue</span>
     <span class="nav-item__left flex-1" data-tab="priority-matrix"
       >Priority Matrix</span
     >
   </div>
 
+  {# ---- Main Content Panel ---- #}
   <div class="main-body-content">
+    {# ---- Panel Dashboard ---- #}
     <div class="body active" data-panel="dashboard">
-      <div class="activity-filters">
-        <div class="search_and_filters">
-          <form id="s_f" action="" method="get">
-            <label for="a_f">ACTIVE FILTERS</label>
-            <input type="text" placeholder="Search issue, model, S/N, W/O" />
-            <select class="priority">
-              <option value="All Priority" disabled selected>
-                All Priority
-              </option>
-              <option value="High">High</option>
-              <option value="Mid">Mid</option>
-              <option value="Low">Low</option>
-            </select>
-            <select class="status">
-              <option value="All Status" disabled selected>All Status</option>
-              <option value="P1 DO NOW">P1 DO NOW</option>
-              <option value="P2 SCHEDULE">P2 SCHEDULE</option>
-              <option value="ON HOLD">ON HOLD</option>
-              <option value="CLOSED">CLOSED</option>
-              <option value="CLOSED">CLOSED</option>
-            </select>
-            <select class="category">
-              <option value="All Category" disabled selected>
-                All Category
-              </option>
-              <option value="PCBA/SMT">PCBA/SMT</option>
-              <option value="SQA">SQA</option>
-              <option value="Line Prod">Line-Prod</option>
-              <option value="OQA">OQA</option>
-              <option value="CSS/SVC">CSS/SVC</option>
-            </select>
-            <select class="event">
-              <option value="All Event" disabled selected>All Event</option>
-              <option value="PV">PV</option>
-              <option value="Pre-MP">Pre-MP</option>
-              <option value="MP">MP</option>
-              <option value="Field">Field</option>
-            </select>
-            <select class="owner">
-              <option value="All Owners" disabled selected>All Owners</option>
-              {% for user in users %}
-                <option value="{{ user.id }}">{{ user.username }}</option>
-              {% endfor %}
-            </select>
-          </form>
-        </div>
-        <div class="btns">
-          <button id="reset">Reset</button>
-          <div class="execute_btns">
-            <button><i class="bxf bx-arrow-to-bottom"></i>Excel</button>
-            <button><i class="bxf bx-arrow-to-bottom"></i>CSV</button>
-          </div>
-        </div>
-      </div>
       <div class="preview_total">
         <div class="ttl_issues red">
           <span class="pv_text">TOTAL ISSUES</span
@@ -145,34 +94,128 @@
           </div>
         </div>
       </div>
-      <div class="body" data-panel="issue-register">
-        <h1>Test</h1>
-      </div>
-      <div class="body" data-panel="input-issue">
-        <h1>Test2</h1>
-      </div>
     </div>
+    {# ---- Panel Issue Register ---- #}
     <div class="body" data-panel="issue-register">
       <h1>Register an Issue</h1>
-      <form action="" method="post">
-        <input
-          type="text"
-          placeholder="Please Insert a title for the Issue"
-          required
-        />
-        <textarea
-          placeholder="Please Provide a Description about the Issue you are trying to input"
-          required
-        ></textarea>
-        <input type="date" required>
-        <input type="file" required>
-      </form>
+      <div class="register-issue">
+        <form action="" method="post">
+          <input
+            type="text"
+            placeholder="Please Insert a title for the Issue"
+            required
+          />
+          <textarea
+            placeholder="Please Provide a Description about the Issue you are trying to input"
+            required
+          ></textarea>
+          <input
+            type="text"
+            id="issueDate"
+            class="date-placeholder"
+            placeholder="Provide a Deadline"
+            required
+          />
+          <input type="file" required />
+          <input type="submit" value="Register Issue" id="sub_btn" />
+        </form>
+      </div>
     </div>
-    <div class="body" data-panel="input-issue">
-      <h1>Test2</h1>
+    {# ---- Panel List Issue ---- #}
+    <div class="body" data-panel="list-issue">
+      <div class="activity-filters">
+        <div class="search_and_filters">
+          <form id="s_f" action="" method="get">
+            <label for="a_f">ACTIVE FILTERS</label>
+            <input type="text" placeholder="Search issue, model, S/N, W/O" />
+            <select class="priority">
+              <option value="All Priority" disabled selected>
+                All Priority
+              </option>
+              <option value="High">High</option>
+              <option value="Mid">Mid</option>
+              <option value="Low">Low</option>
+            </select>
+            <select class="status">
+              <option value="All Status" disabled selected>All Status</option>
+              <option value="P1 DO NOW">P1 DO NOW</option>
+              <option value="P2 SCHEDULE">P2 SCHEDULE</option>
+              <option value="ON HOLD">ON HOLD</option>
+              <option value="CLOSED">CLOSED</option>
+              <option value="CLOSED">CLOSED</option>
+            </select>
+            <select class="category">
+              <option value="All Category" disabled selected>
+                All Category
+              </option>
+              <option value="PCBA/SMT">PCBA/SMT</option>
+              <option value="SQA">SQA</option>
+              <option value="Line Prod">Line-Prod</option>
+              <option value="OQA">OQA</option>
+              <option value="CSS/SVC">CSS/SVC</option>
+            </select>
+            <select class="event">
+              <option value="All Event" disabled selected>All Event</option>
+              <option value="PV">PV</option>
+              <option value="Pre-MP">Pre-MP</option>
+              <option value="MP">MP</option>
+              <option value="Field">Field</option>
+            </select>
+            <select class="owner">
+              <option value="All Owners" disabled selected>All Owners</option>
+              {% for user in users %}
+                <option value="{{ user.id }}">{{ user.username }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+        <div class="btns">
+          <button id="reset">Reset</button>
+          <div class="execute_btns">
+            <button><i class="bxf bx-arrow-to-bottom"></i>Excel</button>
+            <button><i class="bxf bx-arrow-to-bottom"></i>CSV</button>
+          </div>
+        </div>
+      </div>
+      <div class="list">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Title</th>
+              <th>Priority</th>
+              <th>Category</th>
+              <th>Event</th>
+              <th>Deadline</th>
+              <th>Owner</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>Check Quality, Module gone wrong</td>
+              <td class="center">High</td>
+              <td class="center">PCBA/SMT</td>
+              <td class="center">PV</td>
+              <td class="center">17-08-2026</td>
+              <td>Admin</td>
+              <td class="right">Pending</td>
+              <td class="right">
+                <button><i class="bxf bx-lock"></i></button>
+                <button><i class="bxf bx-folder"></i></button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+    <div class="body" data-panel="priority-matrix"></div>
   </div>
 {% endblock %}
+
+{# ---- Define Script ---- #}
 {% block script %}
   {{ super() }}
   <script src="{{ url_for('static', filename='javascript/workspace/issue-monitor.js')}}"></script>
