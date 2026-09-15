@@ -105,6 +105,21 @@
             placeholder="Please Insert a title for the Issue"
             required
           />
+          <select>
+            <option value="" disabled selected>Please Select a Category</option>
+            <option value="pcba_smt">PCBA/SMT</option>
+            <option value="SQA">SQA</option>
+            <option value="Line-Prod">Line-Prod</option>
+            <option value="OQA">OQA</option>
+            <option value="css_svc">CSS/SVC</option>
+          </select>
+          <select>
+            <option value="" disabled selected>Please Select an Event</option>
+            <option value="pv">PV</option>
+            <option value="pre_mp">Pre-MP</option>
+            <option value="mp">MP</option>
+            <option value="field">Field</option>
+          </select>
           <textarea
             placeholder="Please Provide a Description about the Issue you are trying to input"
             required
@@ -189,26 +204,26 @@
               <th>Deadline</th>
               <th>Owner</th>
               <th>Status</th>
-              <th>Action</th>
+              <th class="center">Action</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td>1</td>
-              <td>Check Quality, Module gone wrong</td>
-              <td class="center">High</td>
-              <td class="center">PCBA/SMT</td>
-              <td class="center">PV</td>
-              <td class="center">17-08-2026</td>
-              <td>Admin</td>
-              <td class="right">Pending</td>
-              <td class="right">
-                <button><i class="bxf bx-lock"></i></button>
-                <button><i class="bxf bx-folder"></i></button>
-              </td>
-            </tr>
+          <tbody id="issueTableBody">
+            <!-- baris di-generate JS -->
           </tbody>
         </table>
+
+        <div class="list__pagination">
+          <div class="pagination__info">
+            <span>Show</span>
+            <select id="rowsPerPage">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="20">20</option>
+            </select>
+            <span id="paginationSummary">Showing 1-10 of 42</span>
+          </div>
+          <div class="pagination__pages" id="paginationPages"></div>
+        </div>
       </div>
     </div>
     <div class="body" data-panel="priority-matrix"></div>

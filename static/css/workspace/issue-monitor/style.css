@@ -191,8 +191,10 @@ select {
   gap: 15px;
 }
 .main-body-content .body .register-issue form input,
+.main-body-content .body .register-issue form select,
 .main-body-content .body .register-issue form textarea {
   padding: 5px;
+  color: #6b6b6b;
   outline-color: #a50034;
   border: 1px solid #bfbfbf;
   border-radius: 6px;
@@ -200,6 +202,7 @@ select {
   transition: all 0.3s ease;
 }
 .main-body-content .body .register-issue form input:focus,
+.main-body-content .body .register-issue form select:focus,
 .main-body-content .body .register-issue form textarea:focus {
   transform: scale(1.05);
 }
@@ -292,27 +295,146 @@ select {
   padding: 10px;
   background-color: white;
   border: 1px solid #a50034;
-  border-radius: 6px;
+  border-radius: 8px;
   width: 100%;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 .main-body-content .body .list table {
   width: 100%;
   border-collapse: collapse;
 }
-.main-body-content .body .list table thead,
-.main-body-content .body .list table th {
+.main-body-content .body .list table th,
+.main-body-content .body .list table td {
+  padding: 10px 8px;
+  font-size: 13px;
+  border-right: 2px solid #eee;
+}
+.main-body-content .body .list table th:last-child,
+.main-body-content .body .list table td:last-child {
+  border-right: none;
+}
+.main-body-content .body .list table thead th {
   background: #dde1e8;
   color: #444;
   font-weight: 600;
   white-space: nowrap;
   border-bottom: 2px solid #b7bcc6;
+  text-align: left;
+}
+.main-body-content .body .list table tbody tr:nth-child(odd) {
+  background: #d8d8d8;
+}
+.main-body-content .body .list table tbody tr:nth-child(even) {
+  background: #f7f8fa;
+}
+.main-body-content .body .list table tbody tr:hover {
+  background: #85888d;
 }
 .main-body-content .body .list table .center {
   text-align: center;
 }
 .main-body-content .body .list table .right {
   text-align: right;
+}
+.main-body-content .body .list .badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.main-body-content .body .list .badge-red {
+  background: rgba(226, 75, 74, 0.12);
+  color: #e24b4a;
+}
+.main-body-content .body .list .badge-yellow {
+  background: rgba(242, 166, 35, 0.15);
+  color: #b9760a;
+}
+.main-body-content .body .list .badge-green {
+  background: rgba(61, 220, 151, 0.15);
+  color: #1a9c68;
+}
+.main-body-content .body .list .badge-blue {
+  background: rgba(79, 140, 255, 0.12);
+  color: #4f8cff;
+}
+.main-body-content .body .list .action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.main-body-content .body .list .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.main-body-content .body .list .action-btn i {
+  font-size: 16px;
+  line-height: 1;
+}
+.main-body-content .body .list .action-btn:hover {
+  background: #700023;
+  color: #a50034;
+}
+.main-body-content .body .list .list__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+  color: #666;
+}
+.main-body-content .body .list .pagination__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.main-body-content .body .list .pagination__info select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.main-body-content .body .list .pagination__pages {
+  display: flex;
+  gap: 4px;
+}
+.main-body-content .body .list .pagination__pages button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #444;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.main-body-content .body .list .pagination__pages button:hover:not(:disabled) {
+  background: #700023;
+}
+.main-body-content .body .list .pagination__pages button.is-active {
+  background: #a50034;
+  color: white;
+  border-color: #a50034;
+}
+.main-body-content .body .list .pagination__pages button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }/*# sourceMappingURL=style.css.map */

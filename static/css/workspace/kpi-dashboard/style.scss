@@ -1,0 +1,654 @@
+@use "../../base" as *;
+
+// ---- Navbar tab ----
+.nav__bar {
+  display: flex;
+  background-color: white;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .flex-1 {
+    box-sizing: border-box;
+    display: flex; // wajib biar justify-content di bawah efektif (span default bukan flex)
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: $secondary-color;
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 10px 20px;
+    margin: 0 5px;
+    font-size: 12px;
+    font-weight: 300;
+    height: 32px; // tinggi tetap, bukan max-height, biar tidak menyusut ke tinggi teks
+    line-height: 1;
+    cursor: pointer;
+    // border transparan direserve dari awal supaya tinggi kotak SAMA
+    // antara state normal & active/hover (yang cuma beda warna border)
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-bottom-color: $primary-color;
+      background-color: $fourtiary-color;
+    }
+
+    &.active {
+      border-bottom-color: $primary-color;
+      background-color: rgba($color: $fourtiary-color, $alpha: 0.25);
+    }
+  }
+}
+
+// ---- Tombol export/import (dipakai di panel Individual & Team) ----
+.btn-export {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: $primary-color;
+  background-color: white;
+  border: 1px solid $primary-color;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+
+  i {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  &:hover {
+    background-color: rgba($color: $primary-color, $alpha: 0.08);
+    border-color: $primary-hover-color;
+    color: $primary-hover-color;
+  }
+}
+
+.main-body-content {
+  padding: 0 20px;
+
+  .body {
+    width: 100%;
+    display: none;
+
+    &.active {
+      display: block;
+    }
+
+    // ---- Panel Individual ----
+    .main-container {
+      display: flex;
+      padding: 10px 0;
+      gap: 15px;
+      width: 100%;
+
+      .employees {
+        background-color: white;
+        border-radius: 6px;
+        border: 1px solid $primary-color;
+        flex: 0 0 320px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; // cegah tabel meluber ke second-container
+
+        &__header {
+          display: flex;
+          flex-direction: column; // judul & tombol ditumpuk, bukan sebaris,
+          gap: 8px; // supaya tidak tabrakan di lebar sempit
+          padding: 12px;
+          border-bottom: 1px solid #e4e7ec;
+          flex-shrink: 0;
+        }
+
+        &__title {
+          font-size: 13px;
+          font-weight: 700;
+          color: $secondary-color;
+        }
+
+        &__actions {
+          display: flex;
+          gap: 8px;
+
+          .btn-export {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 11px;
+          }
+        }
+
+        &__insights {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 12px;
+          border-top: 1px solid #e4e7ec;
+          flex-shrink: 0;
+        }
+
+        &__legend {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          font-size: 11px;
+          color: #8a8f98;
+          border-top: 1px solid #e4e7ec;
+          flex-shrink: 0;
+
+          .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            display: inline-block;
+            margin-left: 6px;
+
+            &:first-child {
+              margin-left: 0;
+            }
+          }
+        }
+
+        table {
+          width: 100%;
+          table-layout: fixed; // lebar kolom dikunci, tidak ikut melebar sesuai isi
+          border-collapse: collapse;
+
+          th {
+            background: #dde1e8;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 12px;
+            border-bottom: 2px solid #b7bcc6;
+
+            &:nth-child(1) {
+              width: 20%;
+            }
+            &:nth-child(2) {
+              width: 38%;
+            }
+            &:nth-child(3) {
+              width: 20%;
+              text-align: center;
+            }
+            &:nth-child(4) {
+              width: 22%;
+              text-align: center;
+            }
+          }
+
+          .center {
+            text-align: center;
+          }
+
+          tbody tr {
+            cursor: pointer;
+            transition: background 0.2s ease;
+
+            &:nth-child(odd) {
+              background: #fff;
+            }
+            &:nth-child(even) {
+              background: #f7f8fa;
+            }
+            &:hover {
+              background: $primary-hover-color;
+            }
+
+            &.is-active {
+              background: rgba($primary-color, 0.12);
+              box-shadow: inset 4px 0 0 0 $primary-color;
+            }
+
+            td {
+              padding: 8px 6px;
+              font-size: 13px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+          }
+
+          // ---- Badge Team ----
+          .team-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+          }
+
+          // ---- Bar "Beban" (avg hours) ----
+          .hours-bar-track {
+            position: relative;
+            width: 100%;
+            min-width: 40px;
+            height: 8px;
+            border-radius: 999px;
+            background: #eceff3;
+            overflow: hidden;
+          }
+
+          .hours-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.3s ease;
+          }
+        }
+      }
+
+      .second-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        flex: 1;
+        min-width: 0;
+
+        .graph-content {
+          background-color: white;
+          border-radius: 8px;
+          border: 1px solid $primary-color;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+
+          .chart-wrapper {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+
+            canvas {
+              width: 100% !important;
+              height: 100% !important;
+            }
+          }
+        }
+
+        .emp-content {
+          background-color: white;
+          border-radius: 8px;
+          border: 1px solid $primary-color;
+          padding: 20px;
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+        }
+      }
+    }
+
+    // ---- Panel Team ----
+    .team-panel__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .team-panel__title {
+      font-size: 16px;
+      font-weight: 700;
+      color: $secondary-color;
+    }
+
+    #teamSummary {
+      margin-bottom: 10px;
+    }
+
+    .graph-content--team {
+      height: 360px;
+      background-color: white;
+      border-radius: 8px;
+      border: 1px solid $primary-color;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+
+      .chart-wrapper {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+
+        canvas {
+          width: 100% !important;
+          height: 100% !important;
+        }
+      }
+    }
+
+    // ---- Leaderboard completion rate (biar panel Team tidak kosong) ----
+    .team-leaderboard {
+      margin: 15px 0;
+      background: white;
+      border: 1px solid $primary-color;
+      border-radius: 8px;
+      padding: 16px;
+
+      &__title {
+        display: block;
+        font-size: 16px;
+        font-weight: 700;
+        color: $secondary-color;
+        margin-bottom: 12px;
+      }
+
+      &__row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f1f3;
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+
+      &__rank {
+        width: 24px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #8a8f98;
+        flex-shrink: 0;
+      }
+
+      &__info {
+        display: flex;
+        flex-direction: column;
+        min-width: 110px;
+      }
+
+      &__name {
+        font-size: 13px;
+        font-weight: 600;
+        color: $secondary-color;
+      }
+
+      &__team {
+        font-size: 11px;
+        color: #8a8f98;
+      }
+
+      &__bar-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .hours-bar-track {
+          position: relative;
+          flex: 1;
+          height: 8px;
+          border-radius: 999px;
+          background: #eceff3;
+          overflow: hidden;
+        }
+
+        .hours-bar-fill {
+          height: 100%;
+          border-radius: 999px;
+          transition: width 0.3s ease;
+        }
+      }
+
+      &__rate {
+        font-size: 12px;
+        font-weight: 700;
+        color: $secondary-color;
+        width: 36px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+    }
+  }
+}
+
+// ==================== Elemen bersama (avatar, profile, stat card, notes, insight) ====================
+// Dipakai di renderEmpContent() & renderTeamSummary() (panel Individual/Team)
+// dan renderEmployeeInsights() / renderTeamLeaderboard().
+
+.emp-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  &__name {
+    font-size: 15px;
+    font-weight: 700;
+    color: $secondary-color;
+  }
+
+  &__role {
+    font-size: 12px;
+    color: #8a8f98;
+  }
+}
+
+.emp-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+
+  &--lg {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+}
+
+.emp-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+
+  &--team {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.emp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f7f8fa;
+  border: 1px solid #eceff3;
+
+  &__label {
+    font-size: 11px;
+    color: #8a8f98;
+  }
+
+  &__value {
+    font-size: 18px;
+    font-weight: 700;
+    color: $secondary-color;
+  }
+
+  &--danger {
+    background: rgba(226, 75, 74, 0.08);
+    border-color: rgba(226, 75, 74, 0.25);
+
+    .emp-stat__value {
+      color: #e24b4a;
+    }
+  }
+}
+
+.emp-notes {
+  &__title {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: $secondary-color;
+    margin-bottom: 8px;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  li {
+    font-size: 13px;
+    color: #444;
+    line-height: 1.5;
+  }
+}
+
+// ---- Panel "Beban Kerja" ringkas (bawah tabel Individual) ----
+.insight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f7f8fa;
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  &__label {
+    display: block;
+    font-size: 10px;
+    color: #8a8f98;
+  }
+
+  &__value {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: $secondary-color;
+  }
+
+  &--danger {
+    background: rgba(226, 75, 74, 0.06);
+  }
+}
+
+// ==================== Panel History ====================
+
+.history-panel {
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: $secondary-color;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__note {
+    font-size: 12px;
+    color: #8a8f98;
+    margin: 0 0 15px;
+    line-height: 1.5;
+  }
+}
+
+.history-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 15px 0;
+
+  &__select {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    label {
+      font-size: 12px;
+      color: $secondary-color;
+      white-space: nowrap;
+    }
+
+    select {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid $primary-color;
+      font-size: 12px;
+      outline-color: $primary-color;
+    }
+  }
+}
+
+.history-subnav {
+  display: flex;
+  gap: 6px;
+  background: #f0f1f3;
+  border-radius: 8px;
+  padding: 4px;
+
+  &__btn {
+    border: none;
+    background: transparent;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8a8f98;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: $primary-color;
+    }
+
+    &.active {
+      background: white;
+      color: $primary-color;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+  }
+}
+
+.history-subpanel {
+  margin-top: 15px;
+}

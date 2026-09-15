@@ -1,0 +1,310 @@
+@use "../../base" as *;
+
+// ---- Navbar tab ----
+.nav__bar {
+  display: flex;
+  background-color: white;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .flex-1 {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: $secondary-color;
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 10px 20px;
+    margin: 0 5px;
+    font-size: 12px;
+    font-weight: 300;
+    height: 32px;
+    line-height: 1;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-bottom-color: $primary-color;
+      background-color: $fourtiary-color;
+    }
+
+    &.active {
+      border-bottom-color: $primary-color;
+      background-color: rgba($color: $fourtiary-color, $alpha: 0.25);
+    }
+  }
+}
+
+.main-body-content {
+  padding: 0 20px;
+
+  .body {
+    width: 100%;
+    display: none;
+
+    &.active {
+      display: block;
+    }
+
+    // ---- Filter bar ----
+    .activity-filters {
+      display: flex;
+      flex-direction: column;
+      margin: 15px 0;
+      padding: 15px;
+      gap: 10px;
+      width: 100%;
+      background-color: white;
+      border-radius: 12px;
+      border: 1px solid $primary-color;
+
+      .search_and_filters {
+        form {
+          display: flex;
+          flex: 1;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
+
+          label {
+            color: $primary-color;
+            font-size: 12px;
+            white-space: nowrap;
+          }
+
+          input,
+          select {
+            border-radius: 6px;
+            outline-color: $primary-color;
+            width: 100%;
+          }
+        }
+      }
+
+      .btns {
+        display: flex;
+        justify-content: space-between;
+
+        button {
+          background-color: white;
+          border: 1px solid $tertiary-color;
+          border-radius: 6px;
+          padding: 0 20px;
+          flex-shrink: 0;
+          white-space: nowrap;
+          justify-content: center;
+          color: $secondary-color;
+          font-size: $ps;
+          font-weight: $h6w;
+          cursor: pointer;
+          transition: all 0.3s ease;
+
+          &:hover {
+            border: 1px solid $secondary-hover-color;
+          }
+        }
+      }
+    }
+
+    // ---- Panel Mainboard Tools: card & list ----
+    .main-container {
+      background-color: white;
+      border: 1px solid $primary-color;
+      border-radius: 8px;
+      padding: 16px;
+
+      &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+
+        .header {
+          font-size: 16px;
+          font-weight: 700;
+          color: $secondary-color;
+        }
+      }
+
+      .switcher {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid $primary-color;
+        border-radius: 6px;
+        background: white;
+        color: $primary-color;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        i {
+          font-size: 16px;
+        }
+
+        &:hover {
+          background-color: rgba($color: $primary-color, $alpha: 0.08);
+          border-color: $primary-hover-color;
+          color: $primary-hover-color;
+        }
+      }
+
+      .empty-state {
+        padding: 30px 10px;
+        text-align: center;
+        font-size: 13px;
+        color: #8a8f98;
+      }
+
+      // ---- Card grid ----
+      .card-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+      }
+
+      .tool-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid #e4e7ec;
+        border-radius: 8px;
+        background: #f7f8fa;
+        text-decoration: none;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: $primary-color;
+          background: $primary-hover-color;
+        }
+
+        &__icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: rgba($color: $primary-color, $alpha: 0.1);
+          color: $primary-color;
+          flex-shrink: 0;
+
+          i {
+            font-size: 18px;
+          }
+        }
+
+        &__body {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          flex: 1;
+          min-width: 0;
+        }
+
+        &__name {
+          font-size: 13px;
+          font-weight: 700;
+          color: $secondary-color;
+        }
+
+        &__type {
+          font-size: 11px;
+          color: #8a8f98;
+        }
+
+        &__owner {
+          font-size: 11px;
+          font-weight: 600;
+          color: $primary-color;
+          white-space: nowrap;
+        }
+      }
+
+      // ---- Menu list ----
+      .menu-list__container {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #e4e7ec;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .tool-list-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        text-decoration: none;
+        border-bottom: 1px solid #e4e7ec;
+        transition: background 0.2s ease;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:nth-child(even) {
+          background: #f7f8fa;
+        }
+
+        &:hover {
+          background: $primary-hover-color;
+        }
+
+        &__icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          background: rgba($color: $primary-color, $alpha: 0.1);
+          color: $primary-color;
+          flex-shrink: 0;
+
+          i {
+            font-size: 14px;
+          }
+        }
+
+        &__name {
+          font-size: 13px;
+          font-weight: 600;
+          color: $secondary-color;
+          flex: 1;
+          min-width: 0;
+        }
+
+        &__type {
+          font-size: 12px;
+          color: #8a8f98;
+          width: 120px;
+        }
+
+        &__owner {
+          font-size: 12px;
+          color: $primary-color;
+          font-weight: 600;
+          width: 120px;
+        }
+
+        &__chevron {
+          color: #8a8f98;
+          font-size: 16px;
+        }
+      }
+    }
+  }
+}

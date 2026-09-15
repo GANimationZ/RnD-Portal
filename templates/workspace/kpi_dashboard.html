@@ -1,16 +1,196 @@
 {% extends "partials/top-sidebar.html" %}
 
-{% block title %}<title>Workspace - RnD Portal</title>{% endblock %}
+{% block title %}<title>Team KPI Dashboard - RnD Portal</title>{% endblock %}
+
 {% block styles %}
+  {{ super() }}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/workspace/kpi-dashboard/style.css') }}"
+  />
 {% endblock %}
 
 {% block content %}
-  <div>
-    <h1>Ini Content KPI Dashboard</h1>
+  <div class="nav__bar">
+    <span class="flex-1 active" data-tab="individual">Individual</span>
+    <span class="flex-1" data-tab="team">Team</span>
+    <span class="flex-1" data-tab="history">History</span>
+  </div>
+
+  <div class="main-body-content">
+    {# ---- Panel Individual ---- #}
+    <div class="body active" data-panel="individual">
+      <div class="main-container">
+        <div class="employees">
+          <div class="employees__header">
+            <span class="employees__title">Employee Performance</span>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Avg Hours</th>
+                <th>Beban</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+          </table>
+
+          <div class="employees__insights" id="employeeInsights"></div>
+
+          <div class="employees__legend">
+            <span class="legend-dot" style="background:#1e7e33"></span>Cepat
+            <span class="legend-dot" style="background:#f2a623"></span>Sedang
+            <span class="legend-dot" style="background:#e24b4a"></span>Lama
+          </div>
+        </div>
+
+        <div class="second-container">
+          <div class="graph-content">
+            <span class="stats_text"
+              >RESOLUTION TREND (RESOLVED vs PENDING vs OVERDUE)</span
+            >
+            <div class="chart-wrapper">
+              <canvas id="empTrendChart"></canvas>
+            </div>
+          </div>
+          <div class="emp-content" id="empContent"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Panel Team ---- #}
+    <div class="body" data-panel="team">
+      <div class="team-panel__header">
+        <span class="team-panel__title">Team Summary</span>
+      </div>
+
+      <div id="teamSummary"></div>
+
+      <div class="graph-content graph-content--team">
+        <span class="stats_text"
+          >COMPLETED vs PENDING vs OVERDUE PER PERSON</span
+        >
+        <div class="chart-wrapper">
+          <canvas id="teamComparisonChart"></canvas>
+        </div>
+      </div>
+
+      <div class="team-leaderboard">
+        <span class="team-leaderboard__title">Peringkat Completion Rate</span>
+        <div id="teamLeaderboard"></div>
+      </div>
+    </div>
+
+    {# ---- Panel History ---- #}
+    <div class="body" data-panel="history">
+      <div class="history-panel__header">
+        <span class="history-panel__title">Riwayat Bulanan</span>
+        <div class="history-panel__actions">
+          <button type="button" class="btn-export" id="importHistoryBtn">
+            <i class="bxf bx-arrow-to-top"></i>
+            Import Excel
+          </button>
+          <input
+            type="file"
+            id="importHistoryInput"
+            accept=".xlsx,.xls"
+            hidden
+          />
+          <a
+            class="btn-export"
+            href="{{ url_for('kpi_dashboard.export_individual') }}"
+          >
+            <i class="bxf bx-arrow-to-bottom"></i>
+            Export Individual
+          </a>
+          <a
+            class="btn-export"
+            href="{{ url_for('kpi_dashboard.export_team') }}"
+          >
+            <i class="bxf bx-arrow-to-bottom"></i>
+            Export Team
+          </a>
+        </div>
+      </div>
+
+      <div class="history-controls">
+        <div class="history-controls__select">
+          <label for="historyMonthSelect">Bulan</label>
+          <select id="historyMonthSelect"></select>
+          <a class="btn-export" id="historyDownloadBtn" href="#">
+            <i class="bxf bx-arrow-to-bottom"></i>
+            Download File Ini
+          </a>
+        </div>
+
+        <div class="history-subnav">
+          <button
+            type="button"
+            class="history-subnav__btn active"
+            data-subtab="individual"
+          >
+            Individual
+          </button>
+          <button type="button" class="history-subnav__btn" data-subtab="team">
+            Team
+          </button>
+        </div>
+      </div>
+
+      {# ---- Sub-panel: Individual (data historis) ---- #}
+      <div class="history-subpanel active" data-subpanel="individual">
+        <div class="employees">
+          <div class="employees__header">
+            <span class="employees__title">Employee Performance</span>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Role</th>
+                <th>Avg Hours</th>
+                <th>Beban</th>
+              </tr>
+            </thead>
+            <tbody id="historyEmployeeTableBody"></tbody>
+          </table>
+
+          <div class="employees__insights" id="historyEmployeeInsights"></div>
+
+          <div class="employees__legend">
+            <span class="legend-dot" style="background:#1e7e33"></span>Cepat
+            <span class="legend-dot" style="background:#f2a623"></span>Sedang
+            <span class="legend-dot" style="background:#e24b4a"></span>Lama
+          </div>
+        </div>
+      </div>
+
+      {# ---- Sub-panel: Team (data historis) ---- #}
+      <div class="history-subpanel" data-subpanel="team" style="display: none">
+        <div id="historyTeamSummary"></div>
+
+        <div class="graph-content graph-content--team">
+          <span class="stats_text"
+            >COMPLETED vs PENDING vs OVERDUE PER PERSON</span
+          >
+          <div class="chart-wrapper">
+            <canvas id="historyTeamChart"></canvas>
+          </div>
+        </div>
+
+        <div class="team-leaderboard">
+          <span class="team-leaderboard__title">Peringkat Completion Rate</span>
+          <div id="historyTeamLeaderboard"></div>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock %}
 
 {% block script %}
   {{ super() }}
-  <script type="module" src=""></script>
+  <script src="{{ url_for('static', filename='javascript/workspace/kpi-dashboard.js') }}"></script>
 {% endblock %}

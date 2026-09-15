@@ -1,30 +1,3 @@
-// ---- Navbar for Panel switching ---- //
-const navBar = document.querySelector(".nav__bar");
-const panels = document.querySelectorAll(".main-body-content .body");
-
-navBar.addEventListener("click", (e) => {
-  const item = e.target.closest(".flex-1");
-  if (!item) return;
-
-  navBar
-    .querySelectorAll(".flex-1")
-    .forEach((el) => el.classList.remove("active"));
-  item.classList.add("active");
-
-  const target = item.dataset.tab;
-  let matched = false;
-
-  panels.forEach((panel) => {
-    const isMatch = panel.dataset.panel === target;
-    panel.classList.toggle("active", isMatch);
-    if (isMatch) matched = true;
-  });
-
-  if (!matched) {
-    console.warn(`Belum ada panel untuk tab "${target}"`);
-  }
-});
-
 // ---- Panel Dashboard ---- //
 // Area fungsi untuk panel dashboard
 
@@ -325,6 +298,154 @@ renderMatrixTable();
 flatpickr("#issueDate", {
   dateFormat: "Y-m-d",
   altInput: true,
-  altFormat: "d/m/Y",
+  altFormat: "d - m - Y",
   allowInput: true,
 });
+
+// ---- Panel List Issue ---- //
+// Area fungsi untuk panel pagination tabel dll
+
+const issueData = [
+  {
+    title: "Check Quality, Module gone wrong",
+    priority: "High",
+    category: "PCBA/SMT",
+    event: "PV",
+    deadline: "17-08-2026",
+    owner: "Admin",
+    status: "Pending",
+  },
+  {
+    title: "Firmware crash on boot sequence",
+    priority: "High",
+    category: "SQA",
+    event: "MP",
+    deadline: "18-08-2026",
+    owner: "Rani",
+    status: "Open",
+  },
+  {
+    title: "Assembly misalignment on tray B",
+    priority: "Medium",
+    category: "OQA",
+    event: "PV",
+    deadline: "20-08-2026",
+    owner: "Dimas",
+    status: "Open",
+  },
+  {
+    title: "Mainboard short circuit at test bench",
+    priority: "High",
+    category: "SQA",
+    event: "Field",
+    deadline: "21-08-2026",
+    owner: "Admin",
+    status: "Pending",
+  },
+  {
+    title: "Packaging label misprint batch 12",
+    priority: "Low",
+    category: "Line-Prod",
+    event: "MP",
+    deadline: "22-08-2026",
+    owner: "Sinta",
+    status: "Closed",
+  },
+];
+
+const PRIORITY_CLASS = {
+  High: "badge-red",
+  Medium: "badge-yellow",
+  Low: "badge-green",
+};
+const STATUS_CLASS = {
+  Open: "badge-blue",
+  Pending: "badge-yellow",
+  Closed: "badge-green",
+  "On Hold": "badge-red",
+};
+
+let currentPage = 1;
+let rowsPerPage = 10;
+
+function renderTable() {
+  const tbody = document.getElementById("issueTableBody");
+  tbody.innerHTML = "";
+
+  const start = (currentPage - 1) * rowsPerPage;
+  const pageData = issueData.slice(start, start + rowsPerPage);
+
+  pageData.forEach((issue, i) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${start + i + 1}</td>
+      <td>${issue.title}</td>
+      <td class="center"><span class="badge ${PRIORITY_CLASS[issue.priority]}">${issue.priority}</span></td>
+      <td class="center">${issue.category}</td>
+      <td class="center">${issue.event}</td>
+      <td class="center">${issue.deadline}</td>
+      <td>${issue.owner}</td>
+      <td class="center"><span class="badge ${STATUS_CLASS[issue.status]}">${issue.status}</span></td>
+      <td class="center">
+        <div class="action-buttons">
+          <button class="action-btn" title="Hold"><i class="bxf bx-lock"></i></button>
+          <button class="action-btn" title="Detail"><i class="bxf bx-folder"></i></button>
+          <button class="action-btn" title="Info"><i class="bxf bx-info-circle"></i></button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  renderPaginationSummary(start, start + pageData.length);
+  renderPaginationPages();
+}
+
+function renderPaginationSummary(start, end) {
+  const summary = document.getElementById("paginationSummary");
+  summary.textContent = `Showing ${issueData.length === 0 ? 0 : start + 1}-${end} of ${issueData.length}`;
+}
+
+function renderPaginationPages() {
+  const pagesEl = document.getElementById("paginationPages");
+  pagesEl.innerHTML = "";
+
+  const totalPages = Math.ceil(issueData.length / rowsPerPage);
+
+  const prevBtn = document.createElement("button");
+  prevBtn.textContent = "Prev";
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.addEventListener("click", () => {
+    currentPage--;
+    renderTable();
+  });
+  pagesEl.appendChild(prevBtn);
+
+  for (let p = 1; p <= totalPages; p++) {
+    const pageBtn = document.createElement("button");
+    pageBtn.textContent = p;
+    pageBtn.className = p === currentPage ? "is-active" : "";
+    pageBtn.addEventListener("click", () => {
+      currentPage = p;
+      renderTable();
+    });
+    pagesEl.appendChild(pageBtn);
+  }
+
+  const nextBtn = document.createElement("button");
+  nextBtn.textContent = "Next";
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.addEventListener("click", () => {
+    currentPage++;
+    renderTable();
+  });
+  pagesEl.appendChild(nextBtn);
+}
+
+document.getElementById("rowsPerPage").addEventListener("change", (e) => {
+  rowsPerPage = parseInt(e.target.value, 10);
+  currentPage = 1;
+  renderTable();
+});
+
+renderTable();

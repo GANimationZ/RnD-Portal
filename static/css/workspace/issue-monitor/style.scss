@@ -219,8 +219,10 @@
         gap: 15px;
 
         input,
+        select,
         textarea {
           padding: 5px;
+          color: $secondary-color;
           outline-color: $primary-color;
           border: 1px solid $fourtiary-color;
           border-radius: 6px;
@@ -344,23 +346,49 @@
       padding: 10px;
       background-color: white;
       border: 1px solid $primary-color;
-      border-radius: 6px;
+      border-radius: 8px;
       width: 100%;
       flex: 1;
       min-height: 0;
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
 
       table {
         width: 100%;
         border-collapse: collapse;
 
-        thead,
-        th {
+        th,
+        td {
+          padding: 10px 8px;
+          font-size: 13px;
+          border-right: 2px solid #eee;
+
+          &:last-child {
+            border-right: none;
+          }
+        }
+
+        thead th {
           background: #dde1e8;
           color: #444;
           font-weight: 600;
           white-space: nowrap;
           border-bottom: 2px solid #b7bcc6;
+          text-align: left;
+        }
+
+        tbody tr {
+          &:nth-child(odd) {
+            background: #d8d8d8;
+          }
+
+          &:nth-child(even) {
+            background: #f7f8fa;
+          }
+
+          &:hover {
+            background: #85888d;
+          }
         }
 
         .center {
@@ -369,6 +397,127 @@
 
         .right {
           text-align: right;
+        }
+      }
+
+      // ---- Badge (priority & status) ----
+      .badge {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .badge-red {
+        background: rgba(226, 75, 74, 0.12);
+        color: #e24b4a;
+      }
+
+      .badge-yellow {
+        background: rgba(242, 166, 35, 0.15);
+        color: #b9760a;
+      }
+
+      .badge-green {
+        background: rgba(61, 220, 151, 0.15);
+        color: #1a9c68;
+      }
+
+      .badge-blue {
+        background: rgba(79, 140, 255, 0.12);
+        color: #4f8cff;
+      }
+
+      // ---- Tombol aksi ----
+      .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #666;
+        cursor: pointer;
+        transition:
+          background 0.2s ease,
+          color 0.2s ease;
+
+        i {
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        &:hover {
+          background: $primary-hover-color;
+          color: $primary-color;
+        }
+      }
+
+      // ---- Pagination ----
+      .list__pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 12px;
+        margin-top: 8px;
+        border-top: 1px solid #eee;
+        font-size: 12px;
+        color: #666;
+      }
+
+      .pagination__info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        select {
+          padding: 4px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 12px;
+        }
+      }
+
+      .pagination__pages {
+        display: flex;
+        gap: 4px;
+
+        button {
+          min-width: 28px;
+          height: 28px;
+          padding: 0 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          background: white;
+          color: #444;
+          font-size: 12px;
+          cursor: pointer;
+          transition: background 0.2s ease;
+
+          &:hover:not(:disabled) {
+            background: $primary-hover-color;
+          }
+
+          &.is-active {
+            background: $primary-color;
+            color: white;
+            border-color: $primary-color;
+          }
+
+          &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+          }
         }
       }
     }

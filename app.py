@@ -5,11 +5,13 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from functools import wraps
+from library.workspace.kpi_dashboard.routes import kpi_dashboard_bp
 import secrets
 
 # ---- App Setup ----
 app = Flask(__name__)
 Scss(app)
+app.register_blueprint(kpi_dashboard_bp)
 
 # ---- App Configuration ----
 app.config['SECRET_KEY'] = secrets.token_hex(32)
@@ -117,20 +119,10 @@ def issue_monitor():
     
     return render_template('workspace/issue_monitor.html', active_nav='issue-monitor', username=session.get('username'), users=all_users)
 
-@app.route('/workspace/mainboard-tool', methods=['GET'])
+@app.route('/workspace/tools', methods=['GET'])
 @login_required
-def mainboard_tool():
-    return render_template('workspace/mainboard_tool.html', active_nav='mb-tool', username=session.get('username'))
-
-@app.route('/workspace/asset-locator', methods=['GET'])
-@login_required
-def asset_locator():
-    return render_template('workspace/asset_locator.html', active_nav='asset-equiptment', username=session.get('username'))
-
-@app.route('/workspace/material-cost', methods=['GET'])
-@login_required
-def material_cost():
-    return render_template('workspace/material_cost.html', active_nav='material-cost', username=session.get('username'))
+def tools():
+    return render_template('workspace/tools.html', active_nav='tools', username=session.get('username'))
 
 @app.route('/team/structure', methods=['GET'])
 @login_required

@@ -1,0 +1,127 @@
+{# ---- Define / Extends ---- #}
+{% extends "partials/top-sidebar.html" %}
+{% block title %}<title>Mainboard Tools - RnD Portal</title>{% endblock %}
+{% block styles %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/workspace/tools/style.css') }}"
+  />
+{% endblock %}
+
+{# ---- Top Content ---- #}
+{% block content %}
+  <div class="nav__bar">
+    <span class="nav-item__left flex-1 active" data-tab="main-tools"
+      >Mainboard Tools</span
+    >
+    <span class="nav-item__left flex-1" data-tab="equipments">Equipments</span>
+    <span class="nav-item__left flex-1" data-tab="material-cost"
+      >Material Cost</span
+    >
+  </div>
+
+  {# ---- Main Content Panel ---- #}
+  <div class="main-body-content">
+    {# ---- Panel Mainboard Tools ---- #}
+    <div class="body active" data-panel="main-tools">
+      <div class="activity-filters">
+        <div class="search_and_filters">
+          <form id="s_f" action="" method="get">
+            <label for="a_f">ACTIVE FILTERS</label>
+            <input type="text" id="toolSearch" placeholder="Search Tools" />
+            <select class="types" id="toolTypeFilter">
+              <option value="All Types" disabled selected>All Types</option>
+            </select>
+            <select class="owner" id="toolOwnerFilter">
+              <option value="All Owners" disabled selected>All Owners</option>
+            </select>
+          </form>
+        </div>
+        <div class="btns">
+          <button type="button" id="reset">Reset</button>
+        </div>
+      </div>
+
+      <div class="main-container">
+        <div class="main-container__header">
+          <span class="header">Find the Tool you search!</span>
+          <button
+            type="button"
+            class="switcher"
+            id="viewSwitcher"
+            title="Ganti tampilan"
+          >
+            <i class="bxf bx-list-ul"></i>
+          </button>
+        </div>
+
+        <div class="card-list" id="cardListView">
+          <div class="card-container" id="cardContainer"></div>
+        </div>
+
+        <div class="menu-list" id="menuListView" style="display: none">
+          <div class="menu-list__container" id="menuListContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Panel Equipments ---- #}
+    <div class="body" data-panel="equipments">
+      <div class="activity-filters">
+        <div class="search_and_filters">
+          <form id="s_f_eq" action="" method="get">
+            <label for="a_f_eq">ACTIVE FILTERS</label>
+            <input
+              type="text"
+              id="equipmentSearch"
+              placeholder="Search Equipments"
+            />
+            <select class="types" id="equipmentTypeFilter">
+              <option value="All Types" disabled selected>All Types</option>
+            </select>
+            <select class="owner" id="equipmentOwnerFilter">
+              <option value="All Owners" disabled selected>All Owners</option>
+            </select>
+          </form>
+        </div>
+        <div class="btns">
+          <button type="button" id="resetEquipment">Reset</button>
+        </div>
+      </div>
+
+      <div class="main-container">
+        <div class="main-container__header">
+          <span class="header">Find the Equipment you search!</span>
+          <button
+            type="button"
+            class="switcher"
+            id="equipmentViewSwitcher"
+            title="Ganti tampilan"
+          >
+            <i class="bxf bx-list-ul"></i>
+          </button>
+        </div>
+
+        <div class="card-list" id="equipmentCardListView">
+          <div class="card-container" id="equipmentCardContainer"></div>
+        </div>
+
+        <div class="menu-list" id="equipmentMenuListView" style="display: none">
+          <div
+            class="menu-list__container"
+            id="equipmentMenuListContainer"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Panel Material Cost ---- #}
+    <div class="body" data-panel="material-cost"></div>
+  </div>
+{% endblock %}
+
+{# ---- Define Script ---- #}
+{% block script %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='javascript/workspace/tools.js')}}"></script>
+{% endblock %}
