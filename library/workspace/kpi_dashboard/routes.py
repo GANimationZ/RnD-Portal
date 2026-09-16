@@ -1,19 +1,18 @@
 """
-Contoh Flask blueprint untuk KPI Dashboard: export/import pakai openpyxl
-(gantikan SheetJS) + fitur History (snapshot Excel bulanan otomatis).
+Flask blueprint KPI Dashboard.
 
-Cara pakai:
-1. Taruh file ini di package Flask kamu (mis. app/workspace/kpi_dashboard.py),
-   sesuaikan import `kpi_excel` dengan lokasi modulnya.
-2. Ganti `get_employees()` supaya ambil dari model/DB asli (SQLite/Postgres),
-   bukan dummy list di bawah.
-3. Daftarkan blueprint ini di app factory: app.register_blueprint(kpi_dashboard_bp)
-4. Endpoint `url_for('kpi_dashboard.export_individual')` dkk di template
-   kpi-dashboard-index.html akan otomatis terhubung ke sini asal nama
-   blueprint-nya "kpi_dashboard" (baris terakhir file ini).
-
-Struktur folder riwayat: instance/kpi_history/YYYY-MM.xlsx
-(satu file per bulan, dibuat otomatis kalau belum ada saat /history diakses).
+Alur data (setelah perombakan):
+- Employee / KPIRecord / BestPractice (lihat library/models.py) adalah
+  sumber data utama, sudah portable SQLite <-> PostgreSQL (poin 1).
+- Semua kalkulasi (workload bar, completion rate, leaderboard, agregasi
+  per rentang waktu) ada di metrics.py, bukan lagi di kpi-dashboard.js
+  (poin 4). Endpoint di bawah cuma query DB lalu memanggil metrics.py,
+  hasilnya langsung JSON siap-render.
+- Endpoint /api/* dipakai BERSAMA oleh panel Individual & Team (live) dan
+  sub-panel History (Individual/Team), supaya tampilan & filter
+  Recent/Last Week/Last Month/Last Year konsisten di semua tempat
+  (poin 2 & 3). Fitur export/import/snapshot .xlsx tetap ada terpisah,
+  khusus untuk kebutuhan arsip dokumen bulanan.
 """
 
 import os
@@ -21,11 +20,21 @@ from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, request, send_file, send_from_directory
 
+from library.models import Employee
+
 from .kpi_excel import (
     build_individual_workbook,
     build_team_workbook,
     workbook_to_bytes,
     parse_employee_workbook,
+)
+from .metrics import (
+    DEFAULT_RANGE,
+    RANGE_LABELS,
+    employee_insights,
+    employee_list_summary,
+    employee_summary,
+    team_summary,
 )
 
 kpi_dashboard_bp = Blueprint("kpi_dashboard", __name__, url_prefix="/workspace/kpi-dashboard")
@@ -35,17 +44,35 @@ MONTH_LABELS_ID = [
     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ]
 
+VALID_RANGES = set(RANGE_LABELS.keys())
+EXPORT_RANGE = "month"  # snapshot bulanan merepresentasikan data 30 hari terakhir
 
-def get_employees():
-    """GANTI dengan query ke DB asli. Untuk sekarang masih dummy,
-    sama seperti employeeData di kpi-dashboard.js."""
+
+def _range_param():
+    value = request.args.get("range", DEFAULT_RANGE)
+    return value if value in VALID_RANGES else DEFAULT_RANGE
+
+
+def _all_employees():
+    return Employee.query.order_by(Employee.id).all()
+
+
+def get_employees_for_export(range_key=EXPORT_RANGE):
+    """Bentuk dict rata (name/role/totalAssigned/...) yang dipakai
+    kpi_excel.py untuk nulis file .xlsx -- sumbernya sekarang DB asli,
+    bukan dummy list statis lagi."""
+    summaries = employee_list_summary(_all_employees(), range_key)
     return [
-        {"name": "Rani Freya", "role": "PCBA Engineer", "totalAssigned": 18,
-         "completed": 12, "pending": 4, "overdue": 2, "avgResolutionDays": 2.4},
-        {"name": "Dimas Pratama", "role": "Assembly Lead", "totalAssigned": 14,
-         "completed": 9, "pending": 3, "overdue": 2, "avgResolutionDays": 3.1},
-        {"name": "Sinta Wijaya", "role": "QA Inspector", "totalAssigned": 10,
-         "completed": 7, "pending": 2, "overdue": 1, "avgResolutionDays": 1.8},
+        {
+            "name": s["name"],
+            "role": s["role"],
+            "totalAssigned": s["totalAssigned"],
+            "completed": s["completed"],
+            "pending": s["pending"],
+            "overdue": s["overdue"],
+            "avgResolutionDays": s["avgResolutionDays"],
+        }
+        for s in summaries
     ]
 
 
@@ -63,15 +90,58 @@ def _ensure_current_month_snapshot():
     filepath = os.path.join(_history_dir(), filename)
 
     if not os.path.exists(filepath):
-        wb = build_individual_workbook(get_employees())
+        wb = build_individual_workbook(get_employees_for_export())
         wb.save(filepath)
 
     return filepath
 
 
+# ==================== API: dipakai panel Individual/Team & History ====================
+
+@kpi_dashboard_bp.route("/api/employees")
+def api_employees():
+    """Daftar ringkas semua karyawan untuk rentang waktu tertentu.
+    Dipakai tabel di panel Individual (live) & sub-panel History Individual."""
+    range_key = _range_param()
+    employees = _all_employees()
+    summaries = employee_list_summary(employees, range_key)
+
+    return jsonify(
+        {
+            "range": range_key,
+            "rangeLabel": RANGE_LABELS[range_key],
+            "ranges": [{"key": k, "label": v} for k, v in RANGE_LABELS.items()],
+            "employees": summaries,
+            "insights": employee_insights(summaries),
+            "activeEmployeeId": employees[0].id if employees else None,
+        }
+    )
+
+
+@kpi_dashboard_bp.route("/api/employees/<int:employee_id>")
+def api_employee_detail(employee_id):
+    """Detail 1 karyawan (stat card, trend chart, best practices) untuk
+    rentang waktu tertentu."""
+    range_key = _range_param()
+    employee = Employee.query.get_or_404(employee_id)
+    return jsonify(employee_summary(employee, range_key))
+
+
+@kpi_dashboard_bp.route("/api/team")
+def api_team():
+    """Ringkasan tim (totals, chart perbandingan, leaderboard) untuk
+    rentang waktu tertentu. Dipakai panel Team (live) & sub-panel
+    History Team."""
+    range_key = _range_param()
+    employees = _all_employees()
+    return jsonify(team_summary(employees, range_key))
+
+
+# ==================== Export / Import / History (arsip .xlsx) ====================
+
 @kpi_dashboard_bp.route("/export/individual")
 def export_individual():
-    wb = build_individual_workbook(get_employees())
+    wb = build_individual_workbook(get_employees_for_export())
     buffer = workbook_to_bytes(wb)
     filename = f"kpi-individual-{datetime.now():%Y-%m-%d}.xlsx"
     return send_file(
@@ -84,7 +154,7 @@ def export_individual():
 
 @kpi_dashboard_bp.route("/export/team")
 def export_team():
-    wb = build_team_workbook(get_employees())
+    wb = build_team_workbook(get_employees_for_export())
     buffer = workbook_to_bytes(wb)
     filename = f"kpi-team-{datetime.now():%Y-%m-%d}.xlsx"
     return send_file(
@@ -106,9 +176,10 @@ def import_employees():
     except Exception as exc:  # noqa: BLE001
         return jsonify({"message": f"Gagal membaca file: {exc}"}), 400
 
-    # TODO: simpan `rows` ke DB asli (upsert berdasarkan nama, mirip
-    # applyImportedRows() versi lama di kpi-dashboard.js). Untuk sekarang
-    # cuma dihitung supaya frontend bisa tampilkan notifikasi.
+    # TODO: upsert `rows` ke tabel Employee/KPIRecord berdasarkan nama kalau
+    # nanti import Excel memang dimaksudkan untuk menimpa data DB (bukan
+    # cuma preview). Untuk sekarang cuma dihitung supaya frontend bisa
+    # tampilkan notifikasi, seperti versi sebelumnya.
     updated = len(rows)
     created = 0
 
@@ -127,13 +198,15 @@ def history():
         filepath = os.path.join(_history_dir(), filename)
         stat = os.stat(filepath)
 
-        snapshots.append({
-            "filename": filename,
-            "label": f"{MONTH_LABELS_ID[int(month) - 1]} {year}",
-            "createdAt": datetime.fromtimestamp(stat.st_mtime).strftime("%d %b %Y"),
-            "sizeBytes": stat.st_size,
-            "downloadUrl": f"/workspace/kpi-dashboard/history/download/{filename}",
-        })
+        snapshots.append(
+            {
+                "filename": filename,
+                "label": f"{MONTH_LABELS_ID[int(month) - 1]} {year}",
+                "createdAt": datetime.fromtimestamp(stat.st_mtime).strftime("%d %b %Y"),
+                "sizeBytes": stat.st_size,
+                "downloadUrl": f"/workspace/kpi-dashboard/history/download/{filename}",
+            }
+        )
 
     return jsonify({"snapshots": snapshots})
 
@@ -145,9 +218,10 @@ def download_history(filename):
 
 @kpi_dashboard_bp.route("/history/data/<path:filename>")
 def history_data(filename):
-    """Baca isi satu snapshot bulanan dan kembalikan sebagai JSON, supaya
-    frontend bisa render tabel/chart langsung di panel History (bukan cuma
-    link download)."""
+    """Baca isi satu snapshot bulanan (.xlsx arsip) dan kembalikan sebagai
+    JSON. Dipertahankan untuk kebutuhan audit/preview arsip lama; tampilan
+    utama History Individual/Team sekarang memakai /api/* (data DB
+    langsung) supaya konsisten dengan panel live."""
     filepath = os.path.join(_history_dir(), filename)
     if not os.path.exists(filepath):
         return jsonify({"message": "Snapshot tidak ditemukan."}), 404

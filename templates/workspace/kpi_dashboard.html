@@ -17,76 +17,116 @@
     <span class="flex-1" data-tab="history">History</span>
   </div>
 
+  {# ---- Template rentang waktu (Recent/Last Week/Last Month/Last Year) ----
+     Dipakai ulang di panel Individual, Team, & kedua sub-panel History,
+     supaya keempat tempat itu tampil konsisten (poin 2 & 3 perombakan). #}
+  {% macro range_tabs(scope) %}
+    <div class="range-tabs" data-range-scope="{{ scope }}">
+      <button type="button" class="range-tabs__btn active" data-range="recent">
+        Recent
+      </button>
+      <button type="button" class="range-tabs__btn" data-range="week">
+        Last Week
+      </button>
+      <button type="button" class="range-tabs__btn" data-range="month">
+        Last Month
+      </button>
+      <button type="button" class="range-tabs__btn" data-range="year">
+        Last Year
+      </button>
+    </div>
+  {% endmacro %}
+
+  {# ---- Header judul, dipakai employee_panel & team_panel supaya kedua
+     title ("Employee Performance" & "Team Summary") sama persis gayanya:
+     selalu di LUAR kartu/tabel, bukan lagi ikut sempit di dalam .employees ---- #}
+  {% macro panel_header(title, icon, scope, show_range) %}
+    <div class="panel-header">
+      <span class="panel-header__title"
+        ><i class="bxf {{ icon }}"></i> {{ title }}</span
+      >
+      {% if show_range %}{{ range_tabs(scope) }}{% endif %}
+    </div>
+  {% endmacro %}
+
+  {% macro employee_panel(scope, table_id, insights_id, chart_id, content_id, show_range=true) %}
+    {{ panel_header("Employee Performance", "bx-user-check", scope, false) }}
+
+    <div class="main-container">
+      <div class="employees">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Beban</th>
+            </tr>
+          </thead>
+          <tbody id="{{ table_id }}"></tbody>
+        </table>
+      </div>
+
+      <div class="second-container">
+        <div class="graph-content">
+          <span class="stats_text"
+            >RESOLUTION TREND (RESOLVED vs PENDING vs OVERDUE)</span
+          >{% if show_range %}{{ range_tabs(scope) }}{% endif %}
+          <div class="chart-wrapper">
+            <canvas id="{{ chart_id }}"></canvas>
+          </div>
+        </div>
+        <div class="emp-content" id="{{ content_id }}"></div>
+      </div>
+    </div>
+
+    {# ---- Insight beban ringan/berat + legenda, ditaruh paling bawah saja
+       supaya tidak lagi mengganggu tabel pemilih karyawan di atas ---- #}
+    <div class="panel-footer">
+      <div class="employees__insights" id="{{ insights_id }}"></div>
+      <div class="employees__legend">
+        <span class="legend-dot" style="background:#1e7e33"></span>Cepat
+        <span class="legend-dot" style="background:#f2a623"></span>Sedang
+        <span class="legend-dot" style="background:#e24b4a"></span>Lama
+      </div>
+    </div>
+  {% endmacro %}
+
+  {% macro team_panel(scope, summary_id, chart_id, leaderboard_id, show_range=true) %}
+    {{ panel_header("Team Summary", "bx-group", scope, show_range) }}
+
+    <div id="{{ summary_id }}"></div>
+
+    <div class="graph-content graph-content--team">
+      <span class="stats_text">COMPLETED vs PENDING vs OVERDUE PER PERSON</span>
+      <div class="chart-wrapper">
+        <canvas id="{{ chart_id }}"></canvas>
+      </div>
+    </div>
+
+    <div class="team-leaderboard">
+      <span class="team-leaderboard__title"
+        ><i class="bxf bx-trophy"></i> Peringkat Completion Rate</span
+      >
+      <div id="{{ leaderboard_id }}"></div>
+    </div>
+  {% endmacro %}
+
   <div class="main-body-content">
     {# ---- Panel Individual ---- #}
     <div class="body active" data-panel="individual">
-      <div class="main-container">
-        <div class="employees">
-          <div class="employees__header">
-            <span class="employees__title">Employee Performance</span>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Nama</th>
-                <th>Avg Hours</th>
-                <th>Beban</th>
-              </tr>
-            </thead>
-            <tbody id="employeeTableBody"></tbody>
-          </table>
-
-          <div class="employees__insights" id="employeeInsights"></div>
-
-          <div class="employees__legend">
-            <span class="legend-dot" style="background:#1e7e33"></span>Cepat
-            <span class="legend-dot" style="background:#f2a623"></span>Sedang
-            <span class="legend-dot" style="background:#e24b4a"></span>Lama
-          </div>
-        </div>
-
-        <div class="second-container">
-          <div class="graph-content">
-            <span class="stats_text"
-              >RESOLUTION TREND (RESOLVED vs PENDING vs OVERDUE)</span
-            >
-            <div class="chart-wrapper">
-              <canvas id="empTrendChart"></canvas>
-            </div>
-          </div>
-          <div class="emp-content" id="empContent"></div>
-        </div>
-      </div>
+      {{ employee_panel("individual", "employeeTableBody", "employeeInsights", "empTrendChart", "empContent") }}
     </div>
 
     {# ---- Panel Team ---- #}
     <div class="body" data-panel="team">
-      <div class="team-panel__header">
-        <span class="team-panel__title">Team Summary</span>
-      </div>
-
-      <div id="teamSummary"></div>
-
-      <div class="graph-content graph-content--team">
-        <span class="stats_text"
-          >COMPLETED vs PENDING vs OVERDUE PER PERSON</span
-        >
-        <div class="chart-wrapper">
-          <canvas id="teamComparisonChart"></canvas>
-        </div>
-      </div>
-
-      <div class="team-leaderboard">
-        <span class="team-leaderboard__title">Peringkat Completion Rate</span>
-        <div id="teamLeaderboard"></div>
-      </div>
+      {{ team_panel("team", "teamSummary", "teamComparisonChart", "teamLeaderboard") }}
     </div>
 
     {# ---- Panel History ---- #}
     <div class="body" data-panel="history">
       <div class="history-panel__header">
-        <span class="history-panel__title">Riwayat Bulanan</span>
+        <span class="history-panel__title"
+          ><i class="bxf bx-history"></i> Riwayat Bulanan</span
+        >
         <div class="history-panel__actions">
           <button type="button" class="btn-export" id="importHistoryBtn">
             <i class="bxf bx-arrow-to-top"></i>
@@ -117,8 +157,24 @@
 
       <div class="history-controls">
         <div class="history-controls__select">
-          <label for="historyMonthSelect">Bulan</label>
+          <label for="historyMonthSelect">Bulan Arsip</label>
+          <button
+            type="button"
+            class="history-nav-btn"
+            id="historyPrevBtn"
+            title="Bulan sebelumnya"
+          >
+            <i class="bxf bx-chevron-left"></i>
+          </button>
           <select id="historyMonthSelect"></select>
+          <button
+            type="button"
+            class="history-nav-btn"
+            id="historyNextBtn"
+            title="Bulan berikutnya"
+          >
+            <i class="bxf bx-chevron-right"></i>
+          </button>
           <a class="btn-export" id="historyDownloadBtn" href="#">
             <i class="bxf bx-arrow-to-bottom"></i>
             Download File Ini
@@ -139,52 +195,15 @@
         </div>
       </div>
 
-      {# ---- Sub-panel: Individual (data historis) ---- #}
+      {# ---- Sub-panel: Individual, layout & data sama seperti panel Individual di atas,
+         tapi TANPA range_tabs (show_range=false) karena sudah diwakili Bulan Arsip ---- #}
       <div class="history-subpanel active" data-subpanel="individual">
-        <div class="employees">
-          <div class="employees__header">
-            <span class="employees__title">Employee Performance</span>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Nama</th>
-                <th>Role</th>
-                <th>Avg Hours</th>
-                <th>Beban</th>
-              </tr>
-            </thead>
-            <tbody id="historyEmployeeTableBody"></tbody>
-          </table>
-
-          <div class="employees__insights" id="historyEmployeeInsights"></div>
-
-          <div class="employees__legend">
-            <span class="legend-dot" style="background:#1e7e33"></span>Cepat
-            <span class="legend-dot" style="background:#f2a623"></span>Sedang
-            <span class="legend-dot" style="background:#e24b4a"></span>Lama
-          </div>
-        </div>
+        {{ employee_panel("history-individual", "historyEmployeeTableBody", "historyEmployeeInsights", "historyEmpTrendChart", "historyEmpContent", show_range=false) }}
       </div>
 
-      {# ---- Sub-panel: Team (data historis) ---- #}
+      {# ---- Sub-panel: Team, sama alasannya, TANPA range_tabs ---- #}
       <div class="history-subpanel" data-subpanel="team" style="display: none">
-        <div id="historyTeamSummary"></div>
-
-        <div class="graph-content graph-content--team">
-          <span class="stats_text"
-            >COMPLETED vs PENDING vs OVERDUE PER PERSON</span
-          >
-          <div class="chart-wrapper">
-            <canvas id="historyTeamChart"></canvas>
-          </div>
-        </div>
-
-        <div class="team-leaderboard">
-          <span class="team-leaderboard__title">Peringkat Completion Rate</span>
-          <div id="historyTeamLeaderboard"></div>
-        </div>
+        {{ team_panel("history-team", "historyTeamSummary", "historyTeamComparisonChart", "historyTeamLeaderboard", show_range=false) }}
       </div>
     </div>
   </div>

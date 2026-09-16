@@ -1,12 +1,15 @@
 # --- Package Import ----
+import os
+import secrets
+from functools import wraps
+
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_scss import Scss
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-from functools import wraps
+
+from library.extensions import db
+from library.models import User
+from library.seed import seed_dummy_data
 from library.workspace.kpi_dashboard.routes import kpi_dashboard_bp
-import secrets
 
 # ---- App Setup ----
 app = Flask(__name__)
@@ -15,25 +18,23 @@ app.register_blueprint(kpi_dashboard_bp)
 
 # ---- App Configuration ----
 app.config['SECRET_KEY'] = secrets.token_hex(32)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
-db = SQLAlchemy(app)
 
-# ---- SQLite Database for Dummy Model ----
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(255), nullable=False, unique=True)
-    password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
+# ---- Konfigurasi Database ----
+# Persiapan migrasi SQLite -> PostgreSQL: cukup set environment variable
+# DATABASE_URL, tidak perlu ubah kode apapun (model sudah pakai tipe kolom
+# generik di library/models.py). Contoh untuk Postgres:
+#   export DATABASE_URL="postgresql+psycopg2://user:password@host:5432/rnd_portal"
+# Kalau DATABASE_URL tidak di-set, otomatis fallback ke SQLite lokal supaya
+# dev environment tetap jalan tanpa setup tambahan.
+database_url = os.environ.get("DATABASE_URL", "sqlite:///database.db")
+if database_url.startswith("postgres://"):
+    # beberapa provider (mis. Heroku) masih kasih URL dengan skema lama.
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
-    # ---- Password Hash Generation ----
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password, method='scrypt')
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def __repr__(self):
-        return f'<User {self.username}>'
+db.init_app(app)
 
 # ---- Define Barrier ----
 def login_required(f):
@@ -116,7 +117,7 @@ def tv_design_concept():
 @login_required
 def issue_monitor():
     all_users = User.query.all()
-    
+
     return render_template('workspace/issue_monitor.html', active_nav='issue-monitor', username=session.get('username'), users=all_users)
 
 @app.route('/workspace/tools', methods=['GET'])
@@ -143,4 +144,5 @@ def logout():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        seed_dummy_data()
     app.run(debug=True)

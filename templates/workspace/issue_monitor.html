@@ -97,9 +97,9 @@
     </div>
     {# ---- Panel Issue Register ---- #}
     <div class="body" data-panel="issue-register">
-      <h1>Register an Issue</h1>
       <div class="register-issue">
-        <form action="" method="post">
+        <span class="register-issue__title">Register an Issue</span>
+        <form class="register-issue__form" action="" method="post">
           <input
             type="text"
             placeholder="Please Insert a title for the Issue"
@@ -152,7 +152,7 @@
               <option value="Low">Low</option>
             </select>
             <select class="status">
-              <option value="All Status" disabled selected>All Status</option>
+              <option value="All Status" selected>All Status</option>
               <option value="P1 DO NOW">P1 DO NOW</option>
               <option value="P2 SCHEDULE">P2 SCHEDULE</option>
               <option value="ON HOLD">ON HOLD</option>
@@ -160,9 +160,7 @@
               <option value="CLOSED">CLOSED</option>
             </select>
             <select class="category">
-              <option value="All Category" disabled selected>
-                All Category
-              </option>
+              <option value="All Category" selected>All Category</option>
               <option value="PCBA/SMT">PCBA/SMT</option>
               <option value="SQA">SQA</option>
               <option value="Line Prod">Line-Prod</option>
@@ -170,14 +168,14 @@
               <option value="CSS/SVC">CSS/SVC</option>
             </select>
             <select class="event">
-              <option value="All Event" disabled selected>All Event</option>
+              <option value="All Event" selected>All Event</option>
               <option value="PV">PV</option>
               <option value="Pre-MP">Pre-MP</option>
               <option value="MP">MP</option>
               <option value="Field">Field</option>
             </select>
             <select class="owner">
-              <option value="All Owners" disabled selected>All Owners</option>
+              <option value="All Owners" selected>All Owners</option>
               {% for user in users %}
                 <option value="{{ user.id }}">{{ user.username }}</option>
               {% endfor %}
@@ -226,7 +224,90 @@
         </div>
       </div>
     </div>
-    <div class="body" data-panel="priority-matrix"></div>
+    {# ---- Panel Priority Matrix ---- #}
+    <div class="body" data-panel="priority-matrix">
+      <div class="priority-matrix__header">
+        <div>
+          <span class="priority-matrix__title">
+            <i class="bxf bx-crosshair"></i> Priority Matrix
+          </span>
+          <p class="priority-matrix__desc">
+            Issue aktif (belum Closed) dipetakan berdasarkan Dampak (tingkat
+            Priority) &times; Urgensi (kedekatan deadline), supaya gampang tahu
+            mana yang harus dikerjakan duluan.
+          </p>
+        </div>
+        <div class="priority-matrix__legend">
+          <span
+            ><span class="legend-dot" style="background:#e24b4a"></span>Deadline
+            &le; 3 hari / lewat</span
+          >
+          <span
+            ><span class="legend-dot" style="background:#f2a623"></span>Deadline
+            &le; 7 hari</span
+          >
+          <span
+            ><span class="legend-dot" style="background:#8a8f98"></span>Masih
+            longgar</span
+          >
+        </div>
+      </div>
+
+      <div class="priority-matrix">
+        <span class="priority-matrix__axis priority-matrix__axis--top"
+          >URGENT</span
+        >
+        <span class="priority-matrix__axis priority-matrix__axis--bottom"
+          >TIDAK URGENT</span
+        >
+        <span class="priority-matrix__axis priority-matrix__axis--left"
+          >DAMPAK TINGGI</span
+        >
+        <span class="priority-matrix__axis priority-matrix__axis--right"
+          >DAMPAK RENDAH</span
+        >
+
+        <div class="priority-matrix__grid" id="priorityMatrixGrid">
+          <div class="pm-quadrant pm-quadrant--do-now" data-quadrant="do-now">
+            <div class="pm-quadrant__head">
+              <span class="pm-quadrant__title">Do Now</span>
+              <span class="pm-quadrant__count" id="pmCountDoNow">0</span>
+            </div>
+            <div class="pm-quadrant__list" id="pmListDoNow"></div>
+          </div>
+
+          <div
+            class="pm-quadrant pm-quadrant--schedule"
+            data-quadrant="schedule"
+          >
+            <div class="pm-quadrant__head">
+              <span class="pm-quadrant__title">Schedule</span>
+              <span class="pm-quadrant__count" id="pmCountSchedule">0</span>
+            </div>
+            <div class="pm-quadrant__list" id="pmListSchedule"></div>
+          </div>
+
+          <div
+            class="pm-quadrant pm-quadrant--delegate"
+            data-quadrant="delegate"
+          >
+            <div class="pm-quadrant__head">
+              <span class="pm-quadrant__title">Delegate</span>
+              <span class="pm-quadrant__count" id="pmCountDelegate">0</span>
+            </div>
+            <div class="pm-quadrant__list" id="pmListDelegate"></div>
+          </div>
+
+          <div class="pm-quadrant pm-quadrant--later" data-quadrant="later">
+            <div class="pm-quadrant__head">
+              <span class="pm-quadrant__title">Monitor</span>
+              <span class="pm-quadrant__count" id="pmCountLater">0</span>
+            </div>
+            <div class="pm-quadrant__list" id="pmListLater"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock %}
 

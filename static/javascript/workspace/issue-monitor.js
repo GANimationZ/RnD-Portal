@@ -311,7 +311,7 @@ const issueData = [
     priority: "High",
     category: "PCBA/SMT",
     event: "PV",
-    deadline: "17-08-2026",
+    deadline: "18-09-2026",
     owner: "Admin",
     status: "Pending",
   },
@@ -320,8 +320,17 @@ const issueData = [
     priority: "High",
     category: "SQA",
     event: "MP",
-    deadline: "18-08-2026",
+    deadline: "14-09-2026",
     owner: "Rani",
+    status: "Open",
+  },
+  {
+    title: "Intermittent connector wobble",
+    priority: "Medium",
+    category: "Line-Prod",
+    event: "PV",
+    deadline: "17-09-2026",
+    owner: "Dimas",
     status: "Open",
   },
   {
@@ -329,7 +338,7 @@ const issueData = [
     priority: "Medium",
     category: "OQA",
     event: "PV",
-    deadline: "20-08-2026",
+    deadline: "05-10-2026",
     owner: "Dimas",
     status: "Open",
   },
@@ -338,9 +347,27 @@ const issueData = [
     priority: "High",
     category: "SQA",
     event: "Field",
-    deadline: "21-08-2026",
+    deadline: "20-10-2026",
     owner: "Admin",
     status: "Pending",
+  },
+  {
+    title: "Minor cosmetic scratch on casing",
+    priority: "Low",
+    category: "OQA",
+    event: "MP",
+    deadline: "19-09-2026",
+    owner: "Sinta",
+    status: "Open",
+  },
+  {
+    title: "Update test jig calibration schedule",
+    priority: "Low",
+    category: "Line-Prod",
+    event: "Pre-MP",
+    deadline: "30-11-2026",
+    owner: "Sinta",
+    status: "Open",
   },
   {
     title: "Packaging label misprint batch 12",
@@ -449,3 +476,106 @@ document.getElementById("rowsPerPage").addEventListener("change", (e) => {
 });
 
 renderTable();
+
+// ---- Panel Priority Matrix ---- //
+// Area fungsi untuk panel Priority Matrix (Dampak x Urgensi)
+
+function parseDeadline(deadline) {
+  // format: dd-mm-yyyy
+  const [day, month, year] = deadline.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function daysUntil(deadline) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = parseDeadline(deadline);
+  target.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / (1000 * 60 * 60 * 24));
+}
+
+function urgencyMeta(daysLeft) {
+  let label;
+  if (daysLeft < 0) label = `Lewat ${Math.abs(daysLeft)} hari`;
+  else if (daysLeft === 0) label = "Deadline hari ini";
+  else label = `${daysLeft} hari lagi`;
+
+  const color = daysLeft <= 3 ? "#e24b4a" : daysLeft <= 7 ? "#f2a623" : "#8a8f98";
+  return { label, color };
+}
+
+function classifyIssue(issue) {
+  const daysLeft = daysUntil(issue.deadline);
+  const isUrgent = daysLeft <= 7;
+  const isHighImpact = issue.priority !== "Low";
+
+  if (isHighImpact && isUrgent) return "do-now";
+  if (isHighImpact && !isUrgent) return "schedule";
+  if (!isHighImpact && isUrgent) return "delegate";
+  return "later";
+}
+
+function renderIssueCard(issue) {
+  const daysLeft = daysUntil(issue.deadline);
+  const urgency = urgencyMeta(daysLeft);
+
+  return `
+    <div class="pm-card">
+      <div class="pm-card__top">
+        <span class="badge ${PRIORITY_CLASS[issue.priority]}">${issue.priority}</span>
+        <span class="pm-card__category" style="color:${categoryColors[issue.category] || "#8a8f98"}">${issue.category}</span>
+      </div>
+      <span class="pm-card__title">${issue.title}</span>
+      <div class="pm-card__bottom">
+        <span class="pm-card__owner"><i class="bxf bx-user-check"></i> ${issue.owner}</span>
+        <span class="pm-card__deadline" style="color:${urgency.color}">
+          <i class="bxf bx-calendar-check"></i> ${urgency.label}
+        </span>
+      </div>
+    </div>
+  `;
+}
+
+const QUADRANT_LIST_ID = {
+  "do-now": "pmListDoNow",
+  schedule: "pmListSchedule",
+  delegate: "pmListDelegate",
+  later: "pmListLater",
+};
+
+const QUADRANT_COUNT_ID = {
+  "do-now": "pmCountDoNow",
+  schedule: "pmCountSchedule",
+  delegate: "pmCountDelegate",
+  later: "pmCountLater",
+};
+
+function renderPriorityMatrix() {
+  const buckets = { "do-now": [], schedule: [], delegate: [], later: [] };
+
+  issueData
+    .filter((issue) => issue.status !== "Closed")
+    .forEach((issue) => {
+      buckets[classifyIssue(issue)].push(issue);
+    });
+
+  Object.entries(buckets).forEach(([quadrant, issues]) => {
+    const listEl = document.getElementById(QUADRANT_LIST_ID[quadrant]);
+    const countEl = document.getElementById(QUADRANT_COUNT_ID[quadrant]);
+    if (!listEl || !countEl) return;
+
+    countEl.textContent = issues.length;
+
+    // Urutkan dari yang paling mendesak (deadline terdekat) dulu.
+    const sorted = [...issues].sort(
+      (a, b) => daysUntil(a.deadline) - daysUntil(b.deadline),
+    );
+
+    listEl.innerHTML =
+      sorted.length > 0
+        ? sorted.map(renderIssueCard).join("")
+        : '<div class="pm-empty">Tidak ada issue di kuadran ini.</div>';
+  });
+}
+
+renderPriorityMatrix();

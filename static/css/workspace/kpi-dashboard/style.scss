@@ -47,6 +47,48 @@
   }
 }
 
+// ---- Range tabs: Recent / Last Week / Last Month / Last Year ----
+// Dipakai bareng di panel Individual, Team, & kedua sub-panel History,
+// styling sengaja disamakan dengan .history-subnav biar konsisten satu look.
+.range-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #f0f1f3;
+  border-radius: 8px;
+  padding: 4px;
+
+  &__btn {
+    border: none;
+    background: transparent;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #8a8f98;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: $primary-color;
+    }
+
+    &.active {
+      background: white;
+      color: $primary-color;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+  }
+}
+
+// Kalau range-tabs ditaruh di atas grafik (bukan sebelah judul), kasih jarak
+// dikit ke box grafik di bawahnya.
+.second-container > .range-tabs {
+  margin-bottom: 4px;
+  align-self: flex-start;
+}
+
 // ---- Tombol export/import (dipakai di panel Individual & Team) ----
 .btn-export {
   display: flex;
@@ -98,68 +140,11 @@
         background-color: white;
         border-radius: 6px;
         border: 1px solid $primary-color;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         flex: 0 0 320px;
         display: flex;
         flex-direction: column;
         overflow: hidden; // cegah tabel meluber ke second-container
-
-        &__header {
-          display: flex;
-          flex-direction: column; // judul & tombol ditumpuk, bukan sebaris,
-          gap: 8px; // supaya tidak tabrakan di lebar sempit
-          padding: 12px;
-          border-bottom: 1px solid #e4e7ec;
-          flex-shrink: 0;
-        }
-
-        &__title {
-          font-size: 13px;
-          font-weight: 700;
-          color: $secondary-color;
-        }
-
-        &__actions {
-          display: flex;
-          gap: 8px;
-
-          .btn-export {
-            flex: 1;
-            padding: 6px 8px;
-            font-size: 11px;
-          }
-        }
-
-        &__insights {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 12px;
-          border-top: 1px solid #e4e7ec;
-          flex-shrink: 0;
-        }
-
-        &__legend {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          font-size: 11px;
-          color: #8a8f98;
-          border-top: 1px solid #e4e7ec;
-          flex-shrink: 0;
-
-          .legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            display: inline-block;
-            margin-left: 6px;
-
-            &:first-child {
-              margin-left: 0;
-            }
-          }
-        }
 
         table {
           width: 100%;
@@ -261,6 +246,7 @@
           background-color: white;
           border-radius: 8px;
           border: 1px solid $primary-color;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
           padding: 16px;
           display: flex;
           flex-direction: column;
@@ -283,6 +269,7 @@
           background-color: white;
           border-radius: 8px;
           border: 1px solid $primary-color;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
           padding: 20px;
           flex: 1;
           min-height: 0;
@@ -291,19 +278,73 @@
       }
     }
 
-    // ---- Panel Team ----
-    .team-panel__header {
+    // ---- Header judul bersama (Employee Performance & Team Summary) ----
+    // Sengaja SELALU di luar kartu/tabel, biar kedua judul persis sama
+    // gayanya di mana pun dipakai (live maupun sub-panel History).
+    .panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 8px;
       margin: 10px 0;
+
+      &__title {
+        font-size: 16px;
+        font-weight: 700;
+        color: $secondary-color;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        i {
+          color: $primary-color;
+          font-size: 18px;
+        }
+      }
     }
 
-    .team-panel__title {
-      font-size: 16px;
-      font-weight: 700;
-      color: $secondary-color;
+    // ---- Insight beban ringan/berat + legenda, sekarang full-width di
+    // paling bawah panel (bukan lagi disempilkan di dalam .employees) ----
+    .panel-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 15px;
+      padding: 12px 16px;
+      background-color: white;
+      border-radius: 8px;
+      border: 1px solid #e4e7ec;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .employees__insights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .employees__legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #8a8f98;
+      white-space: nowrap;
+
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        display: inline-block;
+        margin-left: 6px;
+
+        &:first-child {
+          margin-left: 0;
+        }
+      }
     }
 
     #teamSummary {
@@ -314,7 +355,8 @@
       height: 360px;
       background-color: white;
       border-radius: 8px;
-      border: 1px solid $primary-color;
+      border: 1px solid #e4e7ec;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       padding: 16px;
       display: flex;
       flex-direction: column;
@@ -335,16 +377,24 @@
     .team-leaderboard {
       margin: 15px 0;
       background: white;
-      border: 1px solid $primary-color;
+      border: 1px solid #e4e7ec;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       border-radius: 8px;
       padding: 16px;
 
       &__title {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 8px;
         font-size: 16px;
         font-weight: 700;
         color: $secondary-color;
         margin-bottom: 12px;
+
+        i {
+          color: $primary-color;
+          font-size: 18px;
+        }
       }
 
       &__row {
@@ -531,6 +581,7 @@
   padding: 8px 10px;
   border-radius: 6px;
   background: #f7f8fa;
+  min-width: 200px;
 
   &__dot {
     width: 8px;
@@ -573,6 +624,14 @@
     font-size: 16px;
     font-weight: 700;
     color: $secondary-color;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i {
+      color: $primary-color;
+      font-size: 18px;
+    }
   }
 
   &__actions {
@@ -615,7 +674,37 @@
       border: 1px solid $primary-color;
       font-size: 12px;
       outline-color: $primary-color;
+      max-width: 220px;
     }
+  }
+}
+
+// Tombol panah kiri/kanan di samping select bulan arsip, biar bisa
+// gonta-ganti bulan tanpa buka dropdown (bagian "lebih advance").
+.history-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid $primary-color;
+  border-radius: 6px;
+  background: white;
+  color: $primary-color;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: rgba($color: $primary-color, $alpha: 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  i {
+    font-size: 14px;
   }
 }
 

@@ -123,8 +123,6 @@ select {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #a50034 #6b6b6b;
 }
 .main-body-content .body .grid-container .stats_grid .matrix-table {
   width: 100%;
@@ -180,19 +178,28 @@ select {
   border-top: 2px solid #ccc;
 }
 .main-body-content .body .register-issue {
+  display: flex;
+  flex-direction: column;
+  margin: 15px 0;
+}
+.main-body-content .body .register-issue__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #6b6b6b;
+}
+.main-body-content .body .register-issue__form {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  margin: 10px;
+  gap: 15px;
   background-color: white;
   border: 1px solid #a50034;
   border-radius: 6px;
 }
-.main-body-content .body .register-issue form {
-  display: flex;
-  flex-direction: column;
-  margin: 15px 20px;
-  gap: 15px;
-}
-.main-body-content .body .register-issue form input,
-.main-body-content .body .register-issue form select,
-.main-body-content .body .register-issue form textarea {
+.main-body-content .body .register-issue__form input,
+.main-body-content .body .register-issue__form select,
+.main-body-content .body .register-issue__form textarea {
   padding: 5px;
   color: #6b6b6b;
   outline-color: #a50034;
@@ -201,22 +208,22 @@ select {
   font-size: 400;
   transition: all 0.3s ease;
 }
-.main-body-content .body .register-issue form input:focus,
-.main-body-content .body .register-issue form select:focus,
-.main-body-content .body .register-issue form textarea:focus {
+.main-body-content .body .register-issue__form input:focus,
+.main-body-content .body .register-issue__form select:focus,
+.main-body-content .body .register-issue__form textarea:focus {
   transform: scale(1.05);
 }
-.main-body-content .body .register-issue form textarea {
+.main-body-content .body .register-issue__form textarea {
   width: 100%;
   height: 200px;
   resize: none;
 }
-.main-body-content .body .register-issue form #sub_btn {
+.main-body-content .body .register-issue__form #sub_btn {
   color: white;
   background-color: #a50034;
   transition: all 0.3s ease;
 }
-.main-body-content .body .register-issue form #sub_btn:hover {
+.main-body-content .body .register-issue__form #sub_btn:hover {
   background-color: #700023;
   transform: scale(1.05);
 }
@@ -437,4 +444,224 @@ select {
 .main-body-content .body .list .pagination__pages button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.priority-matrix__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 15px 0;
+}
+
+.priority-matrix__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #6b6b6b;
+}
+.priority-matrix__title i {
+  color: #a50034;
+  font-size: 18px;
+}
+
+.priority-matrix__desc {
+  max-width: 460px;
+  font-size: 12px;
+  color: #8a8f98;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.priority-matrix__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: #6b6b6b;
+  flex-shrink: 0;
+}
+.priority-matrix__legend .legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 6px;
+}
+
+.priority-matrix {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  grid-template-rows: 24px 1fr 24px;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.priority-matrix__axis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #8a8f98;
+}
+.priority-matrix__axis--top {
+  grid-column: 2;
+  grid-row: 1;
+}
+.priority-matrix__axis--bottom {
+  grid-column: 2;
+  grid-row: 3;
+}
+.priority-matrix__axis--left {
+  grid-column: 1;
+  grid-row: 2;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.priority-matrix__axis--right {
+  grid-column: 3;
+  grid-row: 2;
+  writing-mode: vertical-rl;
+}
+.priority-matrix__grid {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 14px;
+  min-height: 520px;
+}
+
+.pm-quadrant {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: white;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  border-top: 4px solid transparent;
+}
+.pm-quadrant--do-now {
+  border-top-color: #e24b4a;
+}
+.pm-quadrant--schedule {
+  border-top-color: #f2a623;
+}
+.pm-quadrant--delegate {
+  border-top-color: #4f8cff;
+}
+.pm-quadrant--later {
+  border-top-color: #8a8f98;
+}
+.pm-quadrant__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eceff3;
+  flex-shrink: 0;
+}
+.pm-quadrant__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b6b6b;
+}
+.pm-quadrant__count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a8f98;
+  background: #f0f1f3;
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.pm-quadrant__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-empty {
+  font-size: 12px;
+  color: #b3b7be;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.pm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f7f8fa;
+  border: 1px solid #eceff3;
+}
+.pm-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pm-card__category {
+  font-size: 11px;
+  font-weight: 600;
+}
+.pm-card__title {
+  font-size: 12.5px;
+  color: #333;
+  line-height: 1.4;
+}
+.pm-card__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #8a8f98;
+}
+.pm-card__owner, .pm-card__deadline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pm-card__owner i, .pm-card__deadline i {
+  font-size: 12px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-red {
+  background: rgba(226, 75, 74, 0.12);
+  color: #e24b4a;
+}
+
+.badge-yellow {
+  background: rgba(242, 166, 35, 0.15);
+  color: #b9760a;
+}
+
+.badge-green {
+  background: rgba(61, 220, 151, 0.15);
+  color: #1a9c68;
+}
+
+.badge-blue {
+  background: rgba(79, 140, 255, 0.12);
+  color: #4f8cff;
 }/*# sourceMappingURL=style.css.map */

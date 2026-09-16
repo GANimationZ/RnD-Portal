@@ -1,689 +1,478 @@
-// ==================== DATA ====================
-// 'team' pakai kosakata kategori yang sama dengan issue-monitor
-// (PCBA/SMT, Line-Prod, SQA, dst) supaya konsisten satu portal.
-const employeeData = [
-  {
-    id: "p1",
-    name: "Rani Freya",
-    role: "PCBA Engineer",
-    totalAssigned: 18,
-    completed: 12,
-    pending: 4,
-    overdue: 2,
-    avgResolutionDays: 2.4,
-    trendResolved: [3, 5, 2, 6, 4, 7, 5],
-    trendPending: [2, 3, 4, 2, 3, 2, 3],
-    trendOverdue: [4, 3, 3, 2, 2, 2, 2],
-    bestPractices: [
-      "Selalu verifikasi root cause sebelum menutup issue.",
-      "Update status issue maksimal H+1 setelah ada perkembangan.",
-      "Gunakan template laporan standar untuk kategori PCBA/SMT.",
-    ],
-  },
-  {
-    id: "p2",
-    name: "Dimas Pratama",
-    role: "Assembly Lead",
-    totalAssigned: 14,
-    completed: 9,
-    pending: 3,
-    overdue: 2,
-    avgResolutionDays: 3.1,
-    trendResolved: [2, 3, 4, 3, 5, 4, 6],
-    trendPending: [3, 2, 2, 3, 2, 3, 1],
-    trendOverdue: [4, 4, 3, 3, 2, 2, 2],
-    bestPractices: [
-      "Koordinasi dengan QA sebelum eskalasi issue assembly.",
-      "Dokumentasikan foto sebelum/sesudah perbaikan.",
-    ],
-  },
-  {
-    id: "p3",
-    name: "Sinta Wijaya",
-    role: "QA Inspector",
-    totalAssigned: 10,
-    completed: 7,
-    pending: 2,
-    overdue: 1,
-    avgResolutionDays: 1.8,
-    trendResolved: [1, 2, 3, 2, 4, 3, 5],
-    trendPending: [1, 1, 2, 1, 1, 2, 1],
-    trendOverdue: [3, 2, 2, 2, 1, 1, 1],
-    bestPractices: [
-      "Prioritaskan issue kategori High sebelum jam 10 pagi.",
-      "Selalu cross-check dengan checklist QA sebelum status Closed.",
-    ],
-  },
-];
+// ====================================================================
+// KPI Dashboard -- frontend controller
+//
+// Semua data & kalkulasi (workload bar, completion rate, leaderboard,
+// agregasi Recent/Last Week/Last Month/Last Year, trend chart) sekarang
+// datang SUDAH JADI dari backend (lihat library/workspace/kpi_dashboard/
+// metrics.py & routes.py). File ini murni:
+//   1. fetch data dari /workspace/kpi-dashboard/api/*
+//   2. render ke DOM
+//   3. jalankan Chart.js (satu-satunya bagian yang memang wajib di
+//      client, karena Chart.js adalah library rendering canvas)
+//
+// createEmployeePanelController() & createTeamPanelController() dipakai
+// DUA KALI: sekali untuk panel live (Individual/Team), sekali lagi untuk
+// sub-panel History (Individual/Team) -- makanya kedua tempat itu selalu
+// tampil identik (layout + filter rentang waktu).
+// ====================================================================
 
-// Warna badge tim disamakan dengan categoryColors di issue-monitor.js
-const TEAM_COLORS = {
-  "PCBA/SMT": "#b32e2e",
-  SQA: "#dd3d3d",
-  "Line-Prod": "#f18f34",
-  OQA: "#2e92cc",
-  "CSS/SVC": "#2e92cc",
-};
+const API_BASE = "/workspace/kpi-dashboard";
+const EMPLOYEES_ENDPOINT = `${API_BASE}/api/employees`;
+const EMPLOYEE_DETAIL_ENDPOINT = `${API_BASE}/api/employees`;
+const TEAM_ENDPOINT = `${API_BASE}/api/team`;
+const HISTORY_LIST_ENDPOINT = `${API_BASE}/history`;
+const IMPORT_ENDPOINT = `${API_BASE}/import`;
 
-let activeEmployeeId = employeeData[0].id;
-let trendChart = null;
-let teamChart = null;
-const renderedPanels = new Set();
-
-function getActiveEmployee() {
-  return employeeData.find((e) => e.id === activeEmployeeId);
+function el(id) {
+  return document.getElementById(id);
 }
 
-// ==================== UTIL ====================
-
-function getInitials(name) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+async function fetchJSON(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
 }
 
-function todayStamp() {
-  return new Date().toISOString().slice(0, 10);
-}
+// ==================== Komponen: Range Tabs (Recent/Last Week/Last Month/Last Year) ====================
 
-// Interpolasi 3 warna: hijau (cepat/ringan) -> kuning (sedang) -> merah (lama/berat).
-// Palet dipakai ulang dari warna yang sudah ada di issue-monitor (#1e7e33, #f2a623, #e24b4a).
-const WORKLOAD_STOPS = [
-  [30, 126, 51], // #1e7e33
-  [242, 166, 35], // #f2a623
-  [226, 75, 74], // #e24b4a
-];
-
-function interpolateWorkloadColor(ratio) {
-  const clamped = Math.min(Math.max(ratio, 0), 1);
-  const [from, to] =
-    clamped <= 0.5
-      ? [WORKLOAD_STOPS[0], WORKLOAD_STOPS[1]]
-      : [WORKLOAD_STOPS[1], WORKLOAD_STOPS[2]];
-  const local = clamped <= 0.5 ? clamped / 0.5 : (clamped - 0.5) / 0.5;
-
-  const [r1, g1, b1] = from;
-  const [r2, g2, b2] = to;
-  const r = Math.round(r1 + (r2 - r1) * local);
-  const g = Math.round(g1 + (g2 - g1) * local);
-  const b = Math.round(b1 + (b2 - b1) * local);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-// hours ~20 dianggap ringan/cepat, ~60+ dianggap berat/lama
-function getWorkloadBar(hours) {
-  const min = 20;
-  const max = 60;
-  const ratio = (Math.min(Math.max(hours, min), max) - min) / (max - min);
-  const widthPct = Math.round(15 + ratio * 85); // floor 15% biar bar selalu kelihatan
-  return { widthPct, color: interpolateWorkloadColor(ratio) };
-}
-
-function getAvgHours(emp) {
-  return emp.avgResolutionDays * 24;
-}
-
-function getCompletionRate(emp) {
-  return emp.totalAssigned === 0
-    ? 0
-    : Math.round((emp.completed / emp.totalAssigned) * 100);
-}
-
-function getTeamTotals() {
-  return employeeData.reduce(
-    (acc, emp) => ({
-      totalAssigned: acc.totalAssigned + emp.totalAssigned,
-      completed: acc.completed + emp.completed,
-      pending: acc.pending + emp.pending,
-      overdue: acc.overdue + emp.overdue,
-    }),
-    { totalAssigned: 0, completed: 0, pending: 0, overdue: 0 },
+function setupRangeTabs(scope, onChange) {
+  const group = document.querySelector(
+    `.range-tabs[data-range-scope="${scope}"]`,
   );
-}
+  if (!group) return;
 
-// ==================== PANEL: INDIVIDUAL ====================
-
-function renderEmployeeTable() {
-  const tbody = document.getElementById("employeeTableBody");
-  if (!tbody) return;
-  tbody.innerHTML = "";
-
-  employeeData.forEach((emp) => {
-    const avgHours = getAvgHours(emp);
-    const { widthPct, color } = getWorkloadBar(avgHours);
-    const teamColor = TEAM_COLORS[emp.team] || "#666";
-
-    const row = document.createElement("tr");
-    row.className = emp.id === activeEmployeeId ? "is-active" : "";
-    row.innerHTML = `
-      <td title="${emp.name}">${emp.name}</td>
-      <td class="center">${avgHours.toFixed(1)}h</td>
-      <td>
-        <div class="hours-bar-track">
-          <div class="hours-bar-fill" style="width:${widthPct}%; background:${color};"></div>
-        </div>
-      </td>
-    `;
-    row.addEventListener("click", () => {
-      activeEmployeeId = emp.id;
-      renderEmployeeTable();
-      renderTrendChart();
-      renderEmpContent();
+  group.querySelectorAll(".range-tabs__btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.classList.contains("active")) return;
+      group
+        .querySelectorAll(".range-tabs__btn")
+        .forEach((b) => b.classList.toggle("active", b === btn));
+      onChange(btn.dataset.range);
     });
-    tbody.appendChild(row);
   });
 }
 
-// Panel kecil untuk mengisi ruang kosong di bawah tabel:
-// menyorot siapa yang beban kerjanya paling ringan & siapa yang paling perlu perhatian.
-function renderEmployeeInsights() {
-  const el = document.getElementById("employeeInsights");
-  if (!el) return;
-  if (employeeData.length === 0) {
-    el.innerHTML = "";
-    return;
-  }
+// ==================== Panel: Individual (dipakai live & History) ====================
 
-  const lightest = employeeData.reduce((a, b) =>
-    getAvgHours(a) <= getAvgHours(b) ? a : b,
-  );
-  const heaviest = employeeData.reduce((a, b) =>
-    getAvgHours(a) >= getAvgHours(b) ? a : b,
-  );
-  const lightColor = getWorkloadBar(getAvgHours(lightest)).color;
-  const heavyColor = getWorkloadBar(getAvgHours(heaviest)).color;
+function createEmployeePanelController(ids, rangeScope) {
+  let chart = null;
+  let employees = [];
+  let activeId = null;
+  let range = "recent";
 
-  el.innerHTML = `
-    <div class="insight">
-      <span class="insight__dot" style="background:${lightColor}"></span>
-      <div>
-        <span class="insight__label">Beban Paling Ringan</span>
-        <span class="insight__value">${lightest.name} &middot; ${getAvgHours(lightest).toFixed(1)}h</span>
-      </div>
-    </div>
-    <div class="insight insight--danger">
-      <span class="insight__dot" style="background:${heavyColor}"></span>
-      <div>
-        <span class="insight__label">Perlu Perhatian</span>
-        <span class="insight__value">${heaviest.name} &middot; ${getAvgHours(heaviest).toFixed(1)}h</span>
-      </div>
-    </div>
-  `;
-}
+  function renderTable() {
+    const tbody = el(ids.tableBody);
+    if (!tbody) return;
 
-function renderTrendChart() {
-  const emp = getActiveEmployee();
-  const ctx = document.getElementById("empTrendChart");
-  if (!ctx) return;
+    if (employees.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="3" class="center">Tidak ada data.</td></tr>';
+      return;
+    }
 
-  if (trendChart) trendChart.destroy();
-
-  trendChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: ["W1", "W2", "W3", "W4", "W5", "W6", "W7"],
-      datasets: [
-        {
-          label: "Resolved",
-          data: emp.trendResolved,
-          borderColor: "#4f8cff",
-          backgroundColor: "rgba(79, 140, 255, 0.12)",
-          fill: false,
-          tension: 0,
-          pointRadius: 3,
-        },
-        {
-          label: "Pending",
-          data: emp.trendPending,
-          borderColor: "#f2a623",
-          backgroundColor: "rgba(242, 166, 35, 0.12)",
-          fill: false,
-          tension: 0,
-          pointRadius: 3,
-        },
-        {
-          label: "Overdue",
-          data: emp.trendOverdue,
-          borderColor: "#e24b4a",
-          backgroundColor: "rgba(226, 75, 74, 0.12)",
-          fill: false,
-          tension: 0,
-          pointRadius: 3,
-          borderDash: [4, 3],
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
-      scales: { y: { beginAtZero: true } },
-    },
-  });
-}
-
-function renderEmpContent() {
-  const emp = getActiveEmployee();
-  const el = document.getElementById("empContent");
-  if (!el) return;
-
-  const completionRate = getCompletionRate(emp);
-  const teamColor = TEAM_COLORS[emp.team] || "#666";
-
-  el.innerHTML = `
-    <div class="emp-profile">
-      <span class="emp-avatar emp-avatar--lg" style="background:${teamColor}22; color:${teamColor}">${getInitials(emp.name)}</span>
-      <div>
-        <div class="emp-profile__name">${emp.name}</div>
-        <div class="emp-profile__role">${emp.role} &middot; ${emp.team}</div>
-      </div>
-    </div>
-    <div class="emp-stats">
-      <div class="emp-stat"><span class="emp-stat__label">Total Assigned</span><span class="emp-stat__value">${emp.totalAssigned}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Completed</span><span class="emp-stat__value">${emp.completed}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${emp.pending}</span></div>
-      <div class="emp-stat ${emp.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${emp.overdue}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Completion Rate</span><span class="emp-stat__value">${completionRate}%</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Avg. Resolution</span><span class="emp-stat__value">${emp.avgResolutionDays} hari</span></div>
-    </div>
-    <div class="emp-notes">
-      <span class="emp-notes__title">Best Practice Notes</span>
-      <ul>${emp.bestPractices.map((note) => `<li>${note}</li>`).join("")}</ul>
-    </div>
-  `;
-}
-
-function renderIndividualPanel() {
-  renderEmployeeTable();
-  renderEmployeeInsights();
-  renderTrendChart();
-  renderEmpContent();
-}
-
-// ==================== PANEL: TEAM ====================
-
-function renderTeamSummary() {
-  const el = document.getElementById("teamSummary");
-  if (!el) return;
-
-  const totals = getTeamTotals();
-  const completionRate =
-    totals.totalAssigned === 0
-      ? 0
-      : Math.round((totals.completed / totals.totalAssigned) * 100);
-
-  el.innerHTML = `
-    <div class="emp-stats emp-stats--team">
-      <div class="emp-stat"><span class="emp-stat__label">Total Assigned</span><span class="emp-stat__value">${totals.totalAssigned}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Completed</span><span class="emp-stat__value">${totals.completed}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${totals.pending}</span></div>
-      <div class="emp-stat ${totals.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${totals.overdue}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Team Completion Rate</span><span class="emp-stat__value">${completionRate}%</span></div>
-    </div>
-  `;
-}
-
-function renderTeamChart() {
-  const ctx = document.getElementById("teamComparisonChart");
-  if (!ctx) return;
-
-  if (teamChart) teamChart.destroy();
-
-  teamChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: employeeData.map((e) => e.name),
-      datasets: [
-        {
-          label: "Completed",
-          data: employeeData.map((e) => e.completed),
-          backgroundColor: "#3ddc97",
-          borderRadius: 4,
-        },
-        {
-          label: "Pending",
-          data: employeeData.map((e) => e.pending),
-          backgroundColor: "#f2a623",
-          borderRadius: 4,
-        },
-        {
-          label: "Overdue",
-          data: employeeData.map((e) => e.overdue),
-          backgroundColor: "#e24b4a",
-          borderRadius: 4,
-        },
-      ],
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
-      scales: {
-        x: { stacked: true, beginAtZero: true },
-        y: { stacked: true, grid: { display: false } },
-      },
-    },
-  });
-}
-
-// Ranking completion rate per orang, biar panel Team tidak kosong/template.
-function renderTeamLeaderboard() {
-  const el = document.getElementById("teamLeaderboard");
-  if (!el) return;
-
-  const ranked = [...employeeData].sort(
-    (a, b) => getCompletionRate(b) - getCompletionRate(a),
-  );
-
-  el.innerHTML = ranked
-    .map((emp, idx) => {
-      const rate = getCompletionRate(emp);
-      const teamColor = TEAM_COLORS[emp.team] || "#666";
-      const rateColor =
-        rate >= 70 ? "#1e7e33" : rate >= 50 ? "#f2a623" : "#e24b4a";
-
-      return `
-      <div class="team-leaderboard__row">
-        <span class="team-leaderboard__rank">#${idx + 1}</span>
-        <span class="emp-avatar" style="background:${teamColor}22; color:${teamColor}">${getInitials(emp.name)}</span>
-        <div class="team-leaderboard__info">
-          <span class="team-leaderboard__name">${emp.name}</span>
-          <span class="team-leaderboard__team">${emp.team}</span>
-        </div>
-        <div class="team-leaderboard__bar-wrap">
-          <div class="hours-bar-track">
-            <div class="hours-bar-fill" style="width:${rate}%; background:${rateColor};"></div>
-          </div>
-          <span class="team-leaderboard__rate">${rate}%</span>
-        </div>
-      </div>
-    `;
-    })
-    .join("");
-}
-
-function renderTeamPanel() {
-  renderTeamSummary();
-  renderTeamChart();
-  renderTeamLeaderboard();
-}
-
-// ==================== PANEL: HISTORY ====================
-// Export/Import sekarang lewat backend (openpyxl), bukan SheetJS lagi.
-// Panel History menampilkan DATA-nya langsung (bukan cuma daftar file),
-// mirip panel Individual & Team, tapi sumbernya snapshot bulanan terpilih.
-
-const HISTORY_LIST_ENDPOINT = "/workspace/kpi-dashboard/history";
-const HISTORY_DATA_ENDPOINT = "/workspace/kpi-dashboard/history/data";
-const IMPORT_ENDPOINT = "/workspace/kpi-dashboard/import";
-
-let historySnapshots = [];
-let historyEmployees = [];
-let historyChart = null;
-let historySubtab = "individual";
-
-// Data historis cuma punya field yang tersimpan di Excel (Name, Role,
-// totalAssigned, completed, pending, overdue, avgResolutionDays) -- tidak ada
-// 'team'/trend mingguan, jadi insight & chart di sini dihitung dari field itu saja.
-
-function getHistoryAvgHours(emp) {
-  return emp.avgResolutionDays * 24;
-}
-
-function getHistoryCompletionRate(emp) {
-  return emp.totalAssigned === 0
-    ? 0
-    : Math.round((emp.completed / emp.totalAssigned) * 100);
-}
-
-function renderHistoryEmployeeTable() {
-  const tbody = document.getElementById("historyEmployeeTableBody");
-  if (!tbody) return;
-
-  if (historyEmployees.length === 0) {
-    tbody.innerHTML =
-      '<tr><td colspan="4" class="center">Tidak ada data pada bulan ini.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = historyEmployees
-    .map((emp) => {
-      const avgHours = getHistoryAvgHours(emp);
-      const { widthPct, color } = getWorkloadBar(avgHours);
-      return `
-      <tr>
+    tbody.innerHTML = employees
+      .map(
+        (emp) => `
+      <tr data-id="${emp.id}" class="${emp.id === activeId ? "is-active" : ""}">
         <td title="${emp.name}">${emp.name}</td>
-        <td>${emp.role}</td>
-        <td class="center">${avgHours.toFixed(1)}h</td>
         <td>
           <div class="hours-bar-track">
-            <div class="hours-bar-fill" style="width:${widthPct}%; background:${color};"></div>
+            <div class="hours-bar-fill" style="width:${emp.workload.widthPct}%; background:${emp.workload.color};"></div>
           </div>
         </td>
       </tr>
-    `;
-    })
-    .join("");
-}
+    `,
+      )
+      .join("");
 
-function renderHistoryInsights() {
-  const el = document.getElementById("historyEmployeeInsights");
-  if (!el) return;
-  if (historyEmployees.length === 0) {
-    el.innerHTML = "";
-    return;
+    tbody.querySelectorAll("tr[data-id]").forEach((row) => {
+      row.addEventListener("click", () => {
+        activeId = Number(row.dataset.id);
+        renderTable();
+        loadDetail();
+      });
+    });
   }
 
-  const lightest = historyEmployees.reduce((a, b) =>
-    getHistoryAvgHours(a) <= getHistoryAvgHours(b) ? a : b,
-  );
-  const heaviest = historyEmployees.reduce((a, b) =>
-    getHistoryAvgHours(a) >= getHistoryAvgHours(b) ? a : b,
-  );
-  const lightColor = getWorkloadBar(getHistoryAvgHours(lightest)).color;
-  const heavyColor = getWorkloadBar(getHistoryAvgHours(heaviest)).color;
+  function renderInsights(insights) {
+    const container = el(ids.insights);
+    if (!container) return;
+    if (!insights) {
+      container.innerHTML = "";
+      return;
+    }
 
-  el.innerHTML = `
-    <div class="insight">
-      <span class="insight__dot" style="background:${lightColor}"></span>
-      <div>
-        <span class="insight__label">Beban Paling Ringan</span>
-        <span class="insight__value">${lightest.name} &middot; ${getHistoryAvgHours(lightest).toFixed(1)}h</span>
+    container.innerHTML = `
+      <div class="insight">
+        <span class="insight__dot" style="background:${insights.lightest.color}"></span>
+        <div>
+          <span class="insight__label">Beban Paling Ringan</span>
+          <span class="insight__value">${insights.lightest.name} &middot; ${insights.lightest.hours.toFixed(1)}h</span>
+        </div>
       </div>
-    </div>
-    <div class="insight insight--danger">
-      <span class="insight__dot" style="background:${heavyColor}"></span>
-      <div>
-        <span class="insight__label">Perlu Perhatian</span>
-        <span class="insight__value">${heaviest.name} &middot; ${getHistoryAvgHours(heaviest).toFixed(1)}h</span>
+      <div class="insight insight--danger">
+        <span class="insight__dot" style="background:${insights.heaviest.color}"></span>
+        <div>
+          <span class="insight__label">Perlu Perhatian</span>
+          <span class="insight__value">${insights.heaviest.name} &middot; ${insights.heaviest.hours.toFixed(1)}h</span>
+        </div>
       </div>
-    </div>
-  `;
-}
+    `;
+  }
 
-function renderHistoryTeamSummary() {
-  const el = document.getElementById("historyTeamSummary");
-  if (!el) return;
+  function renderChart(trend) {
+    const canvas = el(ids.chart);
+    if (!canvas) return;
+    if (chart) chart.destroy();
 
-  const totals = historyEmployees.reduce(
-    (acc, emp) => ({
-      totalAssigned: acc.totalAssigned + emp.totalAssigned,
-      completed: acc.completed + emp.completed,
-      pending: acc.pending + emp.pending,
-      overdue: acc.overdue + emp.overdue,
-    }),
-    { totalAssigned: 0, completed: 0, pending: 0, overdue: 0 },
-  );
-  const completionRate =
-    totals.totalAssigned === 0
-      ? 0
-      : Math.round((totals.completed / totals.totalAssigned) * 100);
-
-  el.innerHTML = `
-    <div class="emp-stats emp-stats--team">
-      <div class="emp-stat"><span class="emp-stat__label">Total Assigned</span><span class="emp-stat__value">${totals.totalAssigned}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Completed</span><span class="emp-stat__value">${totals.completed}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${totals.pending}</span></div>
-      <div class="emp-stat ${totals.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${totals.overdue}</span></div>
-      <div class="emp-stat"><span class="emp-stat__label">Team Completion Rate</span><span class="emp-stat__value">${completionRate}%</span></div>
-    </div>
-  `;
-}
-
-function renderHistoryTeamChart() {
-  const ctx = document.getElementById("historyTeamChart");
-  if (!ctx) return;
-
-  if (historyChart) historyChart.destroy();
-
-  historyChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: historyEmployees.map((e) => e.name),
-      datasets: [
-        {
-          label: "Completed",
-          data: historyEmployees.map((e) => e.completed),
-          backgroundColor: "#3ddc97",
-          borderRadius: 4,
-        },
-        {
-          label: "Pending",
-          data: historyEmployees.map((e) => e.pending),
-          backgroundColor: "#f2a623",
-          borderRadius: 4,
-        },
-        {
-          label: "Overdue",
-          data: historyEmployees.map((e) => e.overdue),
-          backgroundColor: "#e24b4a",
-          borderRadius: 4,
-        },
-      ],
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
-      scales: {
-        x: { stacked: true, beginAtZero: true },
-        y: { stacked: true, grid: { display: false } },
+    chart = new Chart(canvas, {
+      type: "line",
+      data: {
+        labels: trend.labels,
+        datasets: [
+          {
+            label: "Resolved",
+            data: trend.resolved,
+            borderColor: "#4f8cff",
+            backgroundColor: "rgba(79, 140, 255, 0.12)",
+            fill: false,
+            tension: 0,
+            pointRadius: 3,
+          },
+          {
+            label: "Pending",
+            data: trend.pending,
+            borderColor: "#f2a623",
+            backgroundColor: "rgba(242, 166, 35, 0.12)",
+            fill: false,
+            tension: 0,
+            pointRadius: 3,
+          },
+          {
+            label: "Overdue",
+            data: trend.overdue,
+            borderColor: "#e24b4a",
+            backgroundColor: "rgba(226, 75, 74, 0.12)",
+            fill: false,
+            tension: 0,
+            pointRadius: 3,
+            borderDash: [4, 3],
+          },
+        ],
       },
-    },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+  }
+
+  function renderContent(detail) {
+    const container = el(ids.content);
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="emp-profile">
+        <span class="emp-avatar emp-avatar--lg" style="background:${detail.completionRateColor}22; color:${detail.completionRateColor}">${detail.initials}</span>
+        <div>
+          <div class="emp-profile__name">${detail.name}</div>
+          <div class="emp-profile__role">${detail.role} &middot; ${detail.team}</div>
+        </div>
+      </div>
+      <div class="emp-stats">
+        <div class="emp-stat"><span class="emp-stat__label">Total Assigned</span><span class="emp-stat__value">${detail.totalAssigned}</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Completed</span><span class="emp-stat__value">${detail.completed}</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${detail.pending}</span></div>
+        <div class="emp-stat ${detail.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${detail.overdue}</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Completion Rate</span><span class="emp-stat__value">${detail.completionRate}%</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Avg. Resolution</span><span class="emp-stat__value">${detail.avgResolutionDays} hari</span></div>
+      </div>
+      <div class="emp-notes">
+        <span class="emp-notes__title">Best Practice Notes &middot; ${detail.rangeLabel}</span>
+        <ul>${detail.bestPractices.map((note) => `<li>${note}</li>`).join("")}</ul>
+      </div>
+    `;
+  }
+
+  async function loadDetail() {
+    if (activeId == null) return;
+    try {
+      const detail = await fetchJSON(
+        `${EMPLOYEE_DETAIL_ENDPOINT}/${activeId}?range=${range}`,
+      );
+      renderChart(detail.trend);
+      renderContent(detail);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function load() {
+    try {
+      const data = await fetchJSON(`${EMPLOYEES_ENDPOINT}?range=${range}`);
+      employees = data.employees || [];
+      if (activeId == null || !employees.some((e) => e.id === activeId)) {
+        activeId = data.activeEmployeeId;
+      }
+      renderTable();
+      renderInsights(data.insights);
+      await loadDetail();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  setupRangeTabs(rangeScope, (newRange) => {
+    range = newRange;
+    load();
   });
+
+  return { load };
 }
 
-function renderHistoryTeamLeaderboard() {
-  const el = document.getElementById("historyTeamLeaderboard");
-  if (!el) return;
+// ==================== Panel: Team (dipakai live & History) ====================
 
-  const ranked = [...historyEmployees].sort(
-    (a, b) => getHistoryCompletionRate(b) - getHistoryCompletionRate(a),
-  );
+function createTeamPanelController(ids, rangeScope) {
+  let chart = null;
+  let range = "recent";
 
-  el.innerHTML = ranked
-    .map((emp, idx) => {
-      const rate = getHistoryCompletionRate(emp);
-      const rateColor =
-        rate >= 70 ? "#1e7e33" : rate >= 50 ? "#f2a623" : "#e24b4a";
+  function renderSummary(totals, rate) {
+    const container = el(ids.summary);
+    if (!container) return;
 
-      return `
+    container.innerHTML = `
+      <div class="emp-stats emp-stats--team">
+        <div class="emp-stat"><span class="emp-stat__label">Total Assigned</span><span class="emp-stat__value">${totals.totalAssigned}</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Completed</span><span class="emp-stat__value">${totals.completed}</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${totals.pending}</span></div>
+        <div class="emp-stat ${totals.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${totals.overdue}</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Team Completion Rate</span><span class="emp-stat__value">${rate}%</span></div>
+      </div>
+    `;
+  }
+
+  function renderChart(chartData) {
+    const canvas = el(ids.chart);
+    if (!canvas) return;
+    if (chart) chart.destroy();
+
+    chart = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: chartData.labels,
+        datasets: [
+          {
+            label: "Completed",
+            data: chartData.completed,
+            backgroundColor: "#3ddc97",
+            borderRadius: 4,
+          },
+          {
+            label: "Pending",
+            data: chartData.pending,
+            backgroundColor: "#f2a623",
+            borderRadius: 4,
+          },
+          {
+            label: "Overdue",
+            data: chartData.overdue,
+            backgroundColor: "#e24b4a",
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+        scales: {
+          x: { stacked: true, beginAtZero: true },
+          y: { stacked: true, grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  function renderLeaderboard(leaderboard) {
+    const container = el(ids.leaderboard);
+    if (!container) return;
+
+    container.innerHTML = leaderboard
+      .map(
+        (emp) => `
       <div class="team-leaderboard__row">
-        <span class="team-leaderboard__rank">#${idx + 1}</span>
-        <span class="emp-avatar" style="background:#66666622; color:#666">${getInitials(emp.name)}</span>
+        <span class="team-leaderboard__rank">#${emp.rank}</span>
+        <span class="emp-avatar" style="background:${emp.completionRateColor}22; color:${emp.completionRateColor}">${emp.initials}</span>
         <div class="team-leaderboard__info">
           <span class="team-leaderboard__name">${emp.name}</span>
           <span class="team-leaderboard__team">${emp.role}</span>
         </div>
         <div class="team-leaderboard__bar-wrap">
           <div class="hours-bar-track">
-            <div class="hours-bar-fill" style="width:${rate}%; background:${rateColor};"></div>
+            <div class="hours-bar-fill" style="width:${emp.completionRate}%; background:${emp.completionRateColor};"></div>
           </div>
-          <span class="team-leaderboard__rate">${rate}%</span>
+          <span class="team-leaderboard__rate">${emp.completionRate}%</span>
         </div>
       </div>
-    `;
+    `,
+      )
+      .join("");
+  }
+
+  async function load() {
+    try {
+      const data = await fetchJSON(`${TEAM_ENDPOINT}?range=${range}`);
+      renderSummary(data.totals, data.completionRate);
+      renderLeaderboard(data.leaderboard);
+      renderChart(data.chart);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  setupRangeTabs(rangeScope, (newRange) => {
+    range = newRange;
+    load();
+  });
+
+  return { load };
+}
+
+// ==================== Instansiasi controller ====================
+// Panel Individual & Team "live", plus sub-panel History Individual/Team
+// yang memakai controller & endpoint yang SAMA PERSIS, supaya keempatnya
+// selalu konsisten.
+
+const individualPanel = createEmployeePanelController(
+  {
+    tableBody: "employeeTableBody",
+    insights: "employeeInsights",
+    chart: "empTrendChart",
+    content: "empContent",
+  },
+  "individual",
+);
+
+const teamPanel = createTeamPanelController(
+  {
+    summary: "teamSummary",
+    chart: "teamComparisonChart",
+    leaderboard: "teamLeaderboard",
+  },
+  "team",
+);
+
+const historyIndividualPanel = createEmployeePanelController(
+  {
+    tableBody: "historyEmployeeTableBody",
+    insights: "historyEmployeeInsights",
+    chart: "historyEmpTrendChart",
+    content: "historyEmpContent",
+  },
+  "history-individual",
+);
+
+const historyTeamPanel = createTeamPanelController(
+  {
+    summary: "historyTeamSummary",
+    chart: "historyTeamComparisonChart",
+    leaderboard: "historyTeamLeaderboard",
+  },
+  "history-team",
+);
+
+// ==================== Arsip Excel bulanan (Import/Export/Download) ====================
+// Bagian ini TIDAK terkait dengan filter Recent/Last Week/Last Month/Last
+// Year -- murni untuk mengelola file .xlsx arsip bulanan yang sudah
+// pernah di-export (fitur lama, tetap dipertahankan).
+
+let historySnapshots = [];
+let historyMonthsLoaded = false;
+
+// "Bulan Arsip lebih advance": dikelompokkan per tahun (optgroup), ditandai
+// kalau itu bulan berjalan, dan bisa dinavigasi lewat tombol Prev/Next
+// tanpa perlu buka dropdown-nya.
+
+function currentMonthFilename() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}.xlsx`;
+}
+
+function renderHistoryMonthOptions() {
+  const select = el("historyMonthSelect");
+  if (!select) return;
+
+  if (historySnapshots.length === 0) {
+    select.innerHTML = '<option value="">Belum ada arsip</option>';
+    return;
+  }
+
+  const thisMonth = currentMonthFilename();
+  const byYear = new Map();
+  historySnapshots.forEach((snap) => {
+    const year = snap.filename.split("-")[0];
+    if (!byYear.has(year)) byYear.set(year, []);
+    byYear.get(year).push(snap);
+  });
+
+  select.innerHTML = [...byYear.entries()]
+    .map(([year, snaps]) => {
+      const options = snaps
+        .map((snap) => {
+          const label =
+            snap.filename === thisMonth
+              ? `${snap.label} (Bulan ini)`
+              : snap.label;
+          return `<option value="${snap.filename}">${label}</option>`;
+        })
+        .join("");
+      return `<optgroup label="${year}">${options}</optgroup>`;
     })
     .join("");
 }
 
-function renderHistorySubpanels() {
-  renderHistoryEmployeeTable();
-  renderHistoryInsights();
-  renderHistoryTeamSummary();
-  renderHistoryTeamLeaderboard();
-  // Chart cuma di-render kalau sub-tab Team lagi kelihatan, supaya canvas
-  // punya ukuran yang benar (Chart.js butuh elemen visible saat dibuat).
-  if (historySubtab === "team") {
-    renderHistoryTeamChart();
-  }
+function selectHistoryMonthByIndex(index) {
+  const select = el("historyMonthSelect");
+  const downloadBtn = el("historyDownloadBtn");
+  if (!select || historySnapshots[index] == null) return;
+
+  select.value = historySnapshots[index].filename;
+  if (downloadBtn) downloadBtn.href = historySnapshots[index].downloadUrl;
+  updateHistoryNavButtons();
 }
 
-function setHistorySubtab(subtab) {
-  historySubtab = subtab;
+function updateHistoryNavButtons() {
+  const select = el("historyMonthSelect");
+  const prevBtn = el("historyPrevBtn");
+  const nextBtn = el("historyNextBtn");
+  if (!select || !prevBtn || !nextBtn) return;
 
-  document.querySelectorAll(".history-subnav__btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.subtab === subtab);
-  });
-  document.querySelectorAll(".history-subpanel").forEach((panel) => {
-    const isMatch = panel.dataset.subpanel === subtab;
-    panel.style.display = isMatch ? "" : "none";
-  });
-
-  if (subtab === "team") {
-    renderHistoryTeamChart();
-  }
-}
-
-async function loadHistoryData(filename) {
-  try {
-    const response = await fetch(`${HISTORY_DATA_ENDPOINT}/${filename}`);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    historyEmployees = data.employees || [];
-    renderHistorySubpanels();
-  } catch (err) {
-    console.error(err);
-    historyEmployees = [];
-    renderHistorySubpanels();
-  }
+  const index = historySnapshots.findIndex((s) => s.filename === select.value);
+  // historySnapshots urut dari terbaru -> terlama, jadi "sebelumnya" = index+1.
+  prevBtn.disabled = index === -1 || index >= historySnapshots.length - 1;
+  nextBtn.disabled = index <= 0;
 }
 
 async function loadHistoryMonths() {
-  const select = document.getElementById("historyMonthSelect");
-  const downloadBtn = document.getElementById("historyDownloadBtn");
+  const select = el("historyMonthSelect");
+  const downloadBtn = el("historyDownloadBtn");
   if (!select) return;
 
   try {
-    const response = await fetch(HISTORY_LIST_ENDPOINT);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
+    const data = await fetchJSON(HISTORY_LIST_ENDPOINT);
     historySnapshots = data.snapshots || [];
 
-    if (historySnapshots.length === 0) {
-      select.innerHTML = '<option value="">Belum ada riwayat</option>';
-      return;
-    }
-
-    select.innerHTML = historySnapshots
-      .map(
-        (snap) => `
-      <option value="${snap.filename}">${snap.label}</option>
-    `,
-      )
-      .join("");
+    renderHistoryMonthOptions();
+    if (historySnapshots.length === 0) return;
 
     if (downloadBtn) downloadBtn.href = historySnapshots[0].downloadUrl;
-    await loadHistoryData(historySnapshots[0].filename);
+    updateHistoryNavButtons();
   } catch (err) {
     console.error(err);
-    select.innerHTML = '<option value="">Gagal memuat riwayat</option>';
+    select.innerHTML = '<option value="">Gagal memuat arsip</option>';
   }
 }
 
@@ -704,9 +493,8 @@ async function handleHistoryImport(event) {
       throw new Error(result.message || `HTTP ${response.status}`);
 
     alert(
-      `Import selesai: ${result.updated} data diperbarui, ${result.created} data baru ditambahkan. Halaman akan dimuat ulang.`,
+      `Import selesai: ${result.updated} data diperbarui, ${result.created} data baru ditambahkan.`,
     );
-    window.location.reload();
   } catch (err) {
     console.error(err);
     alert(
@@ -717,33 +505,74 @@ async function handleHistoryImport(event) {
   }
 }
 
-// ==================== HUBUNGKAN KE panel-switcher.js ====================
-// Panel "individual" boleh di-render ulang tiap kali tampil lagi (karena ada
-// kemungkinan employeeData berubah di masa depan / refresh dari server),
-// tapi chart-nya sendiri sudah aman di-destroy dulu di dalam renderTrendChart().
-// Panel "team" & "history" cukup di-load sekali per kunjungan tab.
+// ==================== Sub-tab History: Individual / Team ====================
+
+let historySubtab = "individual";
+
+function setHistorySubtab(subtab) {
+  historySubtab = subtab;
+
+  document.querySelectorAll(".history-subnav__btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.subtab === subtab);
+  });
+  document.querySelectorAll(".history-subpanel").forEach((panel) => {
+    panel.style.display = panel.dataset.subpanel === subtab ? "" : "none";
+  });
+
+  if (subtab === "team") {
+    historyTeamPanel.load();
+  } else {
+    historyIndividualPanel.load();
+  }
+}
+
+// ==================== Kartu Ringkasan Global (independen dari tab aktif) ====================
+
+async function loadKpiOverview() {
+  try {
+    const data = await fetchJSON(`${TEAM_ENDPOINT}?range=recent`);
+    el("ovAssigned").textContent = data.totals.totalAssigned;
+    el("ovCompleted").textContent = data.totals.completed;
+    el("ovPending").textContent = data.totals.pending;
+    el("ovOverdue").textContent = data.totals.overdue;
+    el("ovRate").textContent = `${data.completionRate}%`;
+    el("ovCaption").textContent = data.rangeLabel;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// ==================== Hubungkan ke panel-switcher.js ====================
 
 document.addEventListener("panel:show", (e) => {
   const panel = e.detail.panel;
 
   if (panel === "individual") {
-    renderIndividualPanel();
+    individualPanel.load();
   }
 
-  if (panel === "team" && !renderedPanels.has("team")) {
-    renderTeamPanel();
-    renderedPanels.add("team");
+  if (panel === "team") {
+    teamPanel.load();
   }
 
-  if (panel === "history" && !renderedPanels.has("history")) {
-    loadHistoryMonths();
-    renderedPanels.add("history");
+  if (panel === "history") {
+    if (!historyMonthsLoaded) {
+      loadHistoryMonths();
+      historyMonthsLoaded = true;
+    }
+    if (historySubtab === "team") {
+      historyTeamPanel.load();
+    } else {
+      historyIndividualPanel.load();
+    }
   }
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  const importHistoryBtn = document.getElementById("importHistoryBtn");
-  const importHistoryInput = document.getElementById("importHistoryInput");
+  loadKpiOverview();
+
+  const importHistoryBtn = el("importHistoryBtn");
+  const importHistoryInput = el("importHistoryInput");
   if (importHistoryBtn && importHistoryInput) {
     importHistoryBtn.addEventListener("click", () =>
       importHistoryInput.click(),
@@ -751,13 +580,32 @@ document.addEventListener("DOMContentLoaded", () => {
     importHistoryInput.addEventListener("change", handleHistoryImport);
   }
 
-  const monthSelect = document.getElementById("historyMonthSelect");
+  const monthSelect = el("historyMonthSelect");
   if (monthSelect) {
     monthSelect.addEventListener("change", (e) => {
       const snap = historySnapshots.find((s) => s.filename === e.target.value);
-      const downloadBtn = document.getElementById("historyDownloadBtn");
+      const downloadBtn = el("historyDownloadBtn");
       if (snap && downloadBtn) downloadBtn.href = snap.downloadUrl;
-      loadHistoryData(e.target.value);
+      updateHistoryNavButtons();
+    });
+  }
+
+  const prevBtn = el("historyPrevBtn");
+  const nextBtn = el("historyNextBtn");
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      const index = historySnapshots.findIndex(
+        (s) => s.filename === el("historyMonthSelect").value,
+      );
+      if (index !== -1) selectHistoryMonthByIndex(index + 1); // +1 = bulan lebih lama
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      const index = historySnapshots.findIndex(
+        (s) => s.filename === el("historyMonthSelect").value,
+      );
+      if (index !== -1) selectHistoryMonthByIndex(index - 1); // -1 = bulan lebih baru
     });
   }
 

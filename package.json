@@ -1,7 +1,11 @@
 {
+  "scripts": {
+    "build:css": "sass static/css/workspace/kpi-dashboard/style.scss static/css/workspace/kpi-dashboard/style.css --style=expanded --source-map --load-path=static/css && sass static/css/workspace/issue-monitor/style.scss static/css/workspace/issue-monitor/style.css --style=expanded --source-map --load-path=static/css"
+  },
   "devDependencies": {
     "prettier": "^3.9.6",
-    "prettier-plugin-jinja-template": "^2.2.0"
+    "prettier-plugin-jinja-template": "^2.2.0",
+    "sass": "^1.104.1"
   },
   "dependencies": {
     "chart.js": "^4.4.0",
