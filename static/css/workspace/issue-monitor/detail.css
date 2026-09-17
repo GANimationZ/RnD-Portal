@@ -1,0 +1,149 @@
+.issue-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 15px 0;
+  max-width: 900px;
+}
+
+.issue-detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  color: #6b6b6b;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.issue-detail__back:hover {
+  color: #a50034;
+}
+
+.issue-detail__card {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.issue-detail__image-wrapper {
+  width: 100%;
+  max-height: 420px;
+  overflow: hidden;
+  background-color: #f2f2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.issue-detail__image-wrapper img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+}
+.issue-detail__no-image {
+  padding: 40px;
+  color: #b0b0b0;
+  font-size: 13px;
+  text-align: center;
+}
+
+.issue-detail__body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.issue-detail__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.issue-detail__eyebrow {
+  font-size: 12px;
+  color: #a50034;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.issue-detail__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #262626;
+  margin-top: 4px;
+}
+
+.issue-detail__badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.issue-detail__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+.issue-detail__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.issue-detail__meta-label {
+  font-size: 11px;
+  color: #9a9a9a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.issue-detail__meta-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.issue-detail__section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b6b6b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.issue-detail__description {
+  white-space: pre-wrap;
+  color: #444;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.issue-detail__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.issue-detail__actions button {
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: 1px solid #a50034;
+  background-color: white;
+  color: #a50034;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.issue-detail__actions button:hover {
+  background-color: #a50034;
+  color: white;
+}
+.issue-detail__actions button.is-active {
+  background-color: #a50034;
+  color: white;
+}

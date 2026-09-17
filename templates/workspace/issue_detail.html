@@ -1,0 +1,139 @@
+{# ---- Define / Extends ---- #}
+{% extends "partials/top-sidebar.html" %}
+{% block title %}<title>Issue #{{ issue.id }} - RnD Portal</title>{% endblock %}
+{% block styles %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/workspace/issue-monitor/style.css') }}"
+  />
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/workspace/issue-monitor/detail.css') }}"
+  />
+{% endblock %}
+
+{# ---- Top Content ---- #}
+{% block content %}
+  <div class="issue-detail">
+    <a class="issue-detail__back" href="{{ url_for('issue_monitor.index') }}">
+      <i class="bxf bx-arrow-back"></i> Kembali ke Issue Monitor
+    </a>
+
+    <div class="issue-detail__card">
+      <div class="issue-detail__image-wrapper">
+        {% if issue.image_filename %}
+          <img
+            src="{{ url_for('static', filename='assets/uploud/' ~ issue.image_filename) }}"
+            alt="Lampiran issue #{{ issue.id }}"
+          />
+        {% else %}
+          <div class="issue-detail__no-image">Tidak ada gambar dilampirkan</div>
+        {% endif %}
+      </div>
+
+      <div class="issue-detail__body">
+        <div class="issue-detail__head">
+          <div>
+            <span class="issue-detail__eyebrow">ISSUE #{{ issue.id }}</span>
+            <div class="issue-detail__title">{{ issue.title }}</div>
+          </div>
+          <div class="issue-detail__badges">
+            <span
+              class="badge {{ {'High': 'badge-red', 'Medium': 'badge-yellow', 'Low': 'badge-green'}[issue.priority] }}"
+              >{{ issue.priority }}</span
+            >
+            <span
+              class="badge {{ {'Open': 'badge-blue', 'Pending': 'badge-yellow', 'Closed': 'badge-green', 'On Hold': 'badge-red'}[issue.status] }}"
+              id="statusBadge"
+              >{{ issue.status }}</span
+            >
+          </div>
+        </div>
+
+        <div class="issue-detail__meta">
+          <div class="issue-detail__meta-item">
+            <span class="issue-detail__meta-label">Category</span>
+            <span class="issue-detail__meta-value">{{ issue.category }}</span>
+          </div>
+          <div class="issue-detail__meta-item">
+            <span class="issue-detail__meta-label">Event</span>
+            <span class="issue-detail__meta-value">{{ issue.event }}</span>
+          </div>
+          <div class="issue-detail__meta-item">
+            <span class="issue-detail__meta-label">Deadline</span>
+            <span class="issue-detail__meta-value">{{ issue.deadline.strftime('%d-%m-%Y') }}</span>
+          </div>
+          <div class="issue-detail__meta-item">
+            <span class="issue-detail__meta-label">Owner</span>
+            <span class="issue-detail__meta-value">{{ issue.owner_name }}</span>
+          </div>
+          <div class="issue-detail__meta-item">
+            <span class="issue-detail__meta-label">Dibuat</span>
+            <span class="issue-detail__meta-value">{{ issue.created_at.strftime('%d-%m-%Y %H:%M') if issue.created_at else '-' }}</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="issue-detail__section-title">Deskripsi</div>
+          <p class="issue-detail__description">{{ issue.description or "-" }}</p>
+        </div>
+
+        <div class="issue-detail__actions">
+          <button type="button" id="toggleHoldBtn" data-issue-id="{{ issue.id }}">
+            {{ "Lepas Hold" if issue.status == "On Hold" else "Hold Issue" }}
+          </button>
+          <button type="button" id="closeIssueBtn" data-issue-id="{{ issue.id }}">
+            Tandai Closed
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{# ---- Define Script ---- #}
+{% block script %}
+  {{ super() }}
+  <script>
+    // Aksi cepat di halaman detail: toggle Hold / tandai Closed lewat API
+    // yang sama dipakai panel List Issue (PATCH /api/issues/<id>/status).
+    (function () {
+      const statusBadge = document.getElementById("statusBadge");
+      const holdBtn = document.getElementById("toggleHoldBtn");
+      const closeBtn = document.getElementById("closeIssueBtn");
+      const STATUS_BADGE_CLASS = {
+        Open: "badge-blue",
+        Pending: "badge-yellow",
+        Closed: "badge-green",
+        "On Hold": "badge-red",
+      };
+
+      async function updateStatus(issueId, status) {
+        try {
+          const res = await fetch(`/workspace/issue-monitor/api/issues/${issueId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+          });
+          if (!res.ok) throw new Error("Gagal update status");
+          const data = await res.json();
+
+          statusBadge.textContent = data.issue.status;
+          statusBadge.className = `badge ${STATUS_BADGE_CLASS[data.issue.status] || ""}`;
+          holdBtn.textContent = data.issue.status === "On Hold" ? "Lepas Hold" : "Hold Issue";
+        } catch (err) {
+          alert("Gagal memperbarui status issue.");
+        }
+      }
+
+      holdBtn.addEventListener("click", () => {
+        const current = statusBadge.textContent.trim();
+        updateStatus(holdBtn.dataset.issueId, current === "On Hold" ? "Open" : "On Hold");
+      });
+
+      closeBtn.addEventListener("click", () => {
+        updateStatus(closeBtn.dataset.issueId, "Closed");
+      });
+    })();
+  </script>
+{% endblock %}
