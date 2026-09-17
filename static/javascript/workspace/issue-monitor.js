@@ -1,16 +1,12 @@
 // ============================================================
 // RnD Portal - Issue Monitoring (LVT/MNT)
-// Semua panel (Dashboard, Issue Register, List Issue, Priority
-// Matrix) berbagi satu sumber data: `issueData`. Setiap kali
-// data berubah (register issue baru, hold, filter, dll) semua
-// panel di-render ulang lewat renderAll().
+// Menggunakan API Flask & SQLite/PostgreSQL
 // ============================================================
 
 Chart.register(ChartDataLabels);
 
 // ------------------------------------------------------------
-// CONFIG: mapping label -> warna, dipakai bareng oleh chart,
-// matrix table, dan priority-matrix card.
+// CONFIG: Mapping label -> warna & class
 // ------------------------------------------------------------
 const CATEGORY_META = {
   "PCBA/SMT": { color: "#b32e2e" },
@@ -40,48 +36,51 @@ const STATUS_CLASS = {
   "On Hold": "badge-red",
 };
 
-// Mapping value <option> di form Register -> label asli
-// (sesuai <select> yang ada di template kamu sekarang)
-const CATEGORY_VALUE_MAP = {
-  pcba_smt: "PCBA/SMT",
-  SQA: "SQA",
-  "Line-Prod": "Line-Prod",
-  OQA: "OQA",
-  css_svc: "CSS/SVC",
-};
-const EVENT_VALUE_MAP = {
-  pv: "PV",
-  pre_mp: "Pre-MP",
-  mp: "MP",
-  field: "Field",
-};
-
-// Nama user yang login. Idealnya di-set dari Jinja lewat
-// data-username di <body> atau elemen lain, contoh:
-//   <body data-username="{{ current_user.username }}">
-// Kalau belum ada, fallback ke "Admin".
-const currentUser = document.body.dataset.username || "Admin";
-
-// ------------------------------------------------------------
-// STATE: data issue (dummy awal). `filteredData` adalah hasil
-// filter dari panel List Issue, dipakai untuk render tabel +
-// export.
-// ------------------------------------------------------------
-let issueData = [
-  { id: 1, title: "Check Quality, Module gone wrong", description: "-", priority: "High", category: "PCBA/SMT", event: "PV", deadline: "18-09-2026", owner: "Admin", status: "Pending" },
-  { id: 2, title: "Firmware crash on boot sequence", description: "-", priority: "High", category: "SQA", event: "MP", deadline: "14-09-2026", owner: "Rani", status: "Open" },
-  { id: 3, title: "Intermittent connector wobble", description: "-", priority: "Medium", category: "Line-Prod", event: "PV", deadline: "17-09-2026", owner: "Dimas", status: "Open" },
-  { id: 4, title: "Assembly misalignment on tray B", description: "-", priority: "Medium", category: "OQA", event: "PV", deadline: "05-10-2026", owner: "Dimas", status: "Open" },
-  { id: 5, title: "Mainboard short circuit at test bench", description: "-", priority: "High", category: "SQA", event: "Field", deadline: "20-10-2026", owner: "Admin", status: "Pending" },
-  { id: 6, title: "Minor cosmetic scratch on casing", description: "-", priority: "Low", category: "OQA", event: "MP", deadline: "19-09-2026", owner: "Sinta", status: "Open" },
-  { id: 7, title: "Update test jig calibration schedule", description: "-", priority: "Low", category: "Line-Prod", event: "Pre-MP", deadline: "30-11-2026", owner: "Sinta", status: "Open" },
-  { id: 8, title: "Packaging label misprint batch 12", description: "-", priority: "Low", category: "Line-Prod", event: "MP", deadline: "22-08-2026", owner: "Sinta", status: "Closed" },
-];
-let nextIssueId = issueData.length + 1;
-let filteredData = [...issueData];
+// STATE DATA
+let issueData = [];
+let filteredData = [];
+let currentPage = 1;
+let rowsPerPage = 10;
+let categoryChart, eventChart, statusChart;
 
 // ============================================================
-// ---- Nav Tabs ---- //
+// ---- Fetch Data dari Server API ----
+// ============================================================
+function fetchIssues() {
+  fetch("/workspace/issue-monitor/api/issues")
+    .then((res) => {
+      if (!res.ok) throw new Error("Gagal mengambil data dari server.");
+      return res.json();
+    })
+    .then((data) => {
+      // Map data API agar field-nya sesuai dengan kebutuhan UI JS
+      issueData = data.issues.map((item) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        priority: item.priority || "Medium",
+        category: item.category,
+        event: item.event,
+        deadline: item.deadline ? formatDateToDMY(item.deadline) : "-",
+        owner: item.owner_name || "Admin",
+        status: item.status || "Open",
+        image_filename: item.image_filename,
+      }));
+      filteredData = [...issueData];
+      renderAll();
+    })
+    .catch((err) => console.error("Error Fetching Issues:", err));
+}
+
+// Helper Format Tanggal dari YYYY-MM-DD ke DD-MM-YYYY
+function formatDateToDMY(ymd) {
+  if (!ymd || !ymd.includes("-")) return ymd;
+  const [y, m, d] = ymd.split("-");
+  return `${d}-${m}-${y}`;
+}
+
+// ============================================================
+// ---- Nav Tabs ----
 // ============================================================
 function initTabs() {
   document.querySelectorAll(".nav-item__left").forEach((tab) => {
@@ -99,14 +98,14 @@ function switchTab(target) {
 }
 
 // ============================================================
-// ---- Helpers umum ---- //
+// ---- Helpers Umum ----
 // ============================================================
 function normalize(str) {
   return (str || "").toString().toLowerCase().replace(/[\s-]/g, "");
 }
 
 function parseDeadline(deadline) {
-  // format: dd-mm-yyyy
+  if (!deadline || deadline === "-") return new Date();
   const [day, month, year] = deadline.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
@@ -141,7 +140,7 @@ function classifyIssue(issue) {
 }
 
 // ============================================================
-// ---- Panel Dashboard ---- //
+// ---- Panel Dashboard ----
 // ============================================================
 function computeCategoryData() {
   return Object.keys(CATEGORY_META).map((label) => ({
@@ -171,8 +170,8 @@ function computeMatrixData() {
   const events = Object.keys(EVENT_META);
   return categories.map((cat) =>
     events.map(
-      (ev) => issueData.filter((i) => i.category === cat && i.event === ev).length,
-    ),
+      (ev) => issueData.filter((i) => i.category === cat && i.event === ev).length
+    )
   );
 }
 
@@ -181,8 +180,6 @@ function getHeatColor(value, max) {
   const lightness = 95 - intensity * 55;
   return `hsl(341, 100%, ${lightness}%)`;
 }
-
-let categoryChart, eventChart, statusChart;
 
 function renderCategoryChart() {
   const data = computeCategoryData();
@@ -243,7 +240,7 @@ function renderEventChart() {
 function renderStatusChart() {
   const data = computeStatusData();
   const max = Math.max(1, ...data.map((d) => d.value));
-  const colors = data.map((d) => STATUS_CLASS[d.label] ? statusColorFromClass(d.label) : "#8a8f98");
+  const colors = data.map((d) => statusColorFromClass(d.label));
   if (statusChart) {
     statusChart.data.labels = data.map((d) => d.label);
     statusChart.data.datasets[0].data = data.map((d) => d.value);
@@ -301,12 +298,12 @@ function barChartOptions(max) {
 
 function renderMatrixTable() {
   const table = document.getElementById("matrixTable");
+  if (!table) return;
   const categories = Object.keys(CATEGORY_META);
   const events = Object.keys(EVENT_META);
   const matrixData = computeMatrixData();
   const max = Math.max(1, ...matrixData.flat());
 
-  // reset header (dipanggil berkali-kali, harus bersih dulu)
   const theadRow = table.querySelector("thead tr");
   theadRow.innerHTML = "";
   const cornerCell = document.createElement("th");
@@ -324,14 +321,12 @@ function renderMatrixTable() {
   totalHeaderTh.classList.add("total-cell");
   theadRow.appendChild(totalHeaderTh);
 
-  // reset body
   const tbody = table.querySelector("tbody");
   tbody.innerHTML = "";
   const columnSums = new Array(events.length).fill(0);
 
   categories.forEach((cat, i) => {
     const row = document.createElement("tr");
-
     const rowHeader = document.createElement("th");
     rowHeader.classList.add("category-badge-cell");
     rowHeader.innerHTML = `<span class="category-badge" style="background:${CATEGORY_META[cat].color}22; color:${CATEGORY_META[cat].color}">${cat}</span>`;
@@ -351,7 +346,6 @@ function renderMatrixTable() {
     rowTotalTd.textContent = rowSum;
     rowTotalTd.classList.add("total-cell");
     row.appendChild(rowTotalTd);
-
     tbody.appendChild(row);
   });
 
@@ -375,9 +369,6 @@ function renderMatrixTable() {
   tbody.appendChild(totalRow);
 }
 
-// Kotak ringkasan di paling atas dashboard (TOTAL ISSUES, P1 DO
-// NOW, dst). Butuh id di masing-masing <span class="pv_number">
-// -- lihat catatan HTML di akhir.
 function renderDashboardSummary() {
   const total = issueData.length;
   const doNow = issueData.filter((i) => i.status !== "Closed" && classifyIssue(i) === "do-now").length;
@@ -400,7 +391,7 @@ function setText(id, value) {
 }
 
 // ============================================================
-// ---- Panel Issue Register ---- //
+// ---- Panel Issue Register ----
 // ============================================================
 function initIssueRegister() {
   flatpickr("#issueDate", {
@@ -417,57 +408,53 @@ function initIssueRegister() {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    const titleEl = document.getElementById("issueTitle");
-    const categoryEl = document.getElementById("issueCategory");
-    const eventEl = document.getElementById("issueEvent");
-    const descEl = document.getElementById("issueDescription");
-    const dateEl = document.getElementById("issueDate");
-    const fileEl = document.getElementById("issueFile");
+    const title = document.getElementById("issueTitle").value.trim();
+    const category = document.getElementById("issueCategory").value;
+    const event = document.getElementById("issueEvent").value;
+    const description = document.getElementById("issueDescription").value.trim();
+    const deadline = document.getElementById("issueDate").value;
+    const fileInput = document.getElementById("issueFile");
 
-    const title = titleEl.value.trim();
-    const categoryVal = categoryEl.value;
-    const eventVal = eventEl.value;
-    const description = descEl.value.trim();
-    const deadlineRaw = dateEl.value; // format Y-m-d dari flatpickr
-
-    if (!title || !categoryVal || !eventVal || !description || !deadlineRaw) {
+    if (!title || !category || !event || !description || !deadline) {
       alert("Mohon lengkapi semua field sebelum submit.");
       return;
     }
 
-    const newIssue = {
-      id: nextIssueId++,
-      title,
-      description,
-      category: CATEGORY_VALUE_MAP[categoryVal] || categoryVal,
-      event: EVENT_VALUE_MAP[eventVal] || eventVal,
-      deadline: formatDeadlineToDMY(deadlineRaw),
-      file: fileEl && fileEl.files[0] ? fileEl.files[0].name : null,
-      owner: currentUser,
-      priority: "Medium", // tidak ada field priority di form saat ini, default Medium
-      status: "Open",
-    };
+    // Kirim menggunakan FormData agar mendukung upload file gambar
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("category", category);
+    formData.append("event", event);
+    formData.append("description", description);
+    formData.append("deadline", deadline);
+    if (fileInput && fileInput.files[0]) {
+      formData.append("image", fileInput.files[0]);
+    }
 
-    issueData.unshift(newIssue);
-
-    form.reset();
-    renderAll();
-    switchTab("list-issue");
-    alert(`Issue "${newIssue.title}" berhasil didaftarkan.`);
+    fetch("/workspace/issue-monitor/api/issues", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Gagal mendaftarkan issue.");
+        return res.json();
+      })
+      .then((data) => {
+        alert(data.message || "Issue berhasil didaftarkan.");
+        form.reset();
+        fetchIssues(); // Refresh data dari server
+        switchTab("list-issue");
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Terjadi kesalahan saat mendaftarkan issue.");
+      });
   });
 }
 
-function formatDeadlineToDMY(ymd) {
-  const [y, m, d] = ymd.split("-");
-  return `${d}-${m}-${y}`;
-}
-
 // ============================================================
-// ---- Panel List Issue ---- //
+// ---- Panel List Issue & Detail Dinamis ----
 // ============================================================
-let currentPage = 1;
-let rowsPerPage = 10;
-
 function renderTable() {
   const tbody = document.getElementById("issueTableBody");
   if (!tbody) return;
@@ -479,9 +466,10 @@ function renderTable() {
   pageData.forEach((issue, i) => {
     const row = document.createElement("tr");
     row.dataset.issueId = issue.id;
+    row.style.cursor = "pointer";
     row.innerHTML = `
       <td>${start + i + 1}</td>
-      <td>${issue.title}</td>
+      <td><strong>${issue.title}</strong></td>
       <td class="center"><span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${issue.priority}</span></td>
       <td class="center">${issue.category}</td>
       <td class="center">${issue.event}</td>
@@ -490,9 +478,8 @@ function renderTable() {
       <td class="center"><span class="badge ${STATUS_CLASS[issue.status] || ""}">${issue.status}</span></td>
       <td class="center">
         <div class="action-buttons">
-          <button type="button" class="action-btn" data-action="hold" title="Hold"><i class="bxf bx-lock"></i></button>
-          <button type="button" class="action-btn" data-action="detail" title="Detail"><i class="bxf bx-folder"></i></button>
-          <button type="button" class="action-btn" data-action="info" title="Info"><i class="bxf bx-info-circle"></i></button>
+          <button type="button" class="action-btn" data-action="hold" title="Toggle Hold"><i class="bxf bx-lock"></i></button>
+          <button type="button" class="action-btn" data-action="detail" title="Lihat Detail"><i class="bxf bx-folder"></i></button>
         </div>
       </td>
     `;
@@ -501,6 +488,47 @@ function renderTable() {
 
   renderPaginationSummary(start, start + pageData.length);
   renderPaginationPages();
+}
+
+// FUNGSI UNTUK MENAMPILKAN DETAIL DI BAWAH TABEL
+function showIssueDetail(issueId) {
+  const issue = issueData.find((i) => i.id === issueId);
+  if (!issue) return;
+
+  // Timpa elemen detail dengan data baru
+  document.getElementById("detailTitle").innerText = `Issue #${issue.id}: ${issue.title}`;
+  document.getElementById("detailId").innerText = `#${issue.id}`;
+  document.getElementById("detailCategory").innerText = issue.category || "-";
+  document.getElementById("detailEvent").innerText = issue.event || "-";
+  document.getElementById("detailOwner").innerText = issue.owner || "-";
+  document.getElementById("detailStatus").innerText = issue.status;
+  document.getElementById("detailPriority").innerText = issue.priority;
+  document.getElementById("detailDeadline").innerText = issue.deadline || "-";
+  document.getElementById("detailDescription").innerText = issue.description || "-";
+
+  // Tampilkan Gambar dari static/assets/upload/
+  const imageWrapper = document.getElementById("detailImageWrapper");
+  if (issue.image_filename) {
+    imageWrapper.innerHTML = `
+      <img src="/static/assets/upload/${issue.image_filename}" 
+           alt="Lampiran Issue #${issue.id}" 
+           style="max-width: 100%; max-height: 400px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    `;
+  } else {
+    imageWrapper.innerHTML = `<span style="color: #888;">Tidak ada lampiran gambar untuk issue ini.</span>`;
+  }
+
+  // Tampilkan section & scroll ke area detail
+  const detailSection = document.getElementById("issueDetailSection");
+  if (detailSection) {
+    detailSection.style.display = "block";
+    detailSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function closeIssueDetail() {
+  const detailSection = document.getElementById("issueDetailSection");
+  if (detailSection) detailSection.style.display = "none";
 }
 
 function renderPaginationSummary(start, end) {
@@ -551,7 +579,7 @@ function initListIssue() {
     });
   }
 
-  // ---- Filters ----
+  // Filters
   const searchInput = document.getElementById("searchInput");
   const filterPriority = document.getElementById("filterPriority");
   const filterStatus = document.getElementById("filterStatus");
@@ -566,48 +594,62 @@ function initListIssue() {
       el.addEventListener(evt, applyFilters);
     });
 
-  const searchForm = document.getElementById("s_f");
-  if (searchForm) {
-    searchForm.addEventListener("submit", (e) => e.preventDefault());
-  }
-
   const resetBtn = document.getElementById("reset");
   if (resetBtn) {
     resetBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      if (searchForm) searchForm.reset();
+      document.getElementById("s_f")?.reset();
       applyFilters();
     });
   }
 
-  // ---- Export ----
-  const exportCsvBtn = document.getElementById("exportCsv");
-  if (exportCsvBtn) exportCsvBtn.addEventListener("click", (e) => { e.preventDefault(); exportData("csv"); });
+  // Export
+  document.getElementById("exportCsv")?.addEventListener("click", (e) => { e.preventDefault(); exportData("csv"); });
+  document.getElementById("exportExcel")?.addEventListener("click", (e) => { e.preventDefault(); exportData("xls"); });
 
-  const exportExcelBtn = document.getElementById("exportExcel");
-  if (exportExcelBtn) exportExcelBtn.addEventListener("click", (e) => { e.preventDefault(); exportData("xls"); });
-
-  // ---- Action buttons (Hold / Detail / Info) ----
+  // Event Listener Klik Baris / Tombol Action di Tabel
   const tbody = document.getElementById("issueTableBody");
   if (tbody) {
     tbody.addEventListener("click", (e) => {
-      const btn = e.target.closest(".action-btn");
-      if (!btn) return;
-      const row = btn.closest("tr");
-      const issue = issueData.find((i) => i.id === Number(row.dataset.issueId));
-      if (!issue) return;
+      const row = e.target.closest("tr");
+      if (!row) return;
 
-      const action = btn.dataset.action;
-      if (action === "hold") {
-        issue.status = issue.status === "On Hold" ? "Open" : "On Hold";
-        renderAll();
-      } else if (action === "detail" || action === "info") {
-        alert(
-          `${issue.title}\n\nCategory: ${issue.category}\nEvent: ${issue.event}\nPriority: ${issue.priority}\nStatus: ${issue.status}\nDeadline: ${issue.deadline}\nOwner: ${issue.owner}\n\nDeskripsi:\n${issue.description || "-"}`,
-        );
+      const issueId = Number(row.dataset.issueId);
+      const btn = e.target.closest(".action-btn");
+
+      if (btn) {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        if (action === "hold") {
+          toggleIssueStatus(issueId);
+        } else if (action === "detail") {
+          showIssueDetail(issueId);
+        }
+      } else {
+        // Klik di mana saja pada baris tabel akan membuka detail di bawah
+        showIssueDetail(issueId);
       }
     });
   }
+}
+
+function toggleIssueStatus(issueId) {
+  const issue = issueData.find((i) => i.id === issueId);
+  if (!issue) return;
+
+  const newStatus = issue.status === "On Hold" ? "Open" : "On Hold";
+
+  fetch(`/workspace/issue-monitor/api/issues/${issueId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: newStatus }),
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Gagal memperbarui status.");
+      return res.json();
+    })
+    .then(() => fetchIssues())
+    .catch((err) => console.error(err));
 }
 
 function applyFilters() {
@@ -628,11 +670,7 @@ function applyFilters() {
     }
 
     if (statusVal && !/all status/i.test(statusVal)) {
-      const quadrant = classifyIssue(issue);
-      if (statusVal === "P1 DO NOW" && quadrant !== "do-now") return false;
-      if (statusVal === "P2 SCHEDULE" && quadrant !== "schedule") return false;
-      if (statusVal === "ON HOLD" && issue.status !== "On Hold") return false;
-      if (statusVal === "CLOSED" && issue.status !== "Closed") return false;
+      if (normalize(issue.status) !== normalize(statusVal)) return false;
     }
 
     if (categoryVal && !/all category/i.test(categoryVal)) {
@@ -678,7 +716,7 @@ function exportData(type) {
 }
 
 // ============================================================
-// ---- Panel Priority Matrix ---- //
+// ---- Panel Priority Matrix ----
 // ============================================================
 function renderIssueCard(issue) {
   const daysLeft = daysUntil(issue.deadline);
@@ -686,7 +724,7 @@ function renderIssueCard(issue) {
   const catColor = CATEGORY_META[issue.category]?.color || "#8a8f98";
 
   return `
-    <div class="pm-card">
+    <div class="pm-card" style="cursor:pointer;" onclick="switchTab('list-issue'); showIssueDetail(${issue.id});">
       <div class="pm-card__top">
         <span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${issue.priority}</span>
         <span class="pm-card__category" style="color:${catColor}">${issue.category}</span>
@@ -737,7 +775,7 @@ function renderPriorityMatrix() {
 }
 
 // ============================================================
-// ---- Render All + Init ---- //
+// ---- Render All + Init ----
 // ============================================================
 function renderAll() {
   renderDashboardSummary();
@@ -745,7 +783,7 @@ function renderAll() {
   renderEventChart();
   renderStatusChart();
   renderMatrixTable();
-  applyFilters(); // ini juga memanggil renderTable()
+  applyFilters();
   renderPriorityMatrix();
 }
 
@@ -753,5 +791,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initIssueRegister();
   initListIssue();
-  renderAll();
+  fetchIssues(); // Mengambil data awal dari database lewat API
 });

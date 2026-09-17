@@ -12,4 +12,4 @@ def login_required(f):
 
         return f(*args, **kwargs)
 
-    return decorated_functionz
+    return decorated_function

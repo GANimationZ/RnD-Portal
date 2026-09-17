@@ -2,7 +2,7 @@
 import os
 import secrets
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, abort
 from flask_scss import Scss
 
 from library.auth import login_required
@@ -27,18 +27,11 @@ app.config['SECRET_KEY'] = secrets.token_hex(32)
 
 
 # ---- Konfigurasi Database ----
-# Persiapan migrasi SQLite -> PostgreSQL:
-# cukup set environment variable DATABASE_URL.
-#
-# Jika DATABASE_URL tidak di-set, aplikasi akan menggunakan
-# SQLite lokal: database.db
-
 database_url = os.environ.get(
     "DATABASE_URL",
     "sqlite:///database.db"
 )
 
-# Beberapa provider masih menggunakan skema postgres://
 if database_url.startswith("postgres://"):
     database_url = database_url.replace(
         "postgres://",
@@ -59,10 +52,6 @@ db.init_app(app)
 
 @app.route('/', methods=['GET'])
 def onboard():
-    """
-    Halaman awal / login.
-    Jika user sudah login, arahkan ke KPI Dashboard.
-    """
     if 'user_id' in session:
         return redirect(url_for('kpi_dashboard'))
 
@@ -71,100 +60,96 @@ def onboard():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """
-    Registrasi user baru.
-    """
     if request.method == 'POST':
         data = request.get_json()
 
-        # Jika request tidak memiliki JSON
         if not data:
-            return jsonify({
-                'error': 'Invalid request.'
-            }), 400
+            return jsonify({'error': 'Invalid request.'}), 400
 
         username = data.get('username')
         password = data.get('password')
         retype = data.get('retype')
 
-        # Validasi input kosong
         if not username or not password:
-            return jsonify({
-                'error': 'Please fill the empty box.'
-            }), 400
+            return jsonify({'error': 'Please fill the empty box.'}), 400
 
-        # Validasi panjang password
         if len(password) < 8:
-            return jsonify({
-                'error': 'Minimal 8 Characters long.'
-            }), 400
+            return jsonify({'error': 'Minimal 8 Characters long.'}), 400
 
-        # Validasi password
         if password != retype:
-            return jsonify({
-                'error': 'Password does not match'
-            }), 400
+            return jsonify({'error': 'Password does not match'}), 400
 
-        # Cek username
         if User.query.filter_by(username=username).first():
-            return jsonify({
-                'error': 'Already taken.'
-            }), 409
+            return jsonify({'error': 'Already taken.'}), 409
 
-        # Buat user baru
         new_user = User(username=username)
-
         new_user.set_password(password)
 
         db.session.add(new_user)
         db.session.commit()
 
-        return jsonify({
-            'message': f'User {username} successfully created.'
-        }), 201
+        return jsonify({'message': f'User {username} successfully created.'}), 201
 
     return render_template('auth/auth.html')
 
 
 @app.route('/login', methods=['POST'])
 def login():
-    """
-    Login user.
-    """
     data = request.get_json()
 
     if not data:
-        return jsonify({
-            'error': 'Invalid request.'
-        }), 400
+        return jsonify({'error': 'Invalid request.'}), 400
 
     username = data.get('username')
     password = data.get('password')
 
-    # Validasi input
     if not username or not password:
-        return jsonify({
-            'error': 'Please fill the empty box.'
-        }), 400
+        return jsonify({'error': 'Please fill the empty box.'}), 400
 
-    # Cari user berdasarkan username
-    user = User.query.filter_by(
-        username=username
-    ).first()
+    user = User.query.filter_by(username=username).first()
 
-    # Cek user dan password
     if not user or not user.check_password(password):
-        return jsonify({
-            'error': 'Invalid username or password.'
-        }), 401
+        return jsonify({'error': 'Invalid username or password.'}), 401
 
-    # Simpan informasi user ke session
     session['user_id'] = user.id
     session['username'] = user.username
 
-    return jsonify({
-        'message': f'Welcome back, {username}!'
-    }), 200
+    return jsonify({'message': f'Welcome back, {username}!'}), 200
+
+
+# ---- Route Issue (Detail Issue ID = 1) ----
+
+@login_required
+def issue_detail(issue_id):
+    """
+    Halaman Detail Issue berdasarkan ID (misal: ID=1)
+    Menampilkan data issue beserta file gambar dari static/assets/upload/
+    """
+    # Dummy data issue id = 1
+    # Jika menggunakan model ORM, ganti bagian ini dengan query database (misal: Issue.query.get_or_404(issue_id))
+    dummy_issues = {
+        1: {
+            "id": 1,
+            "title": "Bug pada Tampilan KPI Dashboard",
+            "description": "Ditemukan kesalahan render grafik saat memuat data pada resolusi layar tertentu.",
+            "status": "In Progress",
+            "priority": "High",
+            "created_at": "2026-09-17",
+            "image_filename": "issue_1.png" # File disimpan di static/assets/upload/issue_1.png
+        }
+    }
+
+    issue_data = dummy_issues.get(issue_id)
+
+    if not issue_data:
+        abort(404, description="Issue tidak ditemukan")
+
+    return render_template(
+        'workspace/issue_detail.html',
+        issue=issue_data,
+        active_nav='issue-monitor',
+        username=session.get('username')
+    )
 
 
 # ---- Workspace ----
@@ -172,9 +157,6 @@ def login():
 @app.route('/workspace/kpi-dashboard', methods=['GET'])
 @login_required
 def kpi_dashboard():
-    """
-    KPI Dashboard.
-    """
     return render_template(
         'workspace/kpi_dashboard.html',
         active_nav='kpi-dashboard',
@@ -185,9 +167,6 @@ def kpi_dashboard():
 @app.route('/workspace/tv-design-concept', methods=['GET'])
 @login_required
 def tv_design_concept():
-    """
-    TV Design Concept.
-    """
     return render_template(
         'workspace/tv_design_concept.html',
         active_nav='analyse',
@@ -198,9 +177,6 @@ def tv_design_concept():
 @app.route('/workspace/tools', methods=['GET'])
 @login_required
 def tools():
-    """
-    Tools.
-    """
     return render_template(
         'workspace/tools.html',
         active_nav='tools',
@@ -213,9 +189,6 @@ def tools():
 @app.route('/team/structure', methods=['GET'])
 @login_required
 def org_structure():
-    """
-    Team Structure.
-    """
     return render_template(
         'team/structure.html',
         active_nav='structure',
@@ -226,9 +199,6 @@ def org_structure():
 @app.route('/team/others', methods=['GET'])
 @login_required
 def team_others():
-    """
-    Team Others.
-    """
     return render_template(
         'team/others.html',
         active_nav='others',
@@ -240,14 +210,8 @@ def team_others():
 
 @app.route('/logout', methods=['POST'])
 def logout():
-    """
-    Logout user dan hapus session.
-    """
     session.clear()
-
-    return jsonify({
-        'message': 'Logged out.'
-    }), 200
+    return jsonify({'message': 'Logged out.'}), 200
 
 
 # ---- Running and Debugging ----
@@ -255,13 +219,8 @@ def logout():
 if __name__ == '__main__':
 
     with app.app_context():
-
-        # Membuat tabel database jika belum ada
         db.create_all()
-
-        # Mengisi dummy data
         seed_dummy_data()
         seed_dummy_issues()
 
-    # Menjalankan Flask
     app.run(debug=True)

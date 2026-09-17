@@ -7,7 +7,7 @@ Flask blueprint Issue Monitor.
 - Data issue disimpan di tabel `issues` (lihat library/models.py), BUKAN
   dummy array di JS lagi.
 - Gambar yang di-upload lewat form Register disimpan sebagai file asli di
-  static/assets/uploud/ (nama folder sengaja "uploud", ikut yang sudah ada
+  static/assets/upload/ (nama folder sengaja "upload", ikut yang sudah ada
   di project), DB cuma nyimpen nama filenya.
 """
 
@@ -27,7 +27,7 @@ issue_monitor_bp = Blueprint(
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 VALID_STATUS = {"Open", "Pending", "Closed", "On Hold"}
-UPLOAD_SUBDIR = os.path.join("assets", "uploud")
+UPLOAD_SUBDIR = os.path.join("assets", "upload")
 
 
 def _allowed_file(filename):

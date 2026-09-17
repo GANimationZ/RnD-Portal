@@ -32,32 +32,26 @@
         <div class="ttl_issues red">
           <span class="pv_text">TOTAL ISSUES</span
           ><span class="pv_number" id="totalIssues">12</span>
-          {# <span class="pv_number">{{ issue.ttl_issue }}</span> #}
         </div>
         <div class="ttl_issues red">
           <span class="pv_text">P1 - DO NOW</span
           ><span class="pv_number" id="totalDoNow">9</span>
-          {# <span class="pv_number">{{ issue.now }}</span> #}
         </div>
         <div class="ttl_issues yellow">
           <span class="pv_text">P2 - SCHEDULE</span
           ><span class="pv_number" id="totalSchedule">3</span>
-          {# <span class="pv_number">{{ issue.schedule }}</span> #}
         </div>
         <div class="ttl_issues red">
           <span class="pv_text">ON HOLD</span
           ><span class="pv_number" id="totalOnHold">3</span>
-          {# <span class="pv_number">{{ issue.on_hold }}</span> #}
         </div>
         <div class="ttl_issues green">
           <span class="pv_text">CLOSED</span
           ><span class="pv_number" id="totalClosed">2</span>
-          {# <span class="pv_number">{{ issue.closed }}</span> #}
         </div>
         <div class="ttl_issues blue">
           <span class="pv_text">OPEN /IN PROGRESS</span
           ><span class="pv_number" id="totalOpen">11</span>
-          {# <span class="pv_number">{{ issue.open }}</span> #}
         </div>
       </div>
       <div class="grid-container">
@@ -97,11 +91,12 @@
         </div>
       </div>
     </div>
+
     {# ---- Panel Issue Register ---- #}
     <div class="body" data-panel="issue-register">
       <div class="register-issue">
         <span class="register-issue__title">Register an Issue</span>
-        <form class="register-issue__form" action="" method="post" id="issueForm">
+        <form class="register-issue__form" action="" method="post" id="issueForm" enctype="multipart/form-data">
           <input id="issueTitle"
             type="text"
             placeholder="Please Insert a title for the Issue"
@@ -109,18 +104,18 @@
           />
           <select id="issueCategory">
             <option value="" disabled selected>Please Select a Category</option>
-            <option value="pcba_smt">PCBA/SMT</option>
+            <option value="PCBA/SMT">PCBA/SMT</option>
             <option value="SQA">SQA</option>
             <option value="Line-Prod">Line-Prod</option>
             <option value="OQA">OQA</option>
-            <option value="css_svc">CSS/SVC</option>
+            <option value="CSS/SVC">CSS/SVC</option>
           </select>
           <select id="issueEvent">
             <option value="" disabled selected>Please Select an Event</option>
-            <option value="pv">PV</option>
-            <option value="pre_mp">Pre-MP</option>
-            <option value="mp">MP</option>
-            <option value="field">Field</option>
+            <option value="PV">PV</option>
+            <option value="Pre-MP">Pre-MP</option>
+            <option value="MP">MP</option>
+            <option value="Field">Field</option>
           </select>
           <textarea
             id="issueDescription"
@@ -128,17 +123,16 @@
             required
           ></textarea>
           <input
-            type="text"
+            type="date"
             id="issueDate"
-            class="date-placeholder"
-            placeholder="Provide a Deadline"
             required
           />
-          <input type="file" id="issueFile" required />
+          <input type="file" id="issueFile" accept="image/*" required />
           <input type="submit" value="Register Issue" id="sub_btn" />
         </form>
       </div>
     </div>
+
     {# ---- Panel List Issue ---- #}
     <div class="body" data-panel="list-issue">
       <div class="activity-filters">
@@ -151,19 +145,17 @@
               placeholder="Search issue, model, S/N, W/O"
             />
             <select class="priority" id="filterPriority">
-              <option value="All Priority" disabled selected>
-                All Priority
-              </option>
+              <option value="All Priority" selected>All Priority</option>
               <option value="High">High</option>
-              <option value="Mid">Mid</option>
+              <option value="Medium">Medium</option>
               <option value="Low">Low</option>
             </select>
             <select class="status" id="filterStatus">
               <option value="All Status" selected>All Status</option>
-              <option value="P1 DO NOW">P1 DO NOW</option>
-              <option value="P2 SCHEDULE">P2 SCHEDULE</option>
-              <option value="ON HOLD">ON HOLD</option>
-              <option value="CLOSED">CLOSED</option>
+              <option value="Open">Open</option>
+              <option value="Pending">Pending</option>
+              <option value="On Hold">On Hold</option>
+              <option value="Closed">Closed</option>
             </select>
             <select class="category" id="filterCategory">
               <option value="All Category" selected>All Category</option>
@@ -183,7 +175,7 @@
             <select class="owner" id="filterOwner">
               <option value="All Owners" selected>All Owners</option>
               {% for user in users %}
-                <option value="{{ user.id }}">{{ user.username }}</option>
+                <option value="{{ user.username }}">{{ user.username }}</option>
               {% endfor %}
             </select>
           </form>
@@ -196,6 +188,7 @@
           </div>
         </div>
       </div>
+      
       <div class="list">
         <table>
           <thead>
@@ -212,7 +205,7 @@
             </tr>
           </thead>
           <tbody id="issueTableBody">
-            <!-- baris di-generate JS -->
+            <!-- Baris tabel di-generate secara otomatis oleh JavaScript -->
           </tbody>
         </table>
 
@@ -229,7 +222,40 @@
           <div class="pagination__pages" id="paginationPages"></div>
         </div>
       </div>
+
+      <!-- ==================== KONTAINER DETAIL ISSUE (AKAN MUNCUL DI BAWAH TABEL) ==================== -->
+      <div id="issueDetailSection" style="display: none; margin-top: 24px; padding: 20px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 12px; margin-bottom: 16px;">
+          <h3 id="detailTitle" style="margin: 0; color: #1a1a1a;">Detail Issue</h3>
+          <button type="button" onclick="closeIssueDetail()" style="background: transparent; border: none; font-size: 20px; cursor: pointer; color: #888;">&times;</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+          <div><strong>ID Issue:</strong> <span id="detailId">-</span></div>
+          <div><strong>Kategori:</strong> <span id="detailCategory">-</span></div>
+          <div><strong>Event:</strong> <span id="detailEvent">-</span></div>
+          <div><strong>Owner:</strong> <span id="detailOwner">-</span></div>
+          <div><strong>Status:</strong> <span id="detailStatus" class="badge">-</span></div>
+          <div><strong>Prioritas:</strong> <span id="detailPriority" class="badge">-</span></div>
+          <div><strong>Deadline:</strong> <span id="detailDeadline">-</span></div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <h4 style="margin-bottom: 8px;">Deskripsi:</h4>
+          <p id="detailDescription" style="background: #f9f9f9; padding: 12px; border-radius: 6px; color: #444; margin: 0; line-height: 1.5;">-</p>
+        </div>
+
+        <div>
+          <h4 style="margin-bottom: 8px;">Lampiran Gambar:</h4>
+          <div id="detailImageWrapper" style="text-align: center; padding: 16px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px;">
+            <span style="color: #888;">Pilih issue untuk melihat gambarnya.</span>
+          </div>
+        </div>
+      </div>
+      <!-- ==================== END KONTAINER DETAIL ISSUE ==================== -->
+
     </div>
+
     {# ---- Panel Priority Matrix ---- #}
     <div class="body" data-panel="priority-matrix">
       <div class="priority-matrix__header">
