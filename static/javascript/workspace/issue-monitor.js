@@ -1,390 +1,38 @@
-// ---- Panel Dashboard ---- //
-// Area fungsi untuk panel dashboard
+// ============================================================
+// RnD Portal - Issue Monitoring (LVT/MNT)
+// Semua panel (Dashboard, Issue Register, List Issue, Priority
+// Matrix) berbagi satu sumber data: `issueData`. Setiap kali
+// data berubah (register issue baru, hold, filter, dll) semua
+// panel di-render ulang lewat renderAll().
+// ============================================================
 
-// ---- Matrix Table Chart ---- //
 Chart.register(ChartDataLabels);
 
-// ---- Define Data ---- (Dummy Data) //
-// Categories //
-const categoryData = [
-  { label: "PCBA/SMT", value: 1, color: "#b32e2e" },
-  { label: "SQA", value: 4, color: "#dd3d3d" },
-  { label: "Line-Prod", value: 2, color: "#f18f34" },
-  { label: "OQA", value: 5, color: "#2e92cc" },
-  { label: "CSS/SVC", value: 0, color: "#2e92cc" },
-];
+// ------------------------------------------------------------
+// CONFIG: mapping label -> warna, dipakai bareng oleh chart,
+// matrix table, dan priority-matrix card.
+// ------------------------------------------------------------
+const CATEGORY_META = {
+  "PCBA/SMT": { color: "#b32e2e" },
+  "SQA": { color: "#dd3d3d" },
+  "Line-Prod": { color: "#f18f34" },
+  "OQA": { color: "#2e92cc" },
+  "CSS/SVC": { color: "#2e92cc" },
+};
 
-// Event //
-const eventData = [
-  { label: "PV", value: 3, color: "#143820" },
-  { label: "Pre-MP", value: 2, color: "#e24b4a" },
-  { label: "MP", value: 7, color: "#2c7db3" },
-  { label: "Field", value: 0, color: "#e24b4a" },
-];
-
-// Status //
-const statusData = [
-  { label: "Open", value: 3, color: "#143820" },
-  { label: "HOLD", value: 2, color: "#e24b4a" },
-  { label: "Open - MR in progress", value: 7, color: "#2c7db3" },
-  { label: "HOLD by SQA", value: 0, color: "#e24b4a" },
-  { label: "CLOSED - Temporary ECO issued", value: 0, color: "#1e7e33" },
-  { label: "Open - analysis requested", value: 0, color: "#215227" },
-];
-
-// Matrix (Issue x Event) //
-const events = ["PV", "PRE-MP", "MP", "FIELD"];
-const matrixData = [
-  [1, 0, 0, 0],
-  [2, 1, 1, 0],
-  [0, 1, 1, 0],
-  [0, 0, 5, 0],
-  [0, 0, 0, 0],
-];
-
-// ---- Define Mapping and Colors ---- //
-// Categories //
-const categories = categoryData.map((d) => d.label);
-const categoryColors = Object.fromEntries(
-  categoryData.map((d) => [d.label, d.color]),
-);
-
-// Event //
-const event = eventData.map((e) => e.label);
-const eventColors = Object.fromEntries(
-  eventData.map((e) => [e.label, e.color]),
-);
-
-// Status //
-const status = statusData.map((s) => s.label);
-const statusColors = Object.fromEntries(
-  statusData.map((s) => [s.label, s.color]),
-);
-
-// Matrix (Issue x Event) //
-const maxValue = Math.max(...categoryData.map((d) => d.value));
-
-function getHeatColor(value, max) {
-  const intensity = max === 0 ? 0 : value / max;
-  const lightness = 95 - intensity * 55;
-  return `hsl(341, 100%, ${lightness}%)`;
-}
-
-// ---- Fucntion Render Chart ---- //
-// Categories //
-const ctc = document.getElementById("category");
-new Chart(ctc, {
-  type: "bar",
-  data: {
-    labels: categoryData.map((d) => d.label),
-    datasets: [
-      {
-        label: "Jumlah Issue",
-        data: categoryData.map((d) => d.value),
-        backgroundColor: categoryData.map((d) => d.color),
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      },
-    ],
-  },
-  options: {
-    indexAxis: "y",
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: { padding: { left: 0, right: 36 } },
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-        anchor: "end",
-        align: "end",
-        clamp: true,
-        offset: 4,
-        color: "#333",
-        font: { weight: "bold", size: 11 },
-        formatter: (value) => value,
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: maxValue,
-        grid: { display: true },
-        ticks: { display: false },
-      },
-      y: {
-        grid: { display: false },
-        ticks: { crossAlign: "far", padding: 0 },
-      },
-    },
-  },
-});
-
-// Event //
-const cte = document.getElementById("event");
-new Chart(cte, {
-  type: "bar",
-  data: {
-    labels: eventData.map((e) => e.label),
-    datasets: [
-      {
-        label: "Jumlah Issue",
-        data: eventData.map((e) => e.value),
-        backgroundColor: eventData.map((e) => e.color),
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      },
-    ],
-  },
-  options: {
-    indexAxis: "y",
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: { padding: { left: 0, right: 36 } },
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-        anchor: "end",
-        align: "end",
-        clamp: true,
-        offset: 4,
-        color: "#333",
-        font: { weight: "bold", size: 11 },
-        formatter: (value) => value,
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: maxValue,
-        grid: { display: true },
-        ticks: { display: false },
-      },
-      y: {
-        grid: { display: false },
-        ticks: { crossAlign: "far", padding: 0 },
-      },
-    },
-  },
-});
-
-// Status //
-const cts = document.getElementById("status");
-new Chart(cts, {
-  type: "bar",
-  data: {
-    labels: statusData.map((s) => s.label),
-    datasets: [
-      {
-        label: "Jumlah Issue",
-        data: statusData.map((s) => s.value),
-        backgroundColor: eventData.map((s) => s.color),
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      },
-    ],
-  },
-  options: {
-    indexAxis: "y",
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: { padding: { left: 0, right: 36 } },
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-        anchor: "end",
-        align: "end",
-        clamp: true,
-        offset: 4,
-        color: "#333",
-        font: { weight: "bold", size: 11 },
-        formatter: (value) => value,
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: maxValue,
-        grid: { display: true },
-        ticks: { display: false },
-      },
-      y: {
-        grid: { display: false },
-        ticks: { crossAlign: "far", padding: 0 },
-      },
-    },
-  },
-});
-
-// Matrix (Issue x Event) //
-function renderMatrixTable() {
-  const table = document.getElementById("matrixTable");
-  const max = Math.max(...matrixData.flat());
-
-  const theadRow = table.querySelector("thead tr");
-  const cornerCell = theadRow.querySelector("th");
-  cornerCell.textContent = "Category \\ Event";
-  cornerCell.classList.add("corner-cell");
-
-  events.forEach((ev) => {
-    const th = document.createElement("th");
-    th.textContent = ev;
-    theadRow.appendChild(th);
-  });
-  const totalHeaderTh = document.createElement("th");
-  totalHeaderTh.textContent = "Total";
-  totalHeaderTh.classList.add("total-cell");
-  theadRow.appendChild(totalHeaderTh);
-
-  const tbody = table.querySelector("tbody");
-  const columnSums = new Array(events.length).fill(0);
-
-  categories.forEach((cat, i) => {
-    const row = document.createElement("tr");
-
-    const rowHeader = document.createElement("th");
-    rowHeader.classList.add("category-badge-cell");
-    rowHeader.innerHTML = `<span class="category-badge" style="background:${categoryColors[cat]}22; color:${categoryColors[cat]}">${cat}</span>`;
-    row.appendChild(rowHeader);
-
-    let rowSum = 0;
-    matrixData[i].forEach((value, j) => {
-      const td = document.createElement("td");
-      td.textContent = value;
-      td.style.backgroundColor = getHeatColor(value, max);
-      row.appendChild(td);
-      rowSum += value;
-      columnSums[j] += value;
-    });
-
-    const rowTotalTd = document.createElement("td");
-    rowTotalTd.textContent = rowSum;
-    rowTotalTd.classList.add("total-cell");
-    row.appendChild(rowTotalTd);
-
-    tbody.appendChild(row);
-  });
-
-  const totalRow = document.createElement("tr");
-  totalRow.classList.add("total-row");
-
-  const totalLabelTh = document.createElement("th");
-  totalLabelTh.textContent = "Total";
-  totalRow.appendChild(totalLabelTh);
-
-  const grandTotal = columnSums.reduce((sum, v) => sum + v, 0);
-  columnSums.forEach((sum) => {
-    const td = document.createElement("td");
-    td.textContent = sum;
-    totalRow.appendChild(td);
-  });
-
-  const grandTotalTd = document.createElement("td");
-  grandTotalTd.textContent = grandTotal;
-  grandTotalTd.classList.add("total-cell");
-  totalRow.appendChild(grandTotalTd);
-
-  tbody.appendChild(totalRow);
-}
-
-renderMatrixTable();
-
-// ---- Panel Issue Register ---- //
-// Area fungsi untuk panel mendaftarkan issue
-
-// DateTime Placeholder
-flatpickr("#issueDate", {
-  dateFormat: "Y-m-d",
-  altInput: true,
-  altFormat: "d - m - Y",
-  allowInput: true,
-});
-
-// ---- Panel List Issue ---- //
-// Area fungsi untuk panel pagination tabel dll
-
-const issueData = [
-  {
-    title: "Check Quality, Module gone wrong",
-    priority: "High",
-    category: "PCBA/SMT",
-    event: "PV",
-    deadline: "18-09-2026",
-    owner: "Admin",
-    status: "Pending",
-  },
-  {
-    title: "Firmware crash on boot sequence",
-    priority: "High",
-    category: "SQA",
-    event: "MP",
-    deadline: "14-09-2026",
-    owner: "Rani",
-    status: "Open",
-  },
-  {
-    title: "Intermittent connector wobble",
-    priority: "Medium",
-    category: "Line-Prod",
-    event: "PV",
-    deadline: "17-09-2026",
-    owner: "Dimas",
-    status: "Open",
-  },
-  {
-    title: "Assembly misalignment on tray B",
-    priority: "Medium",
-    category: "OQA",
-    event: "PV",
-    deadline: "05-10-2026",
-    owner: "Dimas",
-    status: "Open",
-  },
-  {
-    title: "Mainboard short circuit at test bench",
-    priority: "High",
-    category: "SQA",
-    event: "Field",
-    deadline: "20-10-2026",
-    owner: "Admin",
-    status: "Pending",
-  },
-  {
-    title: "Minor cosmetic scratch on casing",
-    priority: "Low",
-    category: "OQA",
-    event: "MP",
-    deadline: "19-09-2026",
-    owner: "Sinta",
-    status: "Open",
-  },
-  {
-    title: "Update test jig calibration schedule",
-    priority: "Low",
-    category: "Line-Prod",
-    event: "Pre-MP",
-    deadline: "30-11-2026",
-    owner: "Sinta",
-    status: "Open",
-  },
-  {
-    title: "Packaging label misprint batch 12",
-    priority: "Low",
-    category: "Line-Prod",
-    event: "MP",
-    deadline: "22-08-2026",
-    owner: "Sinta",
-    status: "Closed",
-  },
-];
+const EVENT_META = {
+  "PV": { color: "#143820" },
+  "Pre-MP": { color: "#e24b4a" },
+  "MP": { color: "#2c7db3" },
+  "Field": { color: "#8a8f98" },
+};
 
 const PRIORITY_CLASS = {
   High: "badge-red",
   Medium: "badge-yellow",
   Low: "badge-green",
 };
+
 const STATUS_CLASS = {
   Open: "badge-blue",
   Pending: "badge-yellow",
@@ -392,93 +40,70 @@ const STATUS_CLASS = {
   "On Hold": "badge-red",
 };
 
-let currentPage = 1;
-let rowsPerPage = 10;
+// Mapping value <option> di form Register -> label asli
+// (sesuai <select> yang ada di template kamu sekarang)
+const CATEGORY_VALUE_MAP = {
+  pcba_smt: "PCBA/SMT",
+  SQA: "SQA",
+  "Line-Prod": "Line-Prod",
+  OQA: "OQA",
+  css_svc: "CSS/SVC",
+};
+const EVENT_VALUE_MAP = {
+  pv: "PV",
+  pre_mp: "Pre-MP",
+  mp: "MP",
+  field: "Field",
+};
 
-function renderTable() {
-  const tbody = document.getElementById("issueTableBody");
-  tbody.innerHTML = "";
+// Nama user yang login. Idealnya di-set dari Jinja lewat
+// data-username di <body> atau elemen lain, contoh:
+//   <body data-username="{{ current_user.username }}">
+// Kalau belum ada, fallback ke "Admin".
+const currentUser = document.body.dataset.username || "Admin";
 
-  const start = (currentPage - 1) * rowsPerPage;
-  const pageData = issueData.slice(start, start + rowsPerPage);
+// ------------------------------------------------------------
+// STATE: data issue (dummy awal). `filteredData` adalah hasil
+// filter dari panel List Issue, dipakai untuk render tabel +
+// export.
+// ------------------------------------------------------------
+let issueData = [
+  { id: 1, title: "Check Quality, Module gone wrong", description: "-", priority: "High", category: "PCBA/SMT", event: "PV", deadline: "18-09-2026", owner: "Admin", status: "Pending" },
+  { id: 2, title: "Firmware crash on boot sequence", description: "-", priority: "High", category: "SQA", event: "MP", deadline: "14-09-2026", owner: "Rani", status: "Open" },
+  { id: 3, title: "Intermittent connector wobble", description: "-", priority: "Medium", category: "Line-Prod", event: "PV", deadline: "17-09-2026", owner: "Dimas", status: "Open" },
+  { id: 4, title: "Assembly misalignment on tray B", description: "-", priority: "Medium", category: "OQA", event: "PV", deadline: "05-10-2026", owner: "Dimas", status: "Open" },
+  { id: 5, title: "Mainboard short circuit at test bench", description: "-", priority: "High", category: "SQA", event: "Field", deadline: "20-10-2026", owner: "Admin", status: "Pending" },
+  { id: 6, title: "Minor cosmetic scratch on casing", description: "-", priority: "Low", category: "OQA", event: "MP", deadline: "19-09-2026", owner: "Sinta", status: "Open" },
+  { id: 7, title: "Update test jig calibration schedule", description: "-", priority: "Low", category: "Line-Prod", event: "Pre-MP", deadline: "30-11-2026", owner: "Sinta", status: "Open" },
+  { id: 8, title: "Packaging label misprint batch 12", description: "-", priority: "Low", category: "Line-Prod", event: "MP", deadline: "22-08-2026", owner: "Sinta", status: "Closed" },
+];
+let nextIssueId = issueData.length + 1;
+let filteredData = [...issueData];
 
-  pageData.forEach((issue, i) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${start + i + 1}</td>
-      <td>${issue.title}</td>
-      <td class="center"><span class="badge ${PRIORITY_CLASS[issue.priority]}">${issue.priority}</span></td>
-      <td class="center">${issue.category}</td>
-      <td class="center">${issue.event}</td>
-      <td class="center">${issue.deadline}</td>
-      <td>${issue.owner}</td>
-      <td class="center"><span class="badge ${STATUS_CLASS[issue.status]}">${issue.status}</span></td>
-      <td class="center">
-        <div class="action-buttons">
-          <button class="action-btn" title="Hold"><i class="bxf bx-lock"></i></button>
-          <button class="action-btn" title="Detail"><i class="bxf bx-folder"></i></button>
-          <button class="action-btn" title="Info"><i class="bxf bx-info-circle"></i></button>
-        </div>
-      </td>
-    `;
-    tbody.appendChild(row);
+// ============================================================
+// ---- Nav Tabs ---- //
+// ============================================================
+function initTabs() {
+  document.querySelectorAll(".nav-item__left").forEach((tab) => {
+    tab.addEventListener("click", () => switchTab(tab.dataset.tab));
   });
-
-  renderPaginationSummary(start, start + pageData.length);
-  renderPaginationPages();
 }
 
-function renderPaginationSummary(start, end) {
-  const summary = document.getElementById("paginationSummary");
-  summary.textContent = `Showing ${issueData.length === 0 ? 0 : start + 1}-${end} of ${issueData.length}`;
+function switchTab(target) {
+  document.querySelectorAll(".nav-item__left").forEach((t) => {
+    t.classList.toggle("active", t.dataset.tab === target);
+  });
+  document.querySelectorAll(".body[data-panel]").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.panel === target);
+  });
 }
 
-function renderPaginationPages() {
-  const pagesEl = document.getElementById("paginationPages");
-  pagesEl.innerHTML = "";
-
-  const totalPages = Math.ceil(issueData.length / rowsPerPage);
-
-  const prevBtn = document.createElement("button");
-  prevBtn.textContent = "Prev";
-  prevBtn.disabled = currentPage === 1;
-  prevBtn.addEventListener("click", () => {
-    currentPage--;
-    renderTable();
-  });
-  pagesEl.appendChild(prevBtn);
-
-  for (let p = 1; p <= totalPages; p++) {
-    const pageBtn = document.createElement("button");
-    pageBtn.textContent = p;
-    pageBtn.className = p === currentPage ? "is-active" : "";
-    pageBtn.addEventListener("click", () => {
-      currentPage = p;
-      renderTable();
-    });
-    pagesEl.appendChild(pageBtn);
-  }
-
-  const nextBtn = document.createElement("button");
-  nextBtn.textContent = "Next";
-  nextBtn.disabled = currentPage === totalPages;
-  nextBtn.addEventListener("click", () => {
-    currentPage++;
-    renderTable();
-  });
-  pagesEl.appendChild(nextBtn);
+// ============================================================
+// ---- Helpers umum ---- //
+// ============================================================
+function normalize(str) {
+  return (str || "").toString().toLowerCase().replace(/[\s-]/g, "");
 }
-
-document.getElementById("rowsPerPage").addEventListener("change", (e) => {
-  rowsPerPage = parseInt(e.target.value, 10);
-  currentPage = 1;
-  renderTable();
-});
-
-renderTable();
-
-// ---- Panel Priority Matrix ---- //
-// Area fungsi untuk panel Priority Matrix (Dampak x Urgensi)
 
 function parseDeadline(deadline) {
   // format: dd-mm-yyyy
@@ -515,15 +140,556 @@ function classifyIssue(issue) {
   return "later";
 }
 
+// ============================================================
+// ---- Panel Dashboard ---- //
+// ============================================================
+function computeCategoryData() {
+  return Object.keys(CATEGORY_META).map((label) => ({
+    label,
+    value: issueData.filter((i) => i.category === label).length,
+    color: CATEGORY_META[label].color,
+  }));
+}
+
+function computeEventData() {
+  return Object.keys(EVENT_META).map((label) => ({
+    label,
+    value: issueData.filter((i) => i.event === label).length,
+    color: EVENT_META[label].color,
+  }));
+}
+
+function computeStatusData() {
+  return Object.keys(STATUS_CLASS).map((label) => ({
+    label,
+    value: issueData.filter((i) => i.status === label).length,
+  }));
+}
+
+function computeMatrixData() {
+  const categories = Object.keys(CATEGORY_META);
+  const events = Object.keys(EVENT_META);
+  return categories.map((cat) =>
+    events.map(
+      (ev) => issueData.filter((i) => i.category === cat && i.event === ev).length,
+    ),
+  );
+}
+
+function getHeatColor(value, max) {
+  const intensity = max === 0 ? 0 : value / max;
+  const lightness = 95 - intensity * 55;
+  return `hsl(341, 100%, ${lightness}%)`;
+}
+
+let categoryChart, eventChart, statusChart;
+
+function renderCategoryChart() {
+  const data = computeCategoryData();
+  const max = Math.max(1, ...data.map((d) => d.value));
+  if (categoryChart) {
+    categoryChart.data.labels = data.map((d) => d.label);
+    categoryChart.data.datasets[0].data = data.map((d) => d.value);
+    categoryChart.data.datasets[0].backgroundColor = data.map((d) => d.color);
+    categoryChart.options.scales.x.max = max;
+    categoryChart.update();
+    return;
+  }
+  categoryChart = new Chart(document.getElementById("category"), {
+    type: "bar",
+    data: {
+      labels: data.map((d) => d.label),
+      datasets: [{
+        label: "Jumlah Issue",
+        data: data.map((d) => d.value),
+        backgroundColor: data.map((d) => d.color),
+        borderRadius: 4,
+        categoryPercentage: 1.0,
+        barPercentage: 0.9,
+      }],
+    },
+    options: barChartOptions(max),
+  });
+}
+
+function renderEventChart() {
+  const data = computeEventData();
+  const max = Math.max(1, ...data.map((d) => d.value));
+  if (eventChart) {
+    eventChart.data.labels = data.map((d) => d.label);
+    eventChart.data.datasets[0].data = data.map((d) => d.value);
+    eventChart.data.datasets[0].backgroundColor = data.map((d) => d.color);
+    eventChart.options.scales.x.max = max;
+    eventChart.update();
+    return;
+  }
+  eventChart = new Chart(document.getElementById("event"), {
+    type: "bar",
+    data: {
+      labels: data.map((d) => d.label),
+      datasets: [{
+        label: "Jumlah Issue",
+        data: data.map((d) => d.value),
+        backgroundColor: data.map((d) => d.color),
+        borderRadius: 4,
+        categoryPercentage: 1.0,
+        barPercentage: 0.9,
+      }],
+    },
+    options: barChartOptions(max),
+  });
+}
+
+function renderStatusChart() {
+  const data = computeStatusData();
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const colors = data.map((d) => STATUS_CLASS[d.label] ? statusColorFromClass(d.label) : "#8a8f98");
+  if (statusChart) {
+    statusChart.data.labels = data.map((d) => d.label);
+    statusChart.data.datasets[0].data = data.map((d) => d.value);
+    statusChart.data.datasets[0].backgroundColor = colors;
+    statusChart.options.scales.x.max = max;
+    statusChart.update();
+    return;
+  }
+  statusChart = new Chart(document.getElementById("status"), {
+    type: "bar",
+    data: {
+      labels: data.map((d) => d.label),
+      datasets: [{
+        label: "Jumlah Issue",
+        data: data.map((d) => d.value),
+        backgroundColor: colors,
+        borderRadius: 4,
+        categoryPercentage: 1.0,
+        barPercentage: 0.9,
+      }],
+    },
+    options: barChartOptions(max),
+  });
+}
+
+function statusColorFromClass(label) {
+  const map = { Open: "#2c7db3", Pending: "#f2a623", Closed: "#1e7e33", "On Hold": "#e24b4a" };
+  return map[label] || "#8a8f98";
+}
+
+function barChartOptions(max) {
+  return {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { left: 0, right: 36 } },
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        anchor: "end",
+        align: "end",
+        clamp: true,
+        offset: 4,
+        color: "#333",
+        font: { weight: "bold", size: 11 },
+        formatter: (value) => value,
+      },
+    },
+    scales: {
+      x: { beginAtZero: true, max, grid: { display: true }, ticks: { display: false } },
+      y: { grid: { display: false }, ticks: { crossAlign: "far", padding: 0 } },
+    },
+  };
+}
+
+function renderMatrixTable() {
+  const table = document.getElementById("matrixTable");
+  const categories = Object.keys(CATEGORY_META);
+  const events = Object.keys(EVENT_META);
+  const matrixData = computeMatrixData();
+  const max = Math.max(1, ...matrixData.flat());
+
+  // reset header (dipanggil berkali-kali, harus bersih dulu)
+  const theadRow = table.querySelector("thead tr");
+  theadRow.innerHTML = "";
+  const cornerCell = document.createElement("th");
+  cornerCell.textContent = "Category \\ Event";
+  cornerCell.classList.add("corner-cell");
+  theadRow.appendChild(cornerCell);
+
+  events.forEach((ev) => {
+    const th = document.createElement("th");
+    th.textContent = ev;
+    theadRow.appendChild(th);
+  });
+  const totalHeaderTh = document.createElement("th");
+  totalHeaderTh.textContent = "Total";
+  totalHeaderTh.classList.add("total-cell");
+  theadRow.appendChild(totalHeaderTh);
+
+  // reset body
+  const tbody = table.querySelector("tbody");
+  tbody.innerHTML = "";
+  const columnSums = new Array(events.length).fill(0);
+
+  categories.forEach((cat, i) => {
+    const row = document.createElement("tr");
+
+    const rowHeader = document.createElement("th");
+    rowHeader.classList.add("category-badge-cell");
+    rowHeader.innerHTML = `<span class="category-badge" style="background:${CATEGORY_META[cat].color}22; color:${CATEGORY_META[cat].color}">${cat}</span>`;
+    row.appendChild(rowHeader);
+
+    let rowSum = 0;
+    matrixData[i].forEach((value, j) => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      td.style.backgroundColor = getHeatColor(value, max);
+      row.appendChild(td);
+      rowSum += value;
+      columnSums[j] += value;
+    });
+
+    const rowTotalTd = document.createElement("td");
+    rowTotalTd.textContent = rowSum;
+    rowTotalTd.classList.add("total-cell");
+    row.appendChild(rowTotalTd);
+
+    tbody.appendChild(row);
+  });
+
+  const totalRow = document.createElement("tr");
+  totalRow.classList.add("total-row");
+  const totalLabelTh = document.createElement("th");
+  totalLabelTh.textContent = "Total";
+  totalRow.appendChild(totalLabelTh);
+
+  const grandTotal = columnSums.reduce((sum, v) => sum + v, 0);
+  columnSums.forEach((sum) => {
+    const td = document.createElement("td");
+    td.textContent = sum;
+    totalRow.appendChild(td);
+  });
+
+  const grandTotalTd = document.createElement("td");
+  grandTotalTd.textContent = grandTotal;
+  grandTotalTd.classList.add("total-cell");
+  totalRow.appendChild(grandTotalTd);
+  tbody.appendChild(totalRow);
+}
+
+// Kotak ringkasan di paling atas dashboard (TOTAL ISSUES, P1 DO
+// NOW, dst). Butuh id di masing-masing <span class="pv_number">
+// -- lihat catatan HTML di akhir.
+function renderDashboardSummary() {
+  const total = issueData.length;
+  const doNow = issueData.filter((i) => i.status !== "Closed" && classifyIssue(i) === "do-now").length;
+  const schedule = issueData.filter((i) => i.status !== "Closed" && classifyIssue(i) === "schedule").length;
+  const onHold = issueData.filter((i) => i.status === "On Hold").length;
+  const closed = issueData.filter((i) => i.status === "Closed").length;
+  const open = issueData.filter((i) => i.status === "Open" || i.status === "Pending").length;
+
+  setText("totalIssues", total);
+  setText("totalDoNow", doNow);
+  setText("totalSchedule", schedule);
+  setText("totalOnHold", onHold);
+  setText("totalClosed", closed);
+  setText("totalOpen", open);
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+// ============================================================
+// ---- Panel Issue Register ---- //
+// ============================================================
+function initIssueRegister() {
+  flatpickr("#issueDate", {
+    dateFormat: "Y-m-d",
+    altInput: true,
+    altFormat: "d - m - Y",
+    allowInput: true,
+    minDate: "today",
+  });
+
+  const form = document.getElementById("issueForm");
+  if (!form) return;
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const titleEl = document.getElementById("issueTitle");
+    const categoryEl = document.getElementById("issueCategory");
+    const eventEl = document.getElementById("issueEvent");
+    const descEl = document.getElementById("issueDescription");
+    const dateEl = document.getElementById("issueDate");
+    const fileEl = document.getElementById("issueFile");
+
+    const title = titleEl.value.trim();
+    const categoryVal = categoryEl.value;
+    const eventVal = eventEl.value;
+    const description = descEl.value.trim();
+    const deadlineRaw = dateEl.value; // format Y-m-d dari flatpickr
+
+    if (!title || !categoryVal || !eventVal || !description || !deadlineRaw) {
+      alert("Mohon lengkapi semua field sebelum submit.");
+      return;
+    }
+
+    const newIssue = {
+      id: nextIssueId++,
+      title,
+      description,
+      category: CATEGORY_VALUE_MAP[categoryVal] || categoryVal,
+      event: EVENT_VALUE_MAP[eventVal] || eventVal,
+      deadline: formatDeadlineToDMY(deadlineRaw),
+      file: fileEl && fileEl.files[0] ? fileEl.files[0].name : null,
+      owner: currentUser,
+      priority: "Medium", // tidak ada field priority di form saat ini, default Medium
+      status: "Open",
+    };
+
+    issueData.unshift(newIssue);
+
+    form.reset();
+    renderAll();
+    switchTab("list-issue");
+    alert(`Issue "${newIssue.title}" berhasil didaftarkan.`);
+  });
+}
+
+function formatDeadlineToDMY(ymd) {
+  const [y, m, d] = ymd.split("-");
+  return `${d}-${m}-${y}`;
+}
+
+// ============================================================
+// ---- Panel List Issue ---- //
+// ============================================================
+let currentPage = 1;
+let rowsPerPage = 10;
+
+function renderTable() {
+  const tbody = document.getElementById("issueTableBody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const start = (currentPage - 1) * rowsPerPage;
+  const pageData = filteredData.slice(start, start + rowsPerPage);
+
+  pageData.forEach((issue, i) => {
+    const row = document.createElement("tr");
+    row.dataset.issueId = issue.id;
+    row.innerHTML = `
+      <td>${start + i + 1}</td>
+      <td>${issue.title}</td>
+      <td class="center"><span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${issue.priority}</span></td>
+      <td class="center">${issue.category}</td>
+      <td class="center">${issue.event}</td>
+      <td class="center">${issue.deadline}</td>
+      <td>${issue.owner}</td>
+      <td class="center"><span class="badge ${STATUS_CLASS[issue.status] || ""}">${issue.status}</span></td>
+      <td class="center">
+        <div class="action-buttons">
+          <button type="button" class="action-btn" data-action="hold" title="Hold"><i class="bxf bx-lock"></i></button>
+          <button type="button" class="action-btn" data-action="detail" title="Detail"><i class="bxf bx-folder"></i></button>
+          <button type="button" class="action-btn" data-action="info" title="Info"><i class="bxf bx-info-circle"></i></button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  renderPaginationSummary(start, start + pageData.length);
+  renderPaginationPages();
+}
+
+function renderPaginationSummary(start, end) {
+  const summary = document.getElementById("paginationSummary");
+  if (!summary) return;
+  summary.textContent = `Showing ${filteredData.length === 0 ? 0 : start + 1}-${Math.min(end, filteredData.length)} of ${filteredData.length}`;
+}
+
+function renderPaginationPages() {
+  const pagesEl = document.getElementById("paginationPages");
+  if (!pagesEl) return;
+  pagesEl.innerHTML = "";
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const prevBtn = document.createElement("button");
+  prevBtn.type = "button";
+  prevBtn.textContent = "Prev";
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.addEventListener("click", () => { currentPage--; renderTable(); });
+  pagesEl.appendChild(prevBtn);
+
+  for (let p = 1; p <= totalPages; p++) {
+    const pageBtn = document.createElement("button");
+    pageBtn.type = "button";
+    pageBtn.textContent = p;
+    pageBtn.className = p === currentPage ? "is-active" : "";
+    pageBtn.addEventListener("click", () => { currentPage = p; renderTable(); });
+    pagesEl.appendChild(pageBtn);
+  }
+
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.textContent = "Next";
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.addEventListener("click", () => { currentPage++; renderTable(); });
+  pagesEl.appendChild(nextBtn);
+}
+
+function initListIssue() {
+  const rowsSelect = document.getElementById("rowsPerPage");
+  if (rowsSelect) {
+    rowsSelect.addEventListener("change", (e) => {
+      rowsPerPage = parseInt(e.target.value, 10);
+      currentPage = 1;
+      renderTable();
+    });
+  }
+
+  // ---- Filters ----
+  const searchInput = document.getElementById("searchInput");
+  const filterPriority = document.getElementById("filterPriority");
+  const filterStatus = document.getElementById("filterStatus");
+  const filterCategory = document.getElementById("filterCategory");
+  const filterEvent = document.getElementById("filterEvent");
+  const filterOwner = document.getElementById("filterOwner");
+
+  [searchInput, filterPriority, filterStatus, filterCategory, filterEvent, filterOwner]
+    .filter(Boolean)
+    .forEach((el) => {
+      const evt = el.tagName === "SELECT" ? "change" : "input";
+      el.addEventListener(evt, applyFilters);
+    });
+
+  const searchForm = document.getElementById("s_f");
+  if (searchForm) {
+    searchForm.addEventListener("submit", (e) => e.preventDefault());
+  }
+
+  const resetBtn = document.getElementById("reset");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (searchForm) searchForm.reset();
+      applyFilters();
+    });
+  }
+
+  // ---- Export ----
+  const exportCsvBtn = document.getElementById("exportCsv");
+  if (exportCsvBtn) exportCsvBtn.addEventListener("click", (e) => { e.preventDefault(); exportData("csv"); });
+
+  const exportExcelBtn = document.getElementById("exportExcel");
+  if (exportExcelBtn) exportExcelBtn.addEventListener("click", (e) => { e.preventDefault(); exportData("xls"); });
+
+  // ---- Action buttons (Hold / Detail / Info) ----
+  const tbody = document.getElementById("issueTableBody");
+  if (tbody) {
+    tbody.addEventListener("click", (e) => {
+      const btn = e.target.closest(".action-btn");
+      if (!btn) return;
+      const row = btn.closest("tr");
+      const issue = issueData.find((i) => i.id === Number(row.dataset.issueId));
+      if (!issue) return;
+
+      const action = btn.dataset.action;
+      if (action === "hold") {
+        issue.status = issue.status === "On Hold" ? "Open" : "On Hold";
+        renderAll();
+      } else if (action === "detail" || action === "info") {
+        alert(
+          `${issue.title}\n\nCategory: ${issue.category}\nEvent: ${issue.event}\nPriority: ${issue.priority}\nStatus: ${issue.status}\nDeadline: ${issue.deadline}\nOwner: ${issue.owner}\n\nDeskripsi:\n${issue.description || "-"}`,
+        );
+      }
+    });
+  }
+}
+
+function applyFilters() {
+  const searchVal = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+  const priorityVal = document.getElementById("filterPriority")?.value || "";
+  const statusVal = document.getElementById("filterStatus")?.value || "";
+  const categoryVal = document.getElementById("filterCategory")?.value || "";
+  const eventVal = document.getElementById("filterEvent")?.value || "";
+  const ownerSelect = document.getElementById("filterOwner");
+  const ownerText = ownerSelect ? ownerSelect.options[ownerSelect.selectedIndex]?.text : "All Owners";
+
+  filteredData = issueData.filter((issue) => {
+    if (searchVal && !issue.title.toLowerCase().includes(searchVal)) return false;
+
+    if (priorityVal && !/all priority/i.test(priorityVal)) {
+      const wanted = priorityVal === "Mid" ? "Medium" : priorityVal;
+      if (normalize(issue.priority) !== normalize(wanted)) return false;
+    }
+
+    if (statusVal && !/all status/i.test(statusVal)) {
+      const quadrant = classifyIssue(issue);
+      if (statusVal === "P1 DO NOW" && quadrant !== "do-now") return false;
+      if (statusVal === "P2 SCHEDULE" && quadrant !== "schedule") return false;
+      if (statusVal === "ON HOLD" && issue.status !== "On Hold") return false;
+      if (statusVal === "CLOSED" && issue.status !== "Closed") return false;
+    }
+
+    if (categoryVal && !/all category/i.test(categoryVal)) {
+      if (normalize(issue.category) !== normalize(categoryVal)) return false;
+    }
+
+    if (eventVal && !/all event/i.test(eventVal)) {
+      if (normalize(issue.event) !== normalize(eventVal)) return false;
+    }
+
+    if (ownerText && !/all owners/i.test(ownerText)) {
+      if (issue.owner !== ownerText) return false;
+    }
+
+    return true;
+  });
+
+  currentPage = 1;
+  renderTable();
+}
+
+function exportData(type) {
+  const rows = [["No", "Title", "Priority", "Category", "Event", "Deadline", "Owner", "Status"]];
+  filteredData.forEach((issue, i) => {
+    rows.push([i + 1, issue.title, issue.priority, issue.category, issue.event, issue.deadline, issue.owner, issue.status]);
+  });
+
+  const content = rows
+    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .join("\r\n");
+
+  const mime = type === "csv" ? "text/csv" : "application/vnd.ms-excel";
+  const ext = type === "csv" ? "csv" : "xls";
+
+  const blob = new Blob([content], { type: mime });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `issue-list.${ext}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+}
+
+// ============================================================
+// ---- Panel Priority Matrix ---- //
+// ============================================================
 function renderIssueCard(issue) {
   const daysLeft = daysUntil(issue.deadline);
   const urgency = urgencyMeta(daysLeft);
+  const catColor = CATEGORY_META[issue.category]?.color || "#8a8f98";
 
   return `
     <div class="pm-card">
       <div class="pm-card__top">
-        <span class="badge ${PRIORITY_CLASS[issue.priority]}">${issue.priority}</span>
-        <span class="pm-card__category" style="color:${categoryColors[issue.category] || "#8a8f98"}">${issue.category}</span>
+        <span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${issue.priority}</span>
+        <span class="pm-card__category" style="color:${catColor}">${issue.category}</span>
       </div>
       <span class="pm-card__title">${issue.title}</span>
       <div class="pm-card__bottom">
@@ -542,7 +708,6 @@ const QUADRANT_LIST_ID = {
   delegate: "pmListDelegate",
   later: "pmListLater",
 };
-
 const QUADRANT_COUNT_ID = {
   "do-now": "pmCountDoNow",
   schedule: "pmCountSchedule",
@@ -555,9 +720,7 @@ function renderPriorityMatrix() {
 
   issueData
     .filter((issue) => issue.status !== "Closed")
-    .forEach((issue) => {
-      buckets[classifyIssue(issue)].push(issue);
-    });
+    .forEach((issue) => buckets[classifyIssue(issue)].push(issue));
 
   Object.entries(buckets).forEach(([quadrant, issues]) => {
     const listEl = document.getElementById(QUADRANT_LIST_ID[quadrant]);
@@ -566,16 +729,29 @@ function renderPriorityMatrix() {
 
     countEl.textContent = issues.length;
 
-    // Urutkan dari yang paling mendesak (deadline terdekat) dulu.
-    const sorted = [...issues].sort(
-      (a, b) => daysUntil(a.deadline) - daysUntil(b.deadline),
-    );
-
-    listEl.innerHTML =
-      sorted.length > 0
-        ? sorted.map(renderIssueCard).join("")
-        : '<div class="pm-empty">Tidak ada issue di kuadran ini.</div>';
+    const sorted = [...issues].sort((a, b) => daysUntil(a.deadline) - daysUntil(b.deadline));
+    listEl.innerHTML = sorted.length > 0
+      ? sorted.map(renderIssueCard).join("")
+      : '<div class="pm-empty">Tidak ada issue di kuadran ini.</div>';
   });
 }
 
-renderPriorityMatrix();
+// ============================================================
+// ---- Render All + Init ---- //
+// ============================================================
+function renderAll() {
+  renderDashboardSummary();
+  renderCategoryChart();
+  renderEventChart();
+  renderStatusChart();
+  renderMatrixTable();
+  applyFilters(); // ini juga memanggil renderTable()
+  renderPriorityMatrix();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initTabs();
+  initIssueRegister();
+  initListIssue();
+  renderAll();
+});

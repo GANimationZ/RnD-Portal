@@ -31,30 +31,32 @@
       <div class="preview_total">
         <div class="ttl_issues red">
           <span class="pv_text">TOTAL ISSUES</span
-          ><span class="pv_number">12</span>
+          ><span class="pv_number" id="totalIssues">12</span>
           {# <span class="pv_number">{{ issue.ttl_issue }}</span> #}
         </div>
         <div class="ttl_issues red">
           <span class="pv_text">P1 - DO NOW</span
-          ><span class="pv_number">9</span>
+          ><span class="pv_number" id="totalDoNow">9</span>
           {# <span class="pv_number">{{ issue.now }}</span> #}
         </div>
         <div class="ttl_issues yellow">
           <span class="pv_text">P2 - SCHEDULE</span
-          ><span class="pv_number">3</span>
+          ><span class="pv_number" id="totalSchedule">3</span>
           {# <span class="pv_number">{{ issue.schedule }}</span> #}
         </div>
         <div class="ttl_issues red">
-          <span class="pv_text">ON HOLD</span><span class="pv_number">3</span>
+          <span class="pv_text">ON HOLD</span
+          ><span class="pv_number" id="totalOnHold">3</span>
           {# <span class="pv_number">{{ issue.on_hold }}</span> #}
         </div>
         <div class="ttl_issues green">
-          <span class="pv_text">CLOSED</span><span class="pv_number">2</span>
+          <span class="pv_text">CLOSED</span
+          ><span class="pv_number" id="totalClosed">2</span>
           {# <span class="pv_number">{{ issue.closed }}</span> #}
         </div>
         <div class="ttl_issues blue">
           <span class="pv_text">OPEN /IN PROGRESS</span
-          ><span class="pv_number">11</span>
+          ><span class="pv_number" id="totalOpen">11</span>
           {# <span class="pv_number">{{ issue.open }}</span> #}
         </div>
       </div>
@@ -99,13 +101,13 @@
     <div class="body" data-panel="issue-register">
       <div class="register-issue">
         <span class="register-issue__title">Register an Issue</span>
-        <form class="register-issue__form" action="" method="post">
-          <input
+        <form class="register-issue__form" action="" method="post" id="issueForm">
+          <input id="issueTitle"
             type="text"
             placeholder="Please Insert a title for the Issue"
             required
           />
-          <select>
+          <select id="issueCategory">
             <option value="" disabled selected>Please Select a Category</option>
             <option value="pcba_smt">PCBA/SMT</option>
             <option value="SQA">SQA</option>
@@ -113,7 +115,7 @@
             <option value="OQA">OQA</option>
             <option value="css_svc">CSS/SVC</option>
           </select>
-          <select>
+          <select id="issueEvent">
             <option value="" disabled selected>Please Select an Event</option>
             <option value="pv">PV</option>
             <option value="pre_mp">Pre-MP</option>
@@ -121,6 +123,7 @@
             <option value="field">Field</option>
           </select>
           <textarea
+            id="issueDescription"
             placeholder="Please Provide a Description about the Issue you are trying to input"
             required
           ></textarea>
@@ -131,7 +134,7 @@
             placeholder="Provide a Deadline"
             required
           />
-          <input type="file" required />
+          <input type="file" id="issueFile" required />
           <input type="submit" value="Register Issue" id="sub_btn" />
         </form>
       </div>
@@ -142,8 +145,12 @@
         <div class="search_and_filters">
           <form id="s_f" action="" method="get">
             <label for="a_f">ACTIVE FILTERS</label>
-            <input type="text" placeholder="Search issue, model, S/N, W/O" />
-            <select class="priority">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search issue, model, S/N, W/O"
+            />
+            <select class="priority" id="filterPriority">
               <option value="All Priority" disabled selected>
                 All Priority
               </option>
@@ -151,30 +158,29 @@
               <option value="Mid">Mid</option>
               <option value="Low">Low</option>
             </select>
-            <select class="status">
+            <select class="status" id="filterStatus">
               <option value="All Status" selected>All Status</option>
               <option value="P1 DO NOW">P1 DO NOW</option>
               <option value="P2 SCHEDULE">P2 SCHEDULE</option>
               <option value="ON HOLD">ON HOLD</option>
               <option value="CLOSED">CLOSED</option>
-              <option value="CLOSED">CLOSED</option>
             </select>
-            <select class="category">
+            <select class="category" id="filterCategory">
               <option value="All Category" selected>All Category</option>
               <option value="PCBA/SMT">PCBA/SMT</option>
               <option value="SQA">SQA</option>
-              <option value="Line Prod">Line-Prod</option>
+              <option value="Line-Prod">Line-Prod</option>
               <option value="OQA">OQA</option>
               <option value="CSS/SVC">CSS/SVC</option>
             </select>
-            <select class="event">
+            <select class="event" id="filterEvent">
               <option value="All Event" selected>All Event</option>
               <option value="PV">PV</option>
               <option value="Pre-MP">Pre-MP</option>
               <option value="MP">MP</option>
               <option value="Field">Field</option>
             </select>
-            <select class="owner">
+            <select class="owner" id="filterOwner">
               <option value="All Owners" selected>All Owners</option>
               {% for user in users %}
                 <option value="{{ user.id }}">{{ user.username }}</option>
@@ -185,8 +191,8 @@
         <div class="btns">
           <button id="reset">Reset</button>
           <div class="execute_btns">
-            <button><i class="bxf bx-arrow-to-bottom"></i>Excel</button>
-            <button><i class="bxf bx-arrow-to-bottom"></i>CSV</button>
+            <button id="exportExcel" type="button"><i class="bxf bx-arrow-to-bottom"></i>Excel</button>
+            <button id="exportCsv" type="button"><i class="bxf bx-arrow-to-bottom"></i>CSV</button>
           </div>
         </div>
       </div>
