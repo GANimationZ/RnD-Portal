@@ -24,7 +24,7 @@ from library.models import Employee, KPIRecord, BestPractice, Issue
 
 EMPLOYEE_SEED = [
     {
-        "name": "Rani Freya",
+        "name": "Kontolodon",
         "role": "PCBA Engineer",
         "team": "PCBA/SMT",
         "base_assigned": 5,
@@ -37,7 +37,7 @@ EMPLOYEE_SEED = [
         ],
     },
     {
-        "name": "Dimas Pratama",
+        "name": "Dimas Pratamax",
         "role": "Assembly Lead",
         "team": "Line-Prod",
         "base_assigned": 4,

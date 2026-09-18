@@ -68,10 +68,11 @@ def register():
 
         username = data.get('username')
         password = data.get('password')
+        email = data.get('email')
         retype = data.get('retype')
 
-        if not username or not password:
-            return jsonify({'error': 'Please fill the empty box.'}), 400
+        if not username or not password or not email:
+            return jsonify({'error': 'Please fill all the empty boxes.'}), 400
 
         if len(password) < 8:
             return jsonify({'error': 'Minimal 8 Characters long.'}), 400
@@ -83,6 +84,7 @@ def register():
             return jsonify({'error': 'Already taken.'}), 409
 
         new_user = User(username=username)
+        new_user.email = email
         new_user.set_password(password)
 
         db.session.add(new_user)

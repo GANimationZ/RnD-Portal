@@ -147,3 +147,165 @@
   background-color: #a50034;
   color: white;
 }
+
+/* ==================== Inline Detail (dipakai di List Issue) ==================== */
+.issue-inline-detail {
+  margin-top: 20px;
+  scroll-margin-top: 20px;
+}
+.issue-inline-detail.is-hidden {
+  display: none;
+}
+
+.issue-inline-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.issue-inline-detail__eyebrow {
+  font-size: 12px;
+  color: #a50034;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.issue-inline-detail__close {
+  border: none;
+  background: transparent;
+  color: #8a8f98;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+.issue-inline-detail__close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.issue-inline-detail__card {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.issue-inline-detail__image-wrapper {
+  width: 100%;
+  max-height: 360px;
+  overflow: hidden;
+  background-color: #f2f2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.issue-inline-detail__image-wrapper img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+}
+.issue-inline-detail__image-wrapper .issue-inline-detail__no-image {
+  padding: 32px;
+  color: #b0b0b0;
+  font-size: 13px;
+}
+
+.issue-inline-detail__body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.issue-inline-detail__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.issue-inline-detail__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #262626;
+}
+.issue-inline-detail__badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.issue-inline-detail__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  padding: 14px;
+  background-color: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+.issue-inline-detail__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.issue-inline-detail__meta-label {
+  font-size: 11px;
+  color: #9a9a9a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.issue-inline-detail__meta-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.issue-inline-detail__section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b6b6b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+.issue-inline-detail__description {
+  white-space: pre-wrap;
+  color: #444;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.issue-inline-detail__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.issue-inline-detail__actions button {
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: 1px solid #a50034;
+  background-color: white;
+  color: #a50034;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.issue-inline-detail__actions button:hover {
+  background-color: #a50034;
+  color: white;
+}
+
+.main-body-content .body .list .action-buttons .action-btn[data-action="detail"] {
+  color: #a50034;
+}
+
+/* Baris tabel List Issue bisa diklik buat buka detail inline */
+.main-body-content .body .list tbody tr {
+  cursor: pointer;
+}
+.main-body-content .body .list tbody tr:hover {
+  background-color: #fafafa;
+}

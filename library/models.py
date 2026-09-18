@@ -27,6 +27,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(255), nullable=False, unique=True)
+    email = db.Column(db.String(255), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
@@ -103,7 +104,7 @@ class BestPractice(db.Model):
 class Issue(db.Model):
     """Satu baris = satu issue yang didaftarkan lewat panel Issue Register.
     `image_filename` cuma nyimpen nama file -- file aslinya disimpan di
-    static/assets/uploud/ (lihat library/workspace/issue_monitor/routes.py),
+    static/assets/upload/ (lihat library/workspace/issue_monitor/routes.py),
     supaya DB tidak perlu nyimpen BLOB besar."""
 
     __tablename__ = "issues"
@@ -134,7 +135,7 @@ class Issue(db.Model):
             "deadline": self.deadline.strftime("%d-%m-%Y") if self.deadline else None,
             "owner": self.owner_name,
             "image_url": (
-                url_for("static", filename=f"assets/uploud/{self.image_filename}")
+                url_for("static", filename=f"assets/upload/{self.image_filename}")
                 if self.image_filename
                 else None
             ),
