@@ -8,19 +8,12 @@ from flask_scss import Scss
 from library.auth import login_required
 from library.extensions import db
 from library.models import User
-from library.seed import seed_dummy_data, seed_dummy_issues
-from library.workspace.kpi_dashboard.routes import kpi_dashboard_bp
-from library.workspace.issue_monitor.routes import issue_monitor_bp
 
 
 # ---- App Setup ----
 app = Flask(__name__)
 
 Scss(app)
-
-app.register_blueprint(kpi_dashboard_bp)
-app.register_blueprint(issue_monitor_bp)
-
 
 # ---- App Configuration ----
 app.config['SECRET_KEY'] = secrets.token_hex(32)
@@ -225,4 +218,4 @@ if __name__ == '__main__':
         seed_dummy_data()
         seed_dummy_issues()
 
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=True)
