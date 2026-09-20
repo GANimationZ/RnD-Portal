@@ -21,7 +21,8 @@ document
     e.preventDefault();
 
     const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value
     const retype = document.getElementById("retype").value;
     const messageEl = document.getElementById("registermessage");
     const submitBtn = this.querySelector(".btn");
@@ -33,7 +34,7 @@ document
       const response = await fetch("/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, retype }),
+        body: JSON.stringify({ username, email, password, retype }),
       });
 
       const result = await response.json();

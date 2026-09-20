@@ -1,13 +1,23 @@
 // ============================================================
 // RnD Portal - Issue Monitoring (LVT/MNT)
 // Semua panel (Dashboard, Issue Register, List Issue, Priority
+<<<<<<< HEAD
 // Matrix) berbagi satu sumber data: `issueData`. Setiap kali
 // data berubah (register issue baru, hold, filter, dll) semua
 // panel di-render ulang lewat renderAll().
+=======
+// Matrix) berbagi satu sumber data: `issueData`, yang di-fetch
+// dari API (/workspace/issue-monitor/api/issues).
+//
+// Tab switching (klik .nav-item__left) DITANGANI oleh
+// static/javascript/workspace/panel-switcher.js yang di-load
+// global lewat layout -- file ini tidak bikin logic tab sendiri.
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 // ============================================================
 
 Chart.register(ChartDataLabels);
 
+<<<<<<< HEAD
 // ------------------------------------------------------------
 // CONFIG: mapping label -> warna, dipakai bareng oleh chart,
 // matrix table, dan priority-matrix card.
@@ -20,6 +30,21 @@ const CATEGORY_META = {
   "CSS/SVC": { color: "#2e92cc" },
 };
 
+=======
+const API_BASE = "/workspace/issue-monitor/api";
+
+// ------------------------------------------------------------
+// CONFIG: mapping label -> warna
+// ------------------------------------------------------------
+const CATEGORY_META = {
+  "PCBA/SMT": { color: "#b32e2e" },
+  "SQA": { color: "#dd3d3d" },
+  "Line-Prod": { color: "#f18f34" },
+  "OQA": { color: "#2e92cc" },
+  "CSS/SVC": { color: "#2e92cc" },
+};
+
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 const EVENT_META = {
   "PV": { color: "#143820" },
   "Pre-MP": { color: "#e24b4a" },
@@ -40,8 +65,11 @@ const STATUS_CLASS = {
   "On Hold": "badge-red",
 };
 
+<<<<<<< HEAD
 // Mapping value <option> di form Register -> label asli
 // (sesuai <select> yang ada di template kamu sekarang)
+=======
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 const CATEGORY_VALUE_MAP = {
   pcba_smt: "PCBA/SMT",
   SQA: "SQA",
@@ -49,6 +77,7 @@ const CATEGORY_VALUE_MAP = {
   OQA: "OQA",
   css_svc: "CSS/SVC",
 };
+<<<<<<< HEAD
 const EVENT_VALUE_MAP = {
   pv: "PV",
   pre_mp: "Pre-MP",
@@ -105,8 +134,31 @@ function normalize(str) {
   return (str || "").toString().toLowerCase().replace(/[\s-]/g, "");
 }
 
+=======
+
+const EVENT_VALUE_MAP = {
+  pv: "PV",
+  pre_mp: "Pre-MP",
+  mp: "MP",
+  field: "Field",
+};
+
+// ------------------------------------------------------------
+// STATE
+// ------------------------------------------------------------
+let issueData = [];
+let filteredData = [];
+
+// ============================================================
+// ---- Helpers umum ---- //
+// ============================================================
+function normalize(str) {
+  return (str || "").toString().toLowerCase().replace(/[\s-]/g, "");
+}
+
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 function parseDeadline(deadline) {
-  // format: dd-mm-yyyy
+  // format: dd-mm-yyyy (dari API)
   const [day, month, year] = deadline.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
@@ -140,6 +192,29 @@ function classifyIssue(issue) {
   return "later";
 }
 
+<<<<<<< HEAD
+=======
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+// ============================================================
+// ---- Data layer: fetch dari API ---- //
+// ============================================================
+async function fetchIssues() {
+  try {
+    const res = await fetch(`${API_BASE}/issues`);
+    if (!res.ok) throw new Error("Gagal memuat data issue.");
+    const data = await res.json();
+    issueData = data.issues || [];
+  } catch (err) {
+    console.error(err);
+    issueData = [];
+  }
+}
+
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 // ============================================================
 // ---- Panel Dashboard ---- //
 // ============================================================
@@ -184,6 +259,34 @@ function getHeatColor(value, max) {
 
 let categoryChart, eventChart, statusChart;
 
+<<<<<<< HEAD
+=======
+function barChartOptions(max) {
+  return {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { left: 0, right: 36 } },
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        anchor: "end",
+        align: "end",
+        clamp: true,
+        offset: 4,
+        color: "#333",
+        font: { weight: "bold", size: 11 },
+        formatter: (value) => value,
+      },
+    },
+    scales: {
+      x: { beginAtZero: true, max, grid: { display: true }, ticks: { display: false } },
+      y: { grid: { display: false }, ticks: { crossAlign: "far", padding: 0 } },
+    },
+  };
+}
+
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 function renderCategoryChart() {
   const data = computeCategoryData();
   const max = Math.max(1, ...data.map((d) => d.value));
@@ -195,7 +298,13 @@ function renderCategoryChart() {
     categoryChart.update();
     return;
   }
+<<<<<<< HEAD
   categoryChart = new Chart(document.getElementById("category"), {
+=======
+  const el = document.getElementById("category");
+  if (!el) return;
+  categoryChart = new Chart(el, {
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
     type: "bar",
     data: {
       labels: data.map((d) => d.label),
@@ -223,7 +332,13 @@ function renderEventChart() {
     eventChart.update();
     return;
   }
+<<<<<<< HEAD
   eventChart = new Chart(document.getElementById("event"), {
+=======
+  const el = document.getElementById("event");
+  if (!el) return;
+  eventChart = new Chart(el, {
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
     type: "bar",
     data: {
       labels: data.map((d) => d.label),
@@ -240,10 +355,22 @@ function renderEventChart() {
   });
 }
 
+<<<<<<< HEAD
 function renderStatusChart() {
   const data = computeStatusData();
   const max = Math.max(1, ...data.map((d) => d.value));
   const colors = data.map((d) => STATUS_CLASS[d.label] ? statusColorFromClass(d.label) : "#8a8f98");
+=======
+function statusColorFromClass(label) {
+  const map = { Open: "#2c7db3", Pending: "#f2a623", Closed: "#1e7e33", "On Hold": "#e24b4a" };
+  return map[label] || "#8a8f98";
+}
+
+function renderStatusChart() {
+  const data = computeStatusData();
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const colors = data.map((d) => statusColorFromClass(d.label));
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
   if (statusChart) {
     statusChart.data.labels = data.map((d) => d.label);
     statusChart.data.datasets[0].data = data.map((d) => d.value);
@@ -252,7 +379,13 @@ function renderStatusChart() {
     statusChart.update();
     return;
   }
+<<<<<<< HEAD
   statusChart = new Chart(document.getElementById("status"), {
+=======
+  const el = document.getElementById("status");
+  if (!el) return;
+  statusChart = new Chart(el, {
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
     type: "bar",
     data: {
       labels: data.map((d) => d.label),
@@ -269,6 +402,7 @@ function renderStatusChart() {
   });
 }
 
+<<<<<<< HEAD
 function statusColorFromClass(label) {
   const map = { Open: "#2c7db3", Pending: "#f2a623", Closed: "#1e7e33", "On Hold": "#e24b4a" };
   return map[label] || "#8a8f98";
@@ -301,12 +435,20 @@ function barChartOptions(max) {
 
 function renderMatrixTable() {
   const table = document.getElementById("matrixTable");
+=======
+function renderMatrixTable() {
+  const table = document.getElementById("matrixTable");
+  if (!table) return;
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
   const categories = Object.keys(CATEGORY_META);
   const events = Object.keys(EVENT_META);
   const matrixData = computeMatrixData();
   const max = Math.max(1, ...matrixData.flat());
 
+<<<<<<< HEAD
   // reset header (dipanggil berkali-kali, harus bersih dulu)
+=======
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
   const theadRow = table.querySelector("thead tr");
   theadRow.innerHTML = "";
   const cornerCell = document.createElement("th");
@@ -324,7 +466,10 @@ function renderMatrixTable() {
   totalHeaderTh.classList.add("total-cell");
   theadRow.appendChild(totalHeaderTh);
 
+<<<<<<< HEAD
   // reset body
+=======
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
   const tbody = table.querySelector("tbody");
   tbody.innerHTML = "";
   const columnSums = new Array(events.length).fill(0);
@@ -375,9 +520,12 @@ function renderMatrixTable() {
   tbody.appendChild(totalRow);
 }
 
+<<<<<<< HEAD
 // Kotak ringkasan di paling atas dashboard (TOTAL ISSUES, P1 DO
 // NOW, dst). Butuh id di masing-masing <span class="pv_number">
 // -- lihat catatan HTML di akhir.
+=======
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 function renderDashboardSummary() {
   const total = issueData.length;
   const doNow = issueData.filter((i) => i.status !== "Closed" && classifyIssue(i) === "do-now").length;
@@ -394,15 +542,19 @@ function renderDashboardSummary() {
   setText("totalOpen", open);
 }
 
+<<<<<<< HEAD
 function setText(id, value) {
   const el = document.getElementById(id);
   if (el) el.textContent = value;
 }
 
+=======
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 // ============================================================
 // ---- Panel Issue Register ---- //
 // ============================================================
 function initIssueRegister() {
+<<<<<<< HEAD
   flatpickr("#issueDate", {
     dateFormat: "Y-m-d",
     altInput: true,
@@ -410,11 +562,26 @@ function initIssueRegister() {
     allowInput: true,
     minDate: "today",
   });
+=======
+  if (document.getElementById("issueDate")) {
+    flatpickr("#issueDate", {
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "d - m - Y",
+      allowInput: true,
+      minDate: "today",
+    });
+  }
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 
   const form = document.getElementById("issueForm");
   if (!form) return;
 
+<<<<<<< HEAD
   form.addEventListener("submit", (e) => {
+=======
+  form.addEventListener("submit", async (e) => {
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
     e.preventDefault();
 
     const titleEl = document.getElementById("issueTitle");
@@ -423,6 +590,10 @@ function initIssueRegister() {
     const descEl = document.getElementById("issueDescription");
     const dateEl = document.getElementById("issueDate");
     const fileEl = document.getElementById("issueFile");
+<<<<<<< HEAD
+=======
+    const submitBtn = document.getElementById("sub_btn");
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 
     const title = titleEl.value.trim();
     const categoryVal = categoryEl.value;
@@ -435,6 +606,7 @@ function initIssueRegister() {
       return;
     }
 
+<<<<<<< HEAD
     const newIssue = {
       id: nextIssueId++,
       title,
@@ -462,6 +634,51 @@ function formatDeadlineToDMY(ymd) {
   return `${d}-${m}-${y}`;
 }
 
+=======
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("category", CATEGORY_VALUE_MAP[categoryVal] || categoryVal);
+    formData.append("event", EVENT_VALUE_MAP[eventVal] || eventVal);
+    formData.append("description", description);
+    formData.append("deadline", deadlineRaw);
+    if (fileEl && fileEl.files[0]) {
+      formData.append("image", fileEl.files[0]);
+    }
+
+    const originalSubmitValue = submitBtn ? submitBtn.value : null;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.value = "Menyimpan...";
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/issues`, { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Gagal menyimpan issue.");
+        return;
+      }
+
+      form.reset();
+      await fetchIssues();
+      renderAll();
+
+      document.querySelector('.nav-item__left[data-tab="list-issue"]')?.click();
+      alert(`Issue "${data.issue.title}" berhasil didaftarkan.`);
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan saat menghubungi server.");
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.value = originalSubmitValue;
+      }
+    }
+  });
+}
+
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 // ============================================================
 // ---- Panel List Issue ---- //
 // ============================================================
@@ -491,8 +708,13 @@ function renderTable() {
       <td class="center">
         <div class="action-buttons">
           <button type="button" class="action-btn" data-action="hold" title="Hold"><i class="bxf bx-lock"></i></button>
+<<<<<<< HEAD
           <button type="button" class="action-btn" data-action="detail" title="Detail"><i class="bxf bx-folder"></i></button>
           <button type="button" class="action-btn" data-action="info" title="Info"><i class="bxf bx-info-circle"></i></button>
+=======
+          <button type="button" class="action-btn" data-action="info" title="Lihat Detail"><i class="bxf bx-info-circle"></i></button>
+          <button type="button" class="action-btn" data-action="hand" title="Close Issue"><i class="bxf bx-hand"></i></button>
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
         </div>
       </td>
     `;
@@ -541,6 +763,7 @@ function renderPaginationPages() {
   pagesEl.appendChild(nextBtn);
 }
 
+<<<<<<< HEAD
 function initListIssue() {
   const rowsSelect = document.getElementById("rowsPerPage");
   if (rowsSelect) {
@@ -608,6 +831,29 @@ function initListIssue() {
       }
     });
   }
+=======
+async function updateIssueStatus(issueId, status) {
+  try {
+    const res = await fetch(`${API_BASE}/issues/${issueId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error("Gagal update status");
+    await fetchIssues();
+    renderAll();
+    return true;
+  } catch (err) {
+    console.error(err);
+    alert("Gagal memperbarui status issue.");
+    return false;
+  }
+}
+
+function toggleHold(issueId, currentStatus) {
+  const nextStatus = currentStatus === "On Hold" ? "Open" : "On Hold";
+  return updateIssueStatus(issueId, nextStatus);
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 }
 
 function applyFilters() {
@@ -678,6 +924,161 @@ function exportData(type) {
 }
 
 // ============================================================
+<<<<<<< HEAD
+=======
+// ---- Inline Detail (muncul di bawah tabel List Issue) ---- //
+// ============================================================
+function showInlineDetail(issueId) {
+  const issue = issueData.find((i) => i.id === Number(issueId));
+  if (!issue) return;
+
+  const panel = document.getElementById("issueInlineDetail");
+  if (!panel) return;
+
+  setText("inlineDetailEyebrow", `ISSUE #${issue.id}`);
+  setText("inlineDetailTitle", issue.title);
+  setText("inlineDetailCategory", issue.category);
+  setText("inlineDetailEvent", issue.event);
+  setText("inlineDetailDeadline", issue.deadline);
+  setText("inlineDetailOwner", issue.owner);
+  setText("inlineDetailDescription", issue.description || "-");
+
+  const priorityBadge = document.getElementById("inlineDetailPriorityBadge");
+  if (priorityBadge) {
+    priorityBadge.textContent = issue.priority;
+    priorityBadge.className = `badge ${PRIORITY_CLASS[issue.priority] || ""}`;
+  }
+
+  const statusBadge = document.getElementById("inlineDetailStatusBadge");
+  if (statusBadge) {
+    statusBadge.textContent = issue.status;
+    statusBadge.className = `badge ${STATUS_CLASS[issue.status] || ""}`;
+  }
+
+  // Gambar (kalau ada)
+  const imgWrapper = document.getElementById("inlineDetailImageWrapper");
+  if (imgWrapper) {
+    imgWrapper.innerHTML = issue.image
+      ? `<img src="${issue.image}" alt="${issue.title}" />`
+      : "";
+  }
+
+  // Tombol aksi di dalam inline detail
+  const holdBtn = document.getElementById("inlineDetailHoldBtn");
+  if (holdBtn) {
+    holdBtn.textContent = issue.status === "On Hold" ? "Lepas Hold" : "Hold Issue";
+    holdBtn.onclick = () => toggleHold(issue.id, issue.status);
+  }
+
+  const closeBtn = document.getElementById("inlineDetailCloseBtn");
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      if (confirm(`Tandai issue "${issue.title}" sebagai Closed?`)) {
+        updateIssueStatus(issue.id, "Closed");
+      }
+    };
+  }
+
+  // Tampilkan panel + scroll ke sana
+  panel.classList.remove("is-hidden");
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function initInlineDetail() {
+  const closeBtn = document.getElementById("inlineDetailClose");
+  const panel = document.getElementById("issueInlineDetail");
+  if (closeBtn && panel) {
+    closeBtn.addEventListener("click", () => panel.classList.add("is-hidden"));
+  }
+}
+
+// ============================================================
+// ---- Init List Issue ---- //
+// ============================================================
+function initListIssue() {
+  // ---- Filters ----
+  const searchInput = document.getElementById("searchInput");
+  const filterPriority = document.getElementById("filterPriority");
+  const filterStatus = document.getElementById("filterStatus");
+  const filterCategory = document.getElementById("filterCategory");
+  const filterEvent = document.getElementById("filterEvent");
+  const filterOwner = document.getElementById("filterOwner");
+
+  [searchInput, filterPriority, filterStatus, filterCategory, filterEvent, filterOwner]
+    .filter(Boolean)
+    .forEach((el) => {
+      const evt = el.tagName === "SELECT" ? "change" : "input";
+      el.addEventListener(evt, applyFilters);
+    });
+
+  const searchForm = document.getElementById("s_f");
+  if (searchForm) {
+    searchForm.addEventListener("submit", (e) => e.preventDefault());
+  }
+
+  const resetBtn = document.getElementById("reset");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (searchForm) searchForm.reset();
+      applyFilters();
+    });
+  }
+
+  // ---- Export ----
+  const exportCsvBtn = document.getElementById("exportCsv");
+  if (exportCsvBtn) exportCsvBtn.addEventListener("click", (e) => { e.preventDefault(); exportData("csv"); });
+
+  const exportExcelBtn = document.getElementById("exportExcel");
+  if (exportExcelBtn) exportExcelBtn.addEventListener("click", (e) => { e.preventDefault(); exportData("xls"); });
+
+  // ---- Rows per page ----
+  const rowsSelect = document.getElementById("rowsPerPage");
+  if (rowsSelect) {
+    rowsSelect.addEventListener("change", () => {
+      rowsPerPage = Number(rowsSelect.value) || 10;
+      currentPage = 1;
+      renderTable();
+    });
+  }
+
+  // ---- Klik baris / tombol aksi ----
+  const tbody = document.getElementById("issueTableBody");
+  if (tbody) {
+    tbody.addEventListener("click", (e) => {
+      const row = e.target.closest("tr");
+      if (!row) return;
+      const issue = issueData.find((i) => i.id === Number(row.dataset.issueId));
+      if (!issue) return;
+
+      const btn = e.target.closest(".action-btn");
+      if (!btn) {
+        // Klik di area baris selain tombol aksi -> buka inline detail
+        showInlineDetail(issue.id);
+        return;
+      }
+
+      const action = btn.dataset.action;
+      if (action === "hold") {
+        toggleHold(issue.id, issue.status);
+      } else if (action === "info") {
+        // Icon INFO → buka inline detail
+        showInlineDetail(issue.id);
+      } else if (action === "hand") {
+        // Icon HAND → close issue
+        if (confirm(`Tandai issue "${issue.title}" sebagai Closed?`)) {
+          updateIssueStatus(issue.id, "Closed");
+        }
+      }
+    });
+  }
+
+  // Init inline detail (close button) — cukup sekali
+  initInlineDetail();
+}
+
+// ============================================================
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
 // ---- Panel Priority Matrix ---- //
 // ============================================================
 function renderIssueCard(issue) {
@@ -686,7 +1087,7 @@ function renderIssueCard(issue) {
   const catColor = CATEGORY_META[issue.category]?.color || "#8a8f98";
 
   return `
-    <div class="pm-card">
+    <div class="pm-card" data-issue-id="${issue.id}">
       <div class="pm-card__top">
         <span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${issue.priority}</span>
         <span class="pm-card__category" style="color:${catColor}">${issue.category}</span>
@@ -733,6 +1134,19 @@ function renderPriorityMatrix() {
     listEl.innerHTML = sorted.length > 0
       ? sorted.map(renderIssueCard).join("")
       : '<div class="pm-empty">Tidak ada issue di kuadran ini.</div>';
+<<<<<<< HEAD
+=======
+  });
+
+  // Klik kartu di Priority Matrix -> pindah ke tab List Issue lalu buka inline detail
+  document.querySelectorAll(".pm-card").forEach((card) => {
+    card.style.cursor = "pointer";
+    card.addEventListener("click", () => {
+      document.querySelector('.nav-item__left[data-tab="list-issue"]')?.click();
+      // Delay kecil supaya panel-switcher selesai ganti tab dulu
+      setTimeout(() => showInlineDetail(card.dataset.issueId), 60);
+    });
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
   });
 }
 
@@ -749,9 +1163,16 @@ function renderAll() {
   renderPriorityMatrix();
 }
 
+<<<<<<< HEAD
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initIssueRegister();
   initListIssue();
+=======
+document.addEventListener("DOMContentLoaded", async () => {
+  initIssueRegister();
+  initListIssue();
+  await fetchIssues();
+>>>>>>> 0b853426c00f1067e4464b7223b619a0b4a0e7e9
   renderAll();
 });

@@ -27,6 +27,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(255), nullable=False, unique=True)
+    email = db.Column(db.String(255), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
@@ -98,3 +99,47 @@ class BestPractice(db.Model):
     employee_id = db.Column(db.Integer, db.ForeignKey("employees.id"), nullable=False, index=True)
     note = db.Column(db.Text, nullable=False)
     sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+
+class Issue(db.Model):
+    """Satu baris = satu issue yang didaftarkan lewat panel Issue Register.
+    `image_filename` cuma nyimpen nama file -- file aslinya disimpan di
+    static/assets/upload/ (lihat library/workspace/issue_monitor/routes.py),
+    supaya DB tidak perlu nyimpen BLOB besar."""
+
+    __tablename__ = "issues"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False, default="")
+    category = db.Column(db.String(80), nullable=False)
+    event = db.Column(db.String(80), nullable=False)
+    priority = db.Column(db.String(20), nullable=False, default="Medium")
+    status = db.Column(db.String(20), nullable=False, default="Open")
+    deadline = db.Column(db.Date, nullable=False)
+    image_filename = db.Column(db.String(255), nullable=True)
+    owner_name = db.Column(db.String(120), nullable=False, default="Admin")
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def to_dict(self):
+        from flask import url_for
+
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "category": self.category,
+            "event": self.event,
+            "priority": self.priority,
+            "status": self.status,
+            "deadline": self.deadline.strftime("%d-%m-%Y") if self.deadline else None,
+            "owner": self.owner_name,
+            "image_url": (
+                url_for("static", filename=f"assets/upload/{self.image_filename}")
+                if self.image_filename
+                else None
+            ),
+        }
+
+    def __repr__(self):
+        return f"<Issue {self.title}>"
