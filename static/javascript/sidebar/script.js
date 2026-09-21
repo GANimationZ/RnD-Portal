@@ -11,6 +11,7 @@ const icons = {
   folder: "bx-folder",
   door: "bx-door-open-alt",
   cog: "bx-cog",
+  user: "bx-user-circle",
 };
 
 function iconTag(name) {
@@ -18,6 +19,10 @@ function iconTag(name) {
 }
 
 // ---- Struktur menu ----
+// Grup "Administration" cuma ditambahkan kalau role user yang login
+// (window.CURRENT_ROLE, di-inject lewat templates/partials/top-sidebar.html)
+// adalah "Super Admin" -- Admin & Member tidak akan pernah melihat menu ini
+// sama sekali (bukan cuma disembunyikan CSS, tapi memang tidak dirender).
 const NAV_GROUPS = [
   {
     label: "Workspace",
@@ -61,6 +66,20 @@ const NAV_GROUPS = [
     ],
   },
 ];
+
+if (window.CURRENT_ROLE === "Super Admin") {
+  NAV_GROUPS.push({
+    label: "Administration",
+    items: [
+      {
+        id: "user-management",
+        label: "User Management",
+        icon: "user",
+        href: "/admin/users",
+      },
+    ],
+  });
+}
 
 const FOOTER_ITEMS = [{ id: "settings", label: "Settings", icon: "cog" }];
 

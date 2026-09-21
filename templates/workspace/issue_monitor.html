@@ -18,10 +18,12 @@
     <span class="nav-item__left flex-1 active" data-tab="dashboard"
       >Dashboard</span
     >
+    {% if is_admin_or_above %}
     <span class="nav-item__left flex-1" data-tab="issue-register">
       <i class="bxf bx-plus"></i>
       Issue Register</span
     >
+    {% endif %}
     <span class="nav-item__left flex-1" data-tab="list-issue">List Issue</span>
     <span class="nav-item__left flex-1" data-tab="priority-matrix"
       >Priority Matrix</span
@@ -101,7 +103,9 @@
         </div>
       </div>
     </div>
-    {# ---- Panel Issue Register ---- #}
+    {# ---- Panel Issue Register (khusus Admin/QA & Super Admin -- Member
+       cuma bisa lihat, tidak bisa bikin issue) ---- #}
+    {% if is_admin_or_above %}
     <div class="body" data-panel="issue-register">
       <div class="register-issue">
         <span class="register-issue__title">Register an Issue</span>
@@ -126,6 +130,14 @@
             <option value="mp">MP</option>
             <option value="field">Field</option>
           </select>
+          {# ---- Combobox assignee: diisi otomatis lewat JS begitu Category
+             & Event di atas sudah sama-sama kepilih (lihat issue-monitor.js
+             -> loadAssignableUsers()). Hanya menampilkan Member yang
+             scope category & event-nya cocok (diatur di halaman
+             /admin/users, khusus Super Admin). ---- #}
+          <select id="issueAssignee" disabled>
+            <option value="" selected>Pilih Category &amp; Event dahulu</option>
+          </select>
           <textarea
             id="issueDescription"
             placeholder="Please Provide a Description about the Issue you are trying to input"
@@ -143,6 +155,7 @@
         </form>
       </div>
     </div>
+    {% endif %}
     {# ---- Panel List Issue ---- #}
     <div class="body" data-panel="list-issue">
       <div class="activity-filters">
@@ -211,6 +224,7 @@
               <th>Event</th>
               <th>Deadline</th>
               <th>Owner</th>
+              <th>Assignee</th>
               <th>Status</th>
               <th class="center">Action</th>
             </tr>
@@ -273,6 +287,10 @@
                 <span class="issue-inline-detail__meta-label">Owner</span>
                 <span class="issue-inline-detail__meta-value" id="inlineDetailOwner">-</span>
               </div>
+              <div class="issue-inline-detail__meta-item">
+                <span class="issue-inline-detail__meta-label">Assignee</span>
+                <span class="issue-inline-detail__meta-value" id="inlineDetailAssignee">-</span>
+              </div>
             </div>
 
             <div>
@@ -280,10 +298,12 @@
               <p class="issue-inline-detail__description" id="inlineDetailDescription">-</p>
             </div>
 
+            {% if is_admin_or_above %}
             <div class="issue-inline-detail__actions">
               <button type="button" id="inlineDetailHoldBtn">Hold Issue</button>
               <button type="button" id="inlineDetailCloseBtn">Tandai Closed</button>
             </div>
+            {% endif %}
           </div>
         </div>
       </div>

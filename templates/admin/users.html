@@ -1,0 +1,62 @@
+{% extends "partials/top-sidebar.html" %}
+{% block title %}<title>Manajemen User - RnD Portal</title>{% endblock %}
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/style.css') }}" />
+{% endblock %}
+
+{% block content %}
+  <div class="admin-users">
+    <h2>Manajemen User</h2>
+    <p class="admin-users__desc">
+      Setujui akun baru hasil registrasi, ubah role, atau hapus akun yang
+      sudah tidak dipakai.
+    </p>
+
+    <table class="admin-users__table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Terdaftar</th>
+          <th class="center">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr data-user-id="{{ user.id }}">
+            <td>{{ user.username }}</td>
+            <td>
+              <select class="admin-users__role-select" data-user-id="{{ user.id }}">
+                <option value="member" {% if user.role == "member" %}selected{% endif %}>Member (PV)</option>
+                <option value="admin" {% if user.role == "admin" %}selected{% endif %}>Admin (QA)</option>
+                <option value="superadmin" {% if user.role == "superadmin" %}selected{% endif %}>Super Admin</option>
+              </select>
+            </td>
+            <td>
+              {% if user.is_approved %}
+                <span class="badge badge-green">Disetujui</span>
+              {% else %}
+                <span class="badge badge-yellow">Menunggu</span>
+              {% endif %}
+            </td>
+            <td>{{ user.created_at.strftime("%d %b %Y") if user.created_at else "-" }}</td>
+            <td class="center">
+              <div class="admin-users__actions">
+                {% if not user.is_approved %}
+                  <button class="btn-approve" data-user-id="{{ user.id }}">Setujui</button>
+                {% endif %}
+                <button class="btn-delete" data-user-id="{{ user.id }}">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+
+{% block script %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='javascript/admin/users.js') }}"></script>
+{% endblock %}

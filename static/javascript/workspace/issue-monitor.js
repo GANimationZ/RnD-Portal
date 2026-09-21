@@ -386,6 +386,51 @@ function renderDashboardSummary() {
 // ============================================================
 // ---- Panel Issue Register ---- //
 // ============================================================
+
+// ---- Combobox Assignee: diisi ulang tiap Category & Event berubah,
+// ambil daftar Member yang scope-nya (diatur di /admin/users) mencakup
+// KEDUA nilai tsb. Endpoint balikin [] kalau salah satu belum dipilih. ----
+async function loadAssignableUsers() {
+  const categoryEl = document.getElementById("issueCategory");
+  const eventEl = document.getElementById("issueEvent");
+  const assigneeEl = document.getElementById("issueAssignee");
+  if (!categoryEl || !eventEl || !assigneeEl) return;
+
+  const categoryVal = CATEGORY_VALUE_MAP[categoryEl.value] || categoryEl.value;
+  const eventVal = EVENT_VALUE_MAP[eventEl.value] || eventEl.value;
+
+  if (!categoryEl.value || !eventEl.value) {
+    assigneeEl.disabled = true;
+    assigneeEl.innerHTML = `<option value="" selected>Pilih Category & Event dahulu</option>`;
+    return;
+  }
+
+  assigneeEl.disabled = true;
+  assigneeEl.innerHTML = `<option value="" selected>Memuat...</option>`;
+
+  try {
+    const params = new URLSearchParams({ category: categoryVal, event: eventVal });
+    const res = await fetch(`/admin/users/api/assignable?${params}`);
+    const data = await res.json();
+    const users = data.users || [];
+
+    if (users.length === 0) {
+      assigneeEl.innerHTML = `<option value="" selected>Belum ada Member untuk kombinasi ini</option>`;
+      assigneeEl.disabled = true;
+      return;
+    }
+
+    assigneeEl.innerHTML =
+      `<option value="" selected>Tidak ditugaskan (opsional)</option>` +
+      users.map((u) => `<option value="${u.id}">${u.username}</option>`).join("");
+    assigneeEl.disabled = false;
+  } catch (err) {
+    console.error(err);
+    assigneeEl.innerHTML = `<option value="" selected>Gagal memuat daftar Member</option>`;
+    assigneeEl.disabled = true;
+  }
+}
+
 function initIssueRegister() {
   if (document.getElementById("issueDate")) {
     flatpickr("#issueDate", {
@@ -400,12 +445,16 @@ function initIssueRegister() {
   const form = document.getElementById("issueForm");
   if (!form) return;
 
+  document.getElementById("issueCategory")?.addEventListener("change", loadAssignableUsers);
+  document.getElementById("issueEvent")?.addEventListener("change", loadAssignableUsers);
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const titleEl = document.getElementById("issueTitle");
     const categoryEl = document.getElementById("issueCategory");
     const eventEl = document.getElementById("issueEvent");
+    const assigneeEl = document.getElementById("issueAssignee");
     const descEl = document.getElementById("issueDescription");
     const dateEl = document.getElementById("issueDate");
     const fileEl = document.getElementById("issueFile");
@@ -428,6 +477,9 @@ function initIssueRegister() {
     formData.append("event", EVENT_VALUE_MAP[eventVal] || eventVal);
     formData.append("description", description);
     formData.append("deadline", deadlineRaw);
+    if (assigneeEl && assigneeEl.value) {
+      formData.append("assignee_id", assigneeEl.value);
+    }
     if (fileEl && fileEl.files[0]) {
       formData.append("image", fileEl.files[0]);
     }
@@ -448,6 +500,10 @@ function initIssueRegister() {
       }
 
       form.reset();
+      if (assigneeEl) {
+        assigneeEl.disabled = true;
+        assigneeEl.innerHTML = `<option value="" selected>Pilih Category & Event dahulu</option>`;
+      }
       await fetchIssues();
       renderAll();
 
@@ -490,12 +546,17 @@ function renderTable() {
       <td class="center">${issue.event}</td>
       <td class="center">${issue.deadline}</td>
       <td>${issue.owner}</td>
+      <td>${issue.assignee_name || "-"}</td>
       <td class="center"><span class="badge ${STATUS_CLASS[issue.status] || ""}">${issue.status}</span></td>
       <td class="center">
         <div class="action-buttons">
+          ${window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin" ? `
           <button type="button" class="action-btn" data-action="hold" title="Hold"><i class="bxf bx-lock"></i></button>
+          ` : ""}
           <button type="button" class="action-btn" data-action="info" title="Lihat Detail"><i class="bxf bx-info-circle"></i></button>
+          ${window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin" ? `
           <button type="button" class="action-btn" data-action="hand" title="Close Issue"><i class="bxf bx-hand"></i></button>
+          ` : ""}
         </div>
       </td>
     `;
@@ -650,6 +711,7 @@ function showInlineDetail(issueId) {
   setText("inlineDetailEvent", issue.event);
   setText("inlineDetailDeadline", issue.deadline);
   setText("inlineDetailOwner", issue.owner);
+  setText("inlineDetailAssignee", issue.assignee_name || "Belum ditugaskan");
   setText("inlineDetailDescription", issue.description || "-");
 
   const priorityBadge = document.getElementById("inlineDetailPriorityBadge");

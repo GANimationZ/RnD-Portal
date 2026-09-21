@@ -1,0 +1,344 @@
+@use "../../base" as *;
+
+// Halaman ini punya stylesheet sendiri (tidak numpang ke
+// css/workspace/issue-monitor/style.scss), jadi class .list/.register-issue
+// di sini didefinisikan ulang dari nol -- sengaja disamakan token warna &
+// pola visualnya (badge, tabel, form) supaya konsisten dengan halaman lain.
+
+// ---- Navbar tab (sama seperti pola workspace lain) ----
+.nav__bar {
+  display: flex;
+  background-color: white;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .flex-1 {
+    color: $secondary-color;
+    flex-shrink: 0;
+    white-space: nowrap;
+    justify-content: center;
+    padding: 10px 20px;
+    margin: 0 5px;
+    font-size: 12px;
+    font-weight: 300;
+    max-height: 32px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-bottom: 3px solid $primary-color;
+      background-color: $fourtiary-color;
+    }
+
+    &.active {
+      border-bottom: 3px solid $primary-color;
+      background-color: rgba($color: $fourtiary-color, $alpha: 0.25);
+    }
+  }
+}
+
+.main-body-content {
+  padding: 0 20px;
+
+  .body {
+    width: 100%;
+    display: none;
+
+    &.active {
+      display: block;
+    }
+  }
+}
+
+// ---- Ringkasan (kartu jumlah user per role) ----
+.um-summary {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+
+  &__card {
+    flex: 1;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    background: white;
+    border: 1px solid $primary-color;
+    border-radius: 8px;
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: $secondary-color;
+    text-transform: uppercase;
+  }
+
+  &__value {
+    font-size: 24px;
+    font-weight: 700;
+    color: $primary-color;
+  }
+}
+
+// ---- Tabel daftar user (mirror pola .list di issue-monitor) ----
+.um-list.list {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: white;
+  border: 1px solid $primary-color;
+  border-radius: 8px;
+  width: 100%;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: 10px 8px;
+      font-size: 13px;
+      border-right: 2px solid #eee;
+      vertical-align: middle;
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+
+    thead th {
+      background: #dde1e8;
+      color: #444;
+      font-weight: 600;
+      white-space: nowrap;
+      border-bottom: 2px solid #b7bcc6;
+      text-align: left;
+    }
+
+    tbody tr {
+      &:nth-child(odd) {
+        background: #d8d8d8;
+      }
+      &:nth-child(even) {
+        background: #f7f8fa;
+      }
+      &:hover {
+        background: #85888d;
+      }
+    }
+
+    .center {
+      text-align: center;
+    }
+  }
+}
+
+// ---- Badge kecil dipakai bareng: role, category, event, status ----
+.badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  margin: 2px;
+}
+
+.badge-red {
+  background: rgba(226, 75, 74, 0.12);
+  color: #e24b4a;
+}
+.badge-yellow {
+  background: rgba(242, 166, 35, 0.15);
+  color: #b9760a;
+}
+.badge-green {
+  background: rgba(61, 220, 151, 0.15);
+  color: #1a9c68;
+}
+.badge-blue {
+  background: rgba(79, 140, 255, 0.12);
+  color: #4f8cff;
+}
+.badge-grey {
+  background: rgba(139, 143, 152, 0.15);
+  color: #666a72;
+}
+
+.um-scope-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 220px;
+}
+
+.um-empty-scope {
+  color: #9aa0aa;
+  font-size: 12px;
+  font-style: italic;
+}
+
+// ---- Tombol aksi tabel (Edit/Hapus) ----
+.um-action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+
+  button {
+    background: white;
+    border: 1px solid $fourtiary-color;
+    border-radius: 6px;
+    padding: 5px 8px;
+    cursor: pointer;
+    color: $secondary-color;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: $primary-color;
+      color: $primary-color;
+    }
+
+    &.um-danger:hover {
+      border-color: #e24b4a;
+      color: #e24b4a;
+      background: rgba(226, 75, 74, 0.08);
+    }
+  }
+}
+
+// ---- Form Tambah/Edit User (mirror pola .register-issue) ----
+.register-issue.um-form-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin: 15px 0;
+
+  .register-issue__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: $secondary-color;
+  }
+}
+
+.um-form {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  margin: 10px;
+  gap: 15px;
+  background-color: white;
+  border: 1px solid $primary-color;
+  border-radius: 6px;
+  max-width: 640px;
+
+  input,
+  select {
+    padding: 5px;
+    color: $secondary-color;
+    outline-color: $primary-color;
+    border: 1px solid $fourtiary-color;
+    border-radius: 6px;
+    font-size: $ps;
+    transition: all 0.3s ease;
+
+    &:focus {
+      transform: scale(1.02);
+    }
+  }
+
+  &__hint {
+    margin: -8px 0 0;
+    font-size: 11.5px;
+    color: #8a8f98;
+    line-height: 1.4;
+  }
+
+  &__scope {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 12px;
+    border: 1px dashed $fourtiary-color;
+    border-radius: 6px;
+  }
+
+  &__scope-title {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: $primary-color;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  &__checkbox-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.um-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $secondary-color;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: auto;
+    accent-color: $primary-color;
+  }
+}
+
+#umSubmitBtn {
+  color: white;
+  background-color: $primary-color;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: $ps;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: $primary-hover-color;
+    transform: scale(1.03);
+  }
+}
+
+.um-btn-secondary {
+  background: white;
+  border: 1px solid $fourtiary-color;
+  color: $secondary-color;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: $ps;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: $secondary-hover-color;
+  }
+}
+
+.is-hidden {
+  display: none !important;
+}

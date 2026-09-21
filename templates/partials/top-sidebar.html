@@ -66,6 +66,7 @@
 {% block script %}
   <script>
     window.ACTIVE_NAV = "{{ active_nav }}";
+    window.CURRENT_ROLE = "{{ current_role or '' }}";
   </script>
   <script src="{{ url_for('static', filename='javascript/sidebar/script.js') }}"></script>
   <script src="{{ url_for('static', filename='javascript/workspace/panel-switcher.js') }}"></script>

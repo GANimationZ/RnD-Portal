@@ -17,9 +17,28 @@ PENTING (persiapan migrasi SQLite -> PostgreSQL):
   lalu jalankan ulang `db.create_all()` (atau pakai Flask-Migrate kalau
   proyek sudah butuh migration history). Tidak ada satupun kode di model
   ini yang perlu diubah.
+
+MANAJEMEN USER & HAK AKSES (ditambahkan bareng fitur User Management):
+- Cuma ADA SATU team dengan 3 level akses (User.role): "Super Admin" (dev,
+  mengelola user), "Admin" (QA, membuat & menutup issue), "Member" (cuma
+  bisa melihat issue). Lihat library/auth.py:roles_required().
+- UserCategoryScope & UserEventScope = tabel pivot ternormalisasi (bukan
+  CSV/JSON di satu kolom, konsisten dengan filosofi KPIRecord di atas).
+  Satu Member bisa punya BANYAK baris category & BANYAK baris event --
+  itulah yang bikin "kategori/event bisa lebih dari 1 per orang".
+- Issue.assignee_id menunjuk ke User (Member) yang ditugaskan mengerjakan
+  issue tsb -- terpisah dari owner_name (yang membuat issue/QA-nya).
 """
 
 from library.extensions import db
+
+ROLE_CHOICES = ["Super Admin", "Admin", "Member"]
+
+# Sengaja disamakan PERSIS dengan string yang sudah dipakai Issue.category /
+# Issue.event & static/javascript/workspace/issue-monitor.js (CATEGORY_META /
+# EVENT_META) supaya pencocokan scope Member <-> Issue tidak meleset.
+CATEGORY_CHOICES = ["PCBA/SMT", "SQA", "Line-Prod", "OQA", "CSS/SVC"]
+EVENT_CHOICES = ["PV", "Pre-MP", "MP", "Field"]
 
 
 class User(db.Model):
@@ -29,7 +48,16 @@ class User(db.Model):
     username = db.Column(db.String(255), nullable=False, unique=True)
     email = db.Column(db.String(255), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), nullable=False, default="Member")
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    category_scopes = db.relationship(
+        "UserCategoryScope", backref="user", cascade="all, delete-orphan"
+    )
+    event_scopes = db.relationship(
+        "UserEventScope", backref="user", cascade="all, delete-orphan"
+    )
 
     def set_password(self, password):
         from werkzeug.security import generate_password_hash
@@ -39,8 +67,63 @@ class User(db.Model):
         from werkzeug.security import check_password_hash
         return check_password_hash(self.password_hash, password)
 
+    @property
+    def categories(self):
+        return sorted(s.category for s in self.category_scopes)
+
+    @property
+    def events(self):
+        return sorted(s.event for s in self.event_scopes)
+
+    def covers(self, category, event):
+        """True kalau user ini (biasanya Member) di-scope ke KEDUA
+        category & event tsb -- inilah syarat muncul di combobox assignee
+        Issue Register."""
+        return category in self.categories and event in self.events
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "role": self.role,
+            "is_active": self.is_active,
+            "categories": self.categories,
+            "events": self.events,
+            "created_at": self.created_at.strftime("%d-%m-%Y") if self.created_at else None,
+        }
+
     def __repr__(self):
-        return f"<User {self.username}>"
+        return f"<User {self.username} ({self.role})>"
+
+
+class UserCategoryScope(db.Model):
+    """Satu baris = satu kategori yang boleh ditangani seorang user.
+    Banyak baris per user_id = boleh lebih dari satu kategori."""
+
+    __tablename__ = "user_category_scopes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    category = db.Column(db.String(80), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "category", name="uq_user_category_scope"),
+    )
+
+
+class UserEventScope(db.Model):
+    """Sama seperti UserCategoryScope, tapi untuk Event."""
+
+    __tablename__ = "user_event_scopes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    event = db.Column(db.String(80), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "event", name="uq_user_event_scope"),
+    )
 
 
 class Employee(db.Model):
@@ -105,7 +188,13 @@ class Issue(db.Model):
     """Satu baris = satu issue yang didaftarkan lewat panel Issue Register.
     `image_filename` cuma nyimpen nama file -- file aslinya disimpan di
     static/assets/upload/ (lihat library/workspace/issue_monitor/routes.py),
-    supaya DB tidak perlu nyimpen BLOB besar."""
+    supaya DB tidak perlu nyimpen BLOB besar.
+
+    `owner_name` = nama QA/Admin yang MENDAFTARKAN issue (siapa yang bikin).
+    `assignee_id` = User (role Member) yang DITUGASKAN MENGERJAKAN issue,
+    dipilih lewat combobox di form Register yang otomatis difilter sesuai
+    category & event issue ini (lihat User.covers() di models.py &
+    library/admin/user_management/routes.py:api_assignable_users)."""
 
     __tablename__ = "issues"
 
@@ -119,7 +208,10 @@ class Issue(db.Model):
     deadline = db.Column(db.Date, nullable=False)
     image_filename = db.Column(db.String(255), nullable=True)
     owner_name = db.Column(db.String(120), nullable=False, default="Admin")
+    assignee_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    assignee = db.relationship("User", foreign_keys=[assignee_id])
 
     def to_dict(self):
         from flask import url_for
@@ -134,6 +226,8 @@ class Issue(db.Model):
             "status": self.status,
             "deadline": self.deadline.strftime("%d-%m-%Y") if self.deadline else None,
             "owner": self.owner_name,
+            "assignee_id": self.assignee_id,
+            "assignee_name": self.assignee.username if self.assignee else None,
             "image_url": (
                 url_for("static", filename=f"assets/upload/{self.image_filename}")
                 if self.image_filename

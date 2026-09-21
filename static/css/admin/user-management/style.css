@@ -1,0 +1,323 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+html,
+body {
+  font-family: "Poppins", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: #a50034 #bfbfbf;
+}
+
+input,
+button,
+textarea,
+select {
+  font-family: inherit;
+}
+
+.nav__bar {
+  display: flex;
+  background-color: white;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nav__bar::-webkit-scrollbar {
+  display: none;
+}
+.nav__bar .flex-1 {
+  color: #6b6b6b;
+  flex-shrink: 0;
+  white-space: nowrap;
+  justify-content: center;
+  padding: 10px 20px;
+  margin: 0 5px;
+  font-size: 12px;
+  font-weight: 300;
+  max-height: 32px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.nav__bar .flex-1:hover {
+  border-bottom: 3px solid #a50034;
+  background-color: #bfbfbf;
+}
+.nav__bar .flex-1.active {
+  border-bottom: 3px solid #a50034;
+  background-color: rgba(191, 191, 191, 0.25);
+}
+
+.main-body-content {
+  padding: 0 20px;
+}
+.main-body-content .body {
+  width: 100%;
+  display: none;
+}
+.main-body-content .body.active {
+  display: block;
+}
+
+.um-summary {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+.um-summary__card {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid #a50034;
+  border-radius: 8px;
+}
+.um-summary__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #6b6b6b;
+  text-transform: uppercase;
+}
+.um-summary__value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #a50034;
+}
+
+.um-list.list {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: white;
+  border: 1px solid #a50034;
+  border-radius: 8px;
+  width: 100%;
+}
+.um-list.list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.um-list.list table th,
+.um-list.list table td {
+  padding: 10px 8px;
+  font-size: 13px;
+  border-right: 2px solid #eee;
+  vertical-align: middle;
+}
+.um-list.list table th:last-child,
+.um-list.list table td:last-child {
+  border-right: none;
+}
+.um-list.list table thead th {
+  background: #dde1e8;
+  color: #444;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid #b7bcc6;
+  text-align: left;
+}
+.um-list.list table tbody tr:nth-child(odd) {
+  background: #d8d8d8;
+}
+.um-list.list table tbody tr:nth-child(even) {
+  background: #f7f8fa;
+}
+.um-list.list table tbody tr:hover {
+  background: #85888d;
+}
+.um-list.list table .center {
+  text-align: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  margin: 2px;
+}
+
+.badge-red {
+  background: rgba(226, 75, 74, 0.12);
+  color: #e24b4a;
+}
+
+.badge-yellow {
+  background: rgba(242, 166, 35, 0.15);
+  color: #b9760a;
+}
+
+.badge-green {
+  background: rgba(61, 220, 151, 0.15);
+  color: #1a9c68;
+}
+
+.badge-blue {
+  background: rgba(79, 140, 255, 0.12);
+  color: #4f8cff;
+}
+
+.badge-grey {
+  background: rgba(139, 143, 152, 0.15);
+  color: #666a72;
+}
+
+.um-scope-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 220px;
+}
+
+.um-empty-scope {
+  color: #9aa0aa;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.um-action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.um-action-buttons button {
+  background: white;
+  border: 1px solid #bfbfbf;
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: #6b6b6b;
+  transition: all 0.2s ease;
+}
+.um-action-buttons button:hover {
+  border-color: #a50034;
+  color: #a50034;
+}
+.um-action-buttons button.um-danger:hover {
+  border-color: #e24b4a;
+  color: #e24b4a;
+  background: rgba(226, 75, 74, 0.08);
+}
+
+.register-issue.um-form-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin: 15px 0;
+}
+.register-issue.um-form-wrapper .register-issue__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #6b6b6b;
+}
+
+.um-form {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  margin: 10px;
+  gap: 15px;
+  background-color: white;
+  border: 1px solid #a50034;
+  border-radius: 6px;
+  max-width: 640px;
+}
+.um-form input,
+.um-form select {
+  padding: 5px;
+  color: #6b6b6b;
+  outline-color: #a50034;
+  border: 1px solid #bfbfbf;
+  border-radius: 6px;
+  font-size: 400;
+  transition: all 0.3s ease;
+}
+.um-form input:focus,
+.um-form select:focus {
+  transform: scale(1.02);
+}
+.um-form__hint {
+  margin: -8px 0 0;
+  font-size: 11.5px;
+  color: #8a8f98;
+  line-height: 1.4;
+}
+.um-form__scope {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px;
+  border: 1px dashed #bfbfbf;
+  border-radius: 6px;
+}
+.um-form__scope-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a50034;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.um-form__checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.um-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.um-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b6b6b;
+  cursor: pointer;
+}
+.um-checkbox input[type=checkbox] {
+  width: auto;
+  accent-color: #a50034;
+}
+
+#umSubmitBtn {
+  color: white;
+  background-color: #a50034;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 400;
+  transition: all 0.3s ease;
+}
+#umSubmitBtn:hover {
+  background-color: #700023;
+  transform: scale(1.03);
+}
+
+.um-btn-secondary {
+  background: white;
+  border: 1px solid #bfbfbf;
+  color: #6b6b6b;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 400;
+  transition: all 0.2s ease;
+}
+.um-btn-secondary:hover {
+  border-color: #525252;
+}
+
+.is-hidden {
+  display: none !important;
+}/*# sourceMappingURL=style.css.map */

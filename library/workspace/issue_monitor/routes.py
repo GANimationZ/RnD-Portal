@@ -17,7 +17,7 @@ from datetime import datetime
 from flask import Blueprint, current_app, jsonify, render_template, request, session
 from werkzeug.utils import secure_filename
 
-from library.auth import login_required
+from library.auth import login_required, roles_required
 from library.extensions import db
 from library.models import Issue, User
 
@@ -25,7 +25,7 @@ issue_monitor_bp = Blueprint(
     "issue_monitor", __name__, url_prefix="/workspace/issue-monitor"
 )
 
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "pdf", "doc", "docx", "txt", ""}
 VALID_STATUS = {"Open", "Pending", "Closed", "On Hold"}
 UPLOAD_SUBDIR = os.path.join("assets", "upload")
 
@@ -77,12 +77,14 @@ def api_list_issues():
 
 @issue_monitor_bp.route("/api/issues", methods=["POST"])
 @login_required
+@roles_required("Super Admin", "Admin")
 def api_create_issue():
     title = (request.form.get("title") or "").strip()
     category = (request.form.get("category") or "").strip()
     event = (request.form.get("event") or "").strip()
     description = (request.form.get("description") or "").strip()
     deadline_raw = (request.form.get("deadline") or "").strip()  # format Y-m-d
+    assignee_id_raw = (request.form.get("assignee_id") or "").strip()
     file = request.files.get("image")
 
     if not all([title, category, event, description, deadline_raw]):
@@ -92,6 +94,16 @@ def api_create_issue():
         deadline = datetime.strptime(deadline_raw, "%Y-%m-%d").date()
     except ValueError:
         return jsonify({"message": "Format deadline tidak valid."}), 400
+
+    # assignee_id opsional, tapi kalau diisi harus Member yang scope-nya
+    # memang mencakup category & event ini (tidak percaya begitu saja ke
+    # value dari client, walau combobox-nya sudah difilter di JS).
+    assignee_id = None
+    if assignee_id_raw:
+        candidate = User.query.get(assignee_id_raw)
+        if not candidate or candidate.role != "Member" or not candidate.covers(category, event):
+            return jsonify({"message": "Assignee tidak valid untuk category/event ini."}), 400
+        assignee_id = candidate.id
 
     image_filename = None
     if file and file.filename:
@@ -109,6 +121,7 @@ def api_create_issue():
         deadline=deadline,
         image_filename=image_filename,
         owner_name=session.get("username", "Admin"),
+        assignee_id=assignee_id,
         priority="Medium",
         status="Open",
     )
@@ -120,6 +133,7 @@ def api_create_issue():
 
 @issue_monitor_bp.route("/api/issues/<int:issue_id>/status", methods=["PATCH"])
 @login_required
+@roles_required("Super Admin", "Admin")
 def api_update_status(issue_id):
     issue = Issue.query.get_or_404(issue_id)
     data = request.get_json(silent=True) or {}

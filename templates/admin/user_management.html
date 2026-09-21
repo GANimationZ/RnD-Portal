@@ -1,0 +1,146 @@
+{# ---- Define / Extends ---- #}
+{% extends "partials/top-sidebar.html" %}
+{% block title %}<title>User Management - RnD Portal</title>{% endblock %}
+{% block styles %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/admin/user-management/style.css') }}"
+  />
+{% endblock %}
+
+{# ---- Top Content ---- #}
+{% block content %}
+  <div class="nav__bar">
+    <span class="nav-item__left flex-1 active" data-tab="user-list"
+      >Daftar User</span
+    >
+    <span class="nav-item__left flex-1" data-tab="user-form" id="formTabLabel">
+      <i class="bxf bx-plus"></i>
+      Tambah User</span
+    >
+  </div>
+
+  <div class="main-body-content">
+    {# ---- Panel Daftar User ---- #}
+    <div class="body active" data-panel="user-list">
+      <div class="um-summary">
+        <div class="um-summary__card">
+          <span class="um-summary__label">Total User</span>
+          <span class="um-summary__value" id="umTotalUsers">0</span>
+        </div>
+        <div class="um-summary__card">
+          <span class="um-summary__label">Super Admin</span>
+          <span class="um-summary__value" id="umTotalSuperAdmin">0</span>
+        </div>
+        <div class="um-summary__card">
+          <span class="um-summary__label">Admin (QA)</span>
+          <span class="um-summary__value" id="umTotalAdmin">0</span>
+        </div>
+        <div class="um-summary__card">
+          <span class="um-summary__label">Member</span>
+          <span class="um-summary__value" id="umTotalMember">0</span>
+        </div>
+      </div>
+
+      <div class="list um-list">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Category</th>
+              <th>Event</th>
+              <th>Status</th>
+              <th class="center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <!-- baris di-generate JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# ---- Panel Tambah / Edit User ---- #}
+    <div class="body" data-panel="user-form">
+      <div class="register-issue um-form-wrapper">
+        <span class="register-issue__title" id="umFormTitle">Tambah User Baru</span>
+        <form class="register-issue__form um-form" id="userForm">
+          <input type="hidden" id="umEditingId" value="" />
+
+          <input
+            id="umUsername"
+            type="text"
+            placeholder="Username"
+            required
+          />
+          <input
+            id="umEmail"
+            type="email"
+            placeholder="Email"
+            required
+          />
+          <input
+            id="umPassword"
+            type="password"
+            placeholder="Password (minimal 8 karakter)"
+          />
+          <p class="um-form__hint" id="umPasswordHint">
+            Wajib diisi untuk user baru. Saat mengedit, kosongkan kalau tidak ingin mengganti password.
+          </p>
+
+          <select id="umRole">
+            {% for role in role_choices %}
+              <option value="{{ role }}" {% if role == "Member" %}selected{% endif %}>{{ role }}</option>
+            {% endfor %}
+          </select>
+
+          <div class="um-form__scope">
+            <div class="um-form__scope-group">
+              <span class="um-form__scope-title">Category (boleh lebih dari satu)</span>
+              <div class="um-form__checkbox-grid" id="umCategoryGrid">
+                {% for category in category_choices %}
+                  <label class="um-checkbox">
+                    <input type="checkbox" name="umCategory" value="{{ category }}" />
+                    <span>{{ category }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="um-form__scope-group">
+              <span class="um-form__scope-title">Event (boleh lebih dari satu)</span>
+              <div class="um-form__checkbox-grid" id="umEventGrid">
+                {% for event in event_choices %}
+                  <label class="um-checkbox">
+                    <input type="checkbox" name="umEvent" value="{{ event }}" />
+                    <span>{{ event }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <p class="um-form__hint">
+            Category &amp; Event ini yang dipakai untuk memunculkan user ini di
+            combobox "Ditugaskan ke" saat QA membuat Issue baru (khusus role Member).
+          </p>
+
+          <div class="um-form__actions">
+            <button type="button" id="umCancelEdit" class="um-btn-secondary is-hidden">
+              Batal Edit
+            </button>
+            <input type="submit" value="Simpan User" id="umSubmitBtn" />
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{# ---- Define Script ---- #}
+{% block script %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='javascript/admin/user-management.js') }}"></script>
+{% endblock %}
