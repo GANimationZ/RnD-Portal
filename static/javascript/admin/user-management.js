@@ -27,7 +27,7 @@ async function fetchUsers() {
     renderTable();
   } catch (err) {
     console.error(err);
-    alert("Gagal memuat daftar user.");
+    showToast("Gagal memuat daftar user.", "error");
   }
 }
 
@@ -166,30 +166,32 @@ function initTableActions() {
         });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.message || "Gagal mengubah status user.");
+          showToast(data.message || "Gagal mengubah status user.", "error");
           return;
         }
         await fetchUsers();
       } catch (err) {
         console.error(err);
-        alert("Terjadi kesalahan saat menghubungi server.");
+        showToast("Terjadi kesalahan saat menghubungi server.", "error");
       }
       return;
     }
 
     if (btn.dataset.action === "delete") {
-      if (!confirm(`Hapus user "${user.username}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+      const confirmed = await showConfirm(`Hapus user "${user.username}"? Tindakan ini tidak bisa dibatalkan.`);
+      if (!confirmed) return;
       try {
         const res = await fetch(`${UM_API_BASE}/users/${id}`, { method: "DELETE" });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.message || "Gagal menghapus user.");
+          showToast(data.message || "Gagal menghapus user.", "error");
           return;
         }
         await fetchUsers();
+        showToast(data.message || "User berhasil dihapus.", "success");
       } catch (err) {
         console.error(err);
-        alert("Terjadi kesalahan saat menghubungi server.");
+        showToast("Terjadi kesalahan saat menghubungi server.", "error");
       }
     }
   });
@@ -249,17 +251,17 @@ function initForm() {
       data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || "Gagal menyimpan user.");
+        showToast(data.message || "Gagal menyimpan user.", "error");
         return;
       }
 
       resetForm();
       await fetchUsers();
       document.querySelector('.nav-item__left[data-tab="user-list"]')?.click();
-      alert(data.message || "User berhasil disimpan.");
+      showToast(data.message || "User berhasil disimpan.", "success");
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan saat menghubungi server.");
+      showToast("Terjadi kesalahan saat menghubungi server.", "error");
     } finally {
       submitBtn.disabled = false;
       submitBtn.value = originalValue;

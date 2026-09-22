@@ -150,7 +150,13 @@
             placeholder="Provide a Deadline"
             required
           />
-          <input type="file" id="issueFile" required />
+          <input
+            type="file"
+            id="issueFile"
+            accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            multiple
+          />
+          <span class="field-hint">Boleh lebih dari satu file: gambar, PDF, Word, Excel, atau PowerPoint.</span>
           <input type="submit" value="Register Issue" id="sub_btn" />
         </form>
       </div>
@@ -197,10 +203,13 @@
               <option value="MP">MP</option>
               <option value="Field">Field</option>
             </select>
-            <select class="owner" id="filterOwner">
-              <option value="All Owners" selected>All Owners</option>
+            <select class="owner" id="filterAssignee">
+              <option value="All Assignees" selected>All Assignees</option>
+              <option value="__unassigned__">Belum ditugaskan</option>
               {% for user in users %}
-                <option value="{{ user.id }}">{{ user.username }}</option>
+                {% if user.role == "Member" %}
+                <option value="{{ user.username }}">{{ user.username }}</option>
+                {% endif %}
               {% endfor %}
             </select>
           </form>
@@ -223,7 +232,6 @@
               <th>Category</th>
               <th>Event</th>
               <th>Deadline</th>
-              <th>Owner</th>
               <th>Assignee</th>
               <th>Status</th>
               <th class="center">Action</th>
@@ -248,9 +256,11 @@
         </div>
       </div>
 
-      {# ---- Inline Detail: muncul di bawah tabel pas klik salah satu issue,
-         BUKAN pindah halaman. Disembunyikan default lewat class "is-hidden". ---- #}
+      {# ---- Detail Overlay: dulu buka ke bawah tabel (inline), sekarang
+         modal overlay di tengah layar -- klik area gelap di luar dialog
+         atau tombol X untuk menutup. ---- #}
       <div class="issue-inline-detail is-hidden" id="issueInlineDetail">
+        <div class="issue-inline-detail__dialog" id="issueInlineDetailDialog">
         <div class="issue-inline-detail__head">
           <span class="issue-inline-detail__eyebrow" id="inlineDetailEyebrow">ISSUE #-</span>
           <button type="button" class="issue-inline-detail__close" id="inlineDetailClose" title="Tutup">
@@ -298,13 +308,21 @@
               <p class="issue-inline-detail__description" id="inlineDetailDescription">-</p>
             </div>
 
+            <div id="inlineDetailAttachments" class="issue-inline-detail__attachments"></div>
+
             {% if is_admin_or_above %}
             <div class="issue-inline-detail__actions">
               <button type="button" id="inlineDetailHoldBtn">Hold Issue</button>
-              <button type="button" id="inlineDetailCloseBtn">Tandai Closed</button>
+              <div class="issue-inline-detail__close-group" id="inlineDetailCloseGroup">
+                <select id="inlineDetailAssigneeSelect" class="is-hidden">
+                  <option value="">Pilih pelaksana...</option>
+                </select>
+                <button type="button" id="inlineDetailCloseBtn">Tandai Closed</button>
+              </div>
             </div>
             {% endif %}
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -316,84 +334,35 @@
             <i class="bxf bx-crosshair"></i> Priority Matrix
           </span>
           <p class="priority-matrix__desc">
-            Issue aktif (belum Closed) dipetakan berdasarkan Dampak (tingkat
-            Priority) &times; Urgensi (kedekatan deadline), supaya gampang tahu
-            mana yang harus dikerjakan duluan.
+            Issue aktif (belum Closed) digambar sebagai batang waktu dari
+            tanggal dibuat sampai deadline, dalam rentang satu quarter.
+            Issue yang <strong>sudah melewati deadline</strong> batangnya
+            terus memanjang sampai hari ini &amp; berwarna merah, dan
+            otomatis pindah ke baris paling atas.
           </p>
         </div>
         <div class="priority-matrix__legend">
-          <span
-            ><span class="legend-dot" style="background:#e24b4a"></span>Deadline
-            &le; 3 hari / lewat</span
-          >
-          <span
-            ><span class="legend-dot" style="background:#f2a623"></span>Deadline
-            &le; 7 hari</span
-          >
-          <span
-            ><span class="legend-dot" style="background:#8a8f98"></span>Masih
-            longgar</span
-          >
+          <span><span class="legend-dot" style="background:#e24b4a"></span>Overdue (lewat deadline)</span>
+          <span><span class="legend-dot" style="background:#f2a623"></span>Deadline &le; 7 hari</span>
+          <span><span class="legend-dot" style="background:#3ddc97"></span>Masih longgar</span>
         </div>
       </div>
 
-      <div class="priority-matrix">
-        <span class="priority-matrix__axis priority-matrix__axis--top"
-          >URGENT</span
-        >
-        <span class="priority-matrix__axis priority-matrix__axis--bottom"
-          >TIDAK URGENT</span
-        >
-        <span class="priority-matrix__axis priority-matrix__axis--left"
-          >DAMPAK TINGGI</span
-        >
-        <span class="priority-matrix__axis priority-matrix__axis--right"
-          >DAMPAK RENDAH</span
-        >
-
-        <div class="priority-matrix__grid" id="priorityMatrixGrid">
-          <div class="pm-quadrant pm-quadrant--do-now" data-quadrant="do-now">
-            <div class="pm-quadrant__head">
-              <span class="pm-quadrant__title">Do Now</span>
-              <span class="pm-quadrant__count" id="pmCountDoNow">0</span>
-            </div>
-            <div class="pm-quadrant__list" id="pmListDoNow"></div>
-          </div>
-
-          <div
-            class="pm-quadrant pm-quadrant--schedule"
-            data-quadrant="schedule"
-          >
-            <div class="pm-quadrant__head">
-              <span class="pm-quadrant__title">Schedule</span>
-              <span class="pm-quadrant__count" id="pmCountSchedule">0</span>
-            </div>
-            <div class="pm-quadrant__list" id="pmListSchedule"></div>
-          </div>
-
-          <div
-            class="pm-quadrant pm-quadrant--delegate"
-            data-quadrant="delegate"
-          >
-            <div class="pm-quadrant__head">
-              <span class="pm-quadrant__title">Delegate</span>
-              <span class="pm-quadrant__count" id="pmCountDelegate">0</span>
-            </div>
-            <div class="pm-quadrant__list" id="pmListDelegate"></div>
-          </div>
-
-          <div class="pm-quadrant pm-quadrant--later" data-quadrant="later">
-            <div class="pm-quadrant__head">
-              <span class="pm-quadrant__title">Monitor</span>
-              <span class="pm-quadrant__count" id="pmCountLater">0</span>
-            </div>
-            <div class="pm-quadrant__list" id="pmListLater"></div>
-          </div>
+      <div class="gantt" id="ganttChart">
+        <div class="gantt__toolbar">
+          <span class="gantt__quarter-label" id="ganttQuarterLabel">-</span>
+          <span class="gantt__today-note"><span class="gantt__today-dot"></span>Hari ini</span>
         </div>
+        <div class="gantt__scroll">
+          <div class="gantt__header" id="ganttHeader"></div>
+          <div class="gantt__body" id="ganttBody"></div>
+        </div>
+        <div class="gantt__empty is-hidden" id="ganttEmpty">Tidak ada issue aktif untuk ditampilkan.</div>
       </div>
     </div>
   </div>
 {% endblock %}
+
 
 {# ---- Define Script ---- #}
 {% block script %}

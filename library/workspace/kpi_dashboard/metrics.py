@@ -136,10 +136,10 @@ def employee_list_summary(employees, range_key=DEFAULT_RANGE):
         result.append(
             {
                 "id": emp.id,
-                "name": emp.name,
-                "role": emp.role,
-                "team": emp.team,
-                "initials": initials(emp.name),
+                "name": emp.username,
+                "role": emp.job_title or "Member",
+                "team": ", ".join(emp.categories) if emp.categories else "-",
+                "initials": initials(emp.username),
                 **totals,
                 "avgResolutionHours": avg_hours,
                 "completionRate": rate,
@@ -184,10 +184,10 @@ def employee_summary(employee, range_key=DEFAULT_RANGE):
 
     return {
         "id": employee.id,
-        "name": employee.name,
-        "role": employee.role,
-        "team": employee.team,
-        "initials": initials(employee.name),
+        "name": employee.username,
+        "role": employee.job_title or "Member",
+        "team": ", ".join(employee.categories) if employee.categories else "-",
+        "initials": initials(employee.username),
         "range": range_key,
         "rangeLabel": RANGE_LABELS.get(range_key, range_key),
         **totals,

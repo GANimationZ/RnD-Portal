@@ -12,7 +12,7 @@ library/auth.py & di dalam file ini).
 
 from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
 
-from library.auth import login_required
+from library.auth import login_required, roles_required
 from library.extensions import db
 from library.models import User
 
@@ -95,6 +95,7 @@ def logout():
 
 @main_bp.route("/workspace/kpi-dashboard", methods=["GET"])
 @login_required
+@roles_required("Super Admin", "Member")  # poin 1: QA (Admin) tidak boleh lihat KPI Dashboard
 def kpi_dashboard():
     return render_template(
         "workspace/kpi_dashboard.html",
@@ -129,7 +130,7 @@ def tools():
 @login_required
 def org_structure():
     return render_template(
-        "team/structure.html",
+        "team/organization.html",
         active_nav="structure",
         username=session.get("username"),
     )

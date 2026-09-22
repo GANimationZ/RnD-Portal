@@ -1,0 +1,126 @@
+@use "../../base" as *;
+
+// Navbar
+.nav__bar {
+  display: flex;
+  background-color: white;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .flex-1 {
+    color: $secondary-color;
+    flex-shrink: 0;
+    white-space: nowrap;
+    justify-content: center;
+    padding: 10px 20px;
+    margin: 0 5px;
+    font-size: 12px;
+    font-weight: 300;
+    max-height: 32px;
+    cursor: pointer;
+
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-bottom: 3px solid $primary-color;
+      background-color: $fourtiary-color;
+    }
+
+    &.active {
+      border-bottom: 3px solid $primary-color;
+      background-color: rgba($color: $fourtiary-color, $alpha: 0.25);
+    }
+  }
+}
+
+.main-body-content {
+  padding: 0 20px;
+
+  .body {
+    width: 100%;
+    display: none;
+
+    &.active {
+      display: block;
+    }
+
+    .main-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 10px 0;
+      gap: 10px;
+
+      .container {
+        background-color: white;
+        text-align: center;
+        padding: 10px;
+
+        &.president {
+          border: 1px solid $primary_color;
+        }
+
+        &.fse {
+          border: 1px solid blue;
+        }
+
+        &.pve-leader {
+          border: 1px solid yellow;
+        }
+
+        &.part-leader {
+          border: 1px solid green;
+        }
+
+        &__top {
+          display: flex;
+          justify-content: center;
+          gap: 120px;
+          width: 100%;
+
+          &.members {
+            .container {
+              &__member {
+                background-color: white;
+                text-align: center;
+                border: 1px solid gray;
+                padding: 10px;
+                max-width: 240px;
+              }
+            }
+          }
+        }
+
+        &__bottom {
+          display: flex;
+          justify-content: center;
+          gap: 240px;
+          width: 100%;
+
+          &.members {
+            .container {
+              &__member {
+                background-color: white;
+                text-align: center;
+                border: 1px solid gray;
+                padding: 10px;
+                max-width: 240px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.container-of-members {
+}

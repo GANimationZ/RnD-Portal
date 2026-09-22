@@ -492,13 +492,15 @@ async function handleHistoryImport(event) {
     if (!response.ok)
       throw new Error(result.message || `HTTP ${response.status}`);
 
-    alert(
+    showToast(
       `Import selesai: ${result.updated} data diperbarui, ${result.created} data baru ditambahkan.`,
+      "success",
     );
   } catch (err) {
     console.error(err);
-    alert(
+    showToast(
       "Gagal import file Excel. Pastikan formatnya sesuai hasil Export Excel.",
+      "error",
     );
   } finally {
     event.target.value = ""; // reset supaya file yang sama bisa dipilih lagi

@@ -5,6 +5,10 @@
     rel="stylesheet"
     href="{{ url_for('static', filename='css/sidebar/styles.css') }}"
   />
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/shared/notify.css') }}"
+  />
 {% endblock %}
 
 {# ---- Main Body ---- #}
@@ -68,6 +72,7 @@
     window.ACTIVE_NAV = "{{ active_nav }}";
     window.CURRENT_ROLE = "{{ current_role or '' }}";
   </script>
+  <script src="{{ url_for('static', filename='javascript/shared/notify.js') }}"></script>
   <script src="{{ url_for('static', filename='javascript/sidebar/script.js') }}"></script>
   <script src="{{ url_for('static', filename='javascript/workspace/panel-switcher.js') }}"></script>
 {% endblock %}

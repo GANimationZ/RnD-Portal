@@ -122,7 +122,7 @@
           statusBadge.className = `badge ${STATUS_BADGE_CLASS[data.issue.status] || ""}`;
           holdBtn.textContent = data.issue.status === "On Hold" ? "Lepas Hold" : "Hold Issue";
         } catch (err) {
-          alert("Gagal memperbarui status issue.");
+          showToast("Gagal memperbarui status issue.", "error");
         }
       }
 

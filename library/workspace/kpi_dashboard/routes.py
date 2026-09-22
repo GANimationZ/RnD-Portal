@@ -20,7 +20,9 @@ from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, request, send_file, send_from_directory
 
-from library.models import Employee
+from library.auth import login_required, roles_required
+from library.extensions import db
+from library.models import BestPractice, User
 
 from .kpi_excel import (
     build_individual_workbook,
@@ -39,6 +41,20 @@ from .metrics import (
 
 kpi_dashboard_bp = Blueprint("kpi_dashboard", __name__, url_prefix="/workspace/kpi-dashboard")
 
+
+@kpi_dashboard_bp.before_request
+@login_required
+def _restrict_kpi_dashboard():
+    """Poin 1: QA (role "Admin") TIDAK boleh melihat KPI Dashboard sama
+    sekali -- baik halaman maupun API-nya. Dipasang sebagai before_request
+    (bukan decorator di tiap route satu-satu) supaya tidak ada endpoint
+    yang kelewat, sesuai pelajaran dari bug blueprint-lupa-diproteksi
+    sebelumnya."""
+    from flask import jsonify, session
+
+    if session.get("role") == "Admin":
+        return jsonify({"message": "QA (Admin) tidak memiliki akses ke KPI Dashboard."}), 403
+
 MONTH_LABELS_ID = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
@@ -54,7 +70,7 @@ def _range_param():
 
 
 def _all_employees():
-    return Employee.query.order_by(Employee.id).all()
+    return User.query.filter_by(role="Member").order_by(User.id).all()
 
 
 def get_employees_for_export(range_key=EXPORT_RANGE):
@@ -123,7 +139,7 @@ def api_employee_detail(employee_id):
     """Detail 1 karyawan (stat card, trend chart, best practices) untuk
     rentang waktu tertentu."""
     range_key = _range_param()
-    employee = Employee.query.get_or_404(employee_id)
+    employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
     return jsonify(employee_summary(employee, range_key))
 
 
@@ -135,6 +151,32 @@ def api_team():
     range_key = _range_param()
     employees = _all_employees()
     return jsonify(team_summary(employees, range_key))
+
+
+@kpi_dashboard_bp.route("/api/employees/<int:employee_id>/best-practices", methods=["POST"])
+def api_add_best_practice(employee_id):
+    """Best Practice = catatan yang DITULIS MANUAL (bukan digenerate
+    otomatis dari Issue), supaya isinya benar-benar wawasan/tips yang
+    disengaja dibagikan. Member cuma boleh menambah catatan untuk dirinya
+    sendiri; Super Admin boleh menambah untuk siapa saja."""
+    from flask import session
+
+    employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
+
+    if session.get("role") == "Member" and session.get("user_id") != employee.id:
+        return jsonify({"message": "Member cuma bisa menambah catatan untuk dirinya sendiri."}), 403
+    if session.get("role") not in ("Super Admin", "Member"):
+        return jsonify({"message": "Akses ditolak."}), 403
+
+    note = (request.get_json(silent=True) or {}).get("note", "").strip()
+    if not note:
+        return jsonify({"message": "Catatan tidak boleh kosong."}), 400
+
+    order = BestPractice.query.filter_by(user_id=employee.id).count()
+    db.session.add(BestPractice(user_id=employee.id, note=note, sort_order=order))
+    db.session.commit()
+
+    return jsonify({"message": "Catatan ditambahkan.", "note": note}), 201
 
 
 # ==================== Export / Import / History (arsip .xlsx) ====================

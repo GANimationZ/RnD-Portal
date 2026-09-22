@@ -27,12 +27,20 @@ const NAV_GROUPS = [
   {
     label: "Workspace",
     items: [
-      {
-        id: "kpi-dashboard",
-        label: "Team KPI Dashboard",
-        icon: "chart",
-        href: "/workspace/kpi-dashboard",
-      },
+      // Poin 1: QA (Admin) tidak boleh lihat KPI Dashboard -- menu ini
+      // cuma dirender untuk Super Admin & Member (backend juga menolak
+      // lewat roles_required, ini supaya Admin tidak melihat link yang
+      // bakal 403 kalau diklik).
+      ...(window.CURRENT_ROLE === "Admin"
+        ? []
+        : [
+            {
+              id: "kpi-dashboard",
+              label: "Team KPI Dashboard",
+              icon: "chart",
+              href: "/workspace/kpi-dashboard",
+            },
+          ]),
       {
         id: "analyse",
         label: "TV Design Concept",

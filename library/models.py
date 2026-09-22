@@ -49,6 +49,9 @@ class User(db.Model):
     email = db.Column(db.String(255), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="Member")
+    # Judul/jabatan bebas buat tampilan KPI Dashboard (mis. "PCBA Engineer") --
+    # murni kosmetik, tidak dipakai buat otorisasi (itu urusan `role`).
+    job_title = db.Column(db.String(120), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
@@ -57,6 +60,14 @@ class User(db.Model):
     )
     event_scopes = db.relationship(
         "UserEventScope", backref="user", cascade="all, delete-orphan"
+    )
+    kpi_records = db.relationship(
+        "KPIRecord", backref="user", cascade="all, delete-orphan",
+        order_by="KPIRecord.period_date",
+    )
+    best_practices = db.relationship(
+        "BestPractice", backref="user", cascade="all, delete-orphan",
+        order_by="BestPractice.sort_order",
     )
 
     def set_password(self, password):
@@ -126,44 +137,24 @@ class UserEventScope(db.Model):
     )
 
 
-class Employee(db.Model):
-    __tablename__ = "employees"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    role = db.Column(db.String(120), nullable=False)
-    team = db.Column(db.String(80), nullable=False, default="General")
-    is_active = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-
-    kpi_records = db.relationship(
-        "KPIRecord",
-        backref="employee",
-        cascade="all, delete-orphan",
-        order_by="KPIRecord.period_date",
-    )
-    best_practices = db.relationship(
-        "BestPractice",
-        backref="employee",
-        cascade="all, delete-orphan",
-        order_by="BestPractice.sort_order",
-    )
-
-    def __repr__(self):
-        return f"<Employee {self.name}>"
-
-
 class KPIRecord(db.Model):
-    """Satu baris = ringkasan kinerja karyawan pada satu titik waktu
+    """Satu baris = ringkasan kinerja seorang Member pada satu titik waktu
     (mingguan). Tabel inilah yang menopang filter Recent / Last Week /
     Last Month / Last Year -- semuanya tinggal query
     `WHERE period_date >= cutoff`, tidak perlu struktur khusus per rentang.
+
+    Diisi OTOMATIS oleh Issue Monitor (bukan data dummy lagi):
+    - Issue baru dibuat dengan assignee -> total_assigned & pending +1
+      untuk Member itu di minggu berjalan.
+    - Issue ditandai Closed (assignee sudah/baru ditentukan saat itu) ->
+      completed +1, pending -1, avg_resolution_days dihitung ulang.
+    Lihat library/workspace/kpi_dashboard/recording.py.
     """
 
     __tablename__ = "kpi_records"
 
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey("employees.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     period_date = db.Column(db.Date, nullable=False, index=True)
     total_assigned = db.Column(db.Integer, nullable=False, default=0)
     completed = db.Column(db.Integer, nullable=False, default=0)
@@ -171,17 +162,26 @@ class KPIRecord(db.Model):
     overdue = db.Column(db.Integer, nullable=False, default=0)
     avg_resolution_days = db.Column(db.Float, nullable=False, default=0)
 
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "period_date", name="uq_kpi_record_week"),
+    )
+
     def __repr__(self):
-        return f"<KPIRecord emp={self.employee_id} {self.period_date}>"
+        return f"<KPIRecord user={self.user_id} {self.period_date}>"
 
 
 class BestPractice(db.Model):
+    """Catatan praktik-baik per Member -- ditulis manual (oleh Member
+    sendiri atau Super Admin), BUKAN digenerate otomatis dari Issue.
+    Lihat library/workspace/kpi_dashboard/routes.py -> api_add_best_practice."""
+
     __tablename__ = "best_practices"
 
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey("employees.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     note = db.Column(db.Text, nullable=False)
     sort_order = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 
 class Issue(db.Model):
@@ -210,8 +210,13 @@ class Issue(db.Model):
     owner_name = db.Column(db.String(120), nullable=False, default="Admin")
     assignee_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    closed_at = db.Column(db.DateTime, nullable=True)
 
     assignee = db.relationship("User", foreign_keys=[assignee_id])
+    attachments = db.relationship(
+        "IssueAttachment", backref="issue", cascade="all, delete-orphan",
+        order_by="IssueAttachment.id",
+    )
 
     def to_dict(self):
         from flask import url_for
@@ -225,6 +230,7 @@ class Issue(db.Model):
             "priority": self.priority,
             "status": self.status,
             "deadline": self.deadline.strftime("%d-%m-%Y") if self.deadline else None,
+            "created_at": self.created_at.strftime("%d-%m-%Y") if self.created_at else None,
             "owner": self.owner_name,
             "assignee_id": self.assignee_id,
             "assignee_name": self.assignee.username if self.assignee else None,
@@ -233,7 +239,34 @@ class Issue(db.Model):
                 if self.image_filename
                 else None
             ),
+            "attachments": [a.to_dict() for a in self.attachments],
         }
 
     def __repr__(self):
         return f"<Issue {self.title}>"
+
+
+class IssueAttachment(db.Model):
+    """Satu baris = satu file lampiran (bisa gambar, Word, Excel, atau
+    PowerPoint) untuk sebuah Issue -- sengaja dipisah dari
+    Issue.image_filename (yang dipertahankan untuk kompatibilitas gambar
+    lama) supaya satu Issue bisa punya BANYAK lampiran sekaligus."""
+
+    __tablename__ = "issue_attachments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    issue_id = db.Column(db.Integer, db.ForeignKey("issues.id"), nullable=False, index=True)
+    filename = db.Column(db.String(255), nullable=False)
+    original_name = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(20), nullable=False, default="other")  # image/word/excel/ppt/pdf/other
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def to_dict(self):
+        from flask import url_for
+
+        return {
+            "id": self.id,
+            "name": self.original_name,
+            "type": self.file_type,
+            "url": url_for("static", filename=f"assets/upload/{self.filename}"),
+        }

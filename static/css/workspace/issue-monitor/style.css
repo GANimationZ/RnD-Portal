@@ -666,4 +666,155 @@ select {
 .badge-blue {
   background: rgba(79, 140, 255, 0.12);
   color: #4f8cff;
+}
+
+.gantt {
+  background: white;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 16px;
+  position: relative;
+}
+
+.gantt__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.gantt__quarter-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b6b6b;
+}
+
+.gantt__today-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #8a8f98;
+}
+
+.gantt__today-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #4f8cff;
+  display: inline-block;
+}
+
+.gantt__scroll {
+  overflow-x: auto;
+}
+
+.gantt__header {
+  position: relative;
+  height: 24px;
+  border-bottom: 1px solid #eceff3;
+  margin-bottom: 6px;
+  min-width: 640px;
+}
+
+.gantt__tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #8a8f98;
+  white-space: nowrap;
+}
+
+.gantt__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 640px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.gantt__row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 0;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.gantt__row:hover {
+  background: #f7f8fa;
+}
+
+.gantt__row--overdue {
+  background: rgba(226, 75, 74, 0.05);
+}
+
+.gantt__row--overdue:hover {
+  background: rgba(226, 75, 74, 0.1);
+}
+
+.gantt__row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.gantt__row-title {
+  font-size: 12px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gantt__track {
+  position: relative;
+  height: 22px;
+  background: #f5f6f8;
+  border-radius: 6px;
+}
+
+.gantt__today-line {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: #4f8cff;
+  z-index: 1;
+}
+
+.gantt__bar {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  font-size: 11px;
+  color: white;
+  transition: width 0.2s ease;
+}
+
+.gantt__bar i {
+  font-size: 12px;
+}
+
+.gantt__empty {
+  text-align: center;
+  color: #b3b7be;
+  font-size: 13px;
+  padding: 40px 0;
+}
+
+.gantt__empty.is-hidden {
+  display: none;
 }/*# sourceMappingURL=style.css.map */
