@@ -1,30 +1,13 @@
-"""
-Flask blueprint Issue Monitor.
+"""Issue Monitor blueprint: list/dashboard/register/priority-matrix pages
+and their API endpoints."""
 
-- Halaman `/workspace/issue-monitor` (list/dashboard/register/priority
-  matrix, semuanya di satu template lewat tab JS) dan halaman detail
-  `/workspace/issue-monitor/<id>` ("lihat issue kayak id=1").
-- Data issue disimpan di tabel `issues` (lihat library/models.py), BUKAN
-  dummy array di JS lagi.
-- Lampiran (gambar, Word, Excel, PowerPoint -- boleh lebih dari satu file
-  sekaligus) disimpan sebagai file asli di static/assets/upload/, DB cuma
-  nyimpen nama file lewat tabel `issue_attachments`.
-- Assignee (Pelaksana) OPSIONAL saat issue dibuat -- boleh dibiarkan
-  kosong ("siapa saja di tim yang cocok category+event boleh ambil").
-  Kalau assignee memang belum ditentukan saat issue dibuat, QA tetap bisa
-  menentukan siapa yang mengerjakan PAS MENUTUP issue-nya (poin 4), lewat
-  field `assignee_id` opsional di body PATCH /status -- supaya tetap
-  tercatat di KPI Dashboard orang yang bersangkutan (lihat recording.py).
-"""
-
-import os
 from datetime import datetime
 
-from flask import Blueprint, current_app, jsonify, render_template, request, session
-from werkzeug.utils import secure_filename
+from flask import Blueprint, jsonify, render_template, request, session
 
 from library.auth import login_required, roles_required
 from library.extensions import db
+from library.files import is_allowed, get_file_type, save_upload
 from library.models import Issue, IssueAttachment, User
 from library.workspace.kpi_dashboard.recording import (
     record_assignment,
@@ -36,48 +19,10 @@ issue_monitor_bp = Blueprint(
     "issue_monitor", __name__, url_prefix="/workspace/issue-monitor"
 )
 
-IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
-DOCUMENT_EXTENSIONS = {
-    "pdf": "pdf",
-    "doc": "word", "docx": "word",
-    "xls": "excel", "xlsx": "excel",
-    "ppt": "ppt", "pptx": "ppt",
-    "txt": "other",
-}
-ALLOWED_EXTENSIONS = IMAGE_EXTENSIONS | set(DOCUMENT_EXTENSIONS.keys())
 VALID_STATUS = {"Open", "Pending", "Closed", "On Hold"}
-UPLOAD_SUBDIR = os.path.join("assets", "upload")
 
 
-def _extension(filename):
-    return filename.rsplit(".", 1)[1].lower() if "." in filename else ""
-
-
-def _allowed_file(filename):
-    return _extension(filename) in ALLOWED_EXTENSIONS
-
-
-def _file_type(filename):
-    ext = _extension(filename)
-    if ext in IMAGE_EXTENSIONS:
-        return "image"
-    return DOCUMENT_EXTENSIONS.get(ext, "other")
-
-
-def _upload_dir():
-    path = os.path.join(current_app.static_folder, UPLOAD_SUBDIR)
-    os.makedirs(path, exist_ok=True)
-    return path
-
-
-def _save_upload(file):
-    ext = _extension(file.filename)
-    filename = f"issue-{int(datetime.now().timestamp() * 1000)}-{secure_filename(file.filename)}"
-    file.save(os.path.join(_upload_dir(), filename))
-    return filename
-
-
-# ==================== Halaman ====================
+# ==================== Pages ====================
 
 @issue_monitor_bp.route("", methods=["GET"])
 @login_required
@@ -134,10 +79,9 @@ def api_create_issue():
     except ValueError:
         return jsonify({"message": "Format deadline tidak valid."}), 400
 
-    # assignee_id BENAR-BENAR opsional -- boleh dikosongi kalau issue-nya
-    # terbuka untuk siapa saja di tim yang cocok category+event (poin 4).
-    # Kalau diisi, harus Member yang scope-nya memang mencakup category &
-    # event ini (tidak percaya begitu saja ke value dari client).
+    # assignee_id is optional (open to anyone whose scope matches).
+    # If given, must be a Member whose scope actually covers this
+    # category/event -- never trust the client's value blindly.
     assignee_id = None
     if assignee_id_raw:
         candidate = User.query.get(assignee_id_raw)
@@ -146,7 +90,7 @@ def api_create_issue():
         assignee_id = candidate.id
 
     for file in files:
-        if file and file.filename and not _allowed_file(file.filename):
+        if file and file.filename and not is_allowed(file.filename):
             return jsonify({
                 "message": f'Format file "{file.filename}" tidak didukung. '
                            "Gunakan gambar, PDF, Word, Excel, atau PowerPoint."
@@ -164,20 +108,20 @@ def api_create_issue():
         status="Open",
     )
     db.session.add(issue)
-    db.session.flush()  # supaya issue.id kebentuk buat attachment & id kembalian ke KPI
+    db.session.flush()  # populate issue.id for attachments & KPI recording
 
     for file in files:
         if not (file and file.filename):
             continue
-        filename = _save_upload(file)
+        filename = save_upload(file, "issues", "issue")
         db.session.add(IssueAttachment(
             issue_id=issue.id,
             filename=filename,
             original_name=file.filename,
-            file_type=_file_type(file.filename),
+            file_type=get_file_type(file.filename),
         ))
-        if issue.image_filename is None and _file_type(file.filename) == "image":
-            issue.image_filename = filename  # kompatibilitas tampilan gambar lama
+        if issue.image_filename is None and get_file_type(file.filename) == "image":
+            issue.image_filename = filename  # backward compat for the old single-image view
 
     if assignee_id:
         record_assignment(assignee_id)
@@ -194,16 +138,16 @@ def api_update_status(issue_id):
     issue = Issue.query.get_or_404(issue_id)
     data = request.get_json(silent=True) or {}
     status = data.get("status")
-    assignee_id_raw = data.get("assignee_id")  # opsional: "assign pelaksana di akhir"
+    assignee_id_raw = data.get("assignee_id")  # optional: assign executor at close time
 
     if status not in VALID_STATUS:
         return jsonify({"message": "Status tidak valid."}), 400
 
     was_assigned_before = issue.assignee_id is not None
 
-    # Kalau issue ini belum ada assignee-nya dan sekarang dikasih satu
-    # (baik saat ditutup maupun sekadar update status lain), validasi &
-    # simpan -- ini jalan resmi buat "assign pelaksana di akhir" (poin 4).
+    # If this issue has no assignee yet and one is now provided (whether
+    # closing or just updating status), validate and save it -- this is
+    # the official path for "assign executor at close time".
     if assignee_id_raw and not issue.assignee_id:
         candidate = User.query.get(assignee_id_raw)
         if not candidate or candidate.role != "Member" or not candidate.covers(issue.category, issue.event):

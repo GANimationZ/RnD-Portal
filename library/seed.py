@@ -1,29 +1,19 @@
-"""
-Seeder akun demo.
+"""Seeds two demo accounts (Super Admin + QA Admin) so the User
+Management flow can be tried immediately. No Employee/Issue/KPI dummy
+data -- all of that comes from real usage through the UI.
 
-PERUBAHAN (poin 2 permintaan perombakan): sebelumnya file ini juga
-menyeed dummy Employee/KPIRecord/BestPractice/Issue/Member -- semua
-DIHAPUS. Sekarang cuma nyeed 2 akun (Super Admin & QA/Admin) supaya bisa
-langsung login & coba fitur User Management sejak awal. Semua data lain
-(Member, kapabilitas category/event, Issue, KPI) murni hasil pemakaian
-nyata lewat UI -- tidak ada lagi data "boongan" yang bercampur dengan
-data asli (ini juga yang dimaksud "hubungkan semuanya jadi satu": KPI
-Dashboard sekarang membaca User asli ber-role Member, bukan tabel
-Employee terpisah yang tidak terhubung ke akun manapun).
-
-Cara pakai:
+Usage:
     from library.seed import seed_dummy_data
     with app.app_context():
         db.create_all()
-        seed_dummy_data()   # idempotent -- no-op kalau User sudah ada isinya
+        seed_dummy_data()   # idempotent, no-op if users already exist
 """
 
 from library.extensions import db
 from library.models import User
 
-# Password sengaja dituliskan apa adanya di sini (bukan project
-# production) supaya gampang dicoba pertama kali -- SEGERA ganti password
-# ini via halaman User Management begitu sudah dipakai beneran.
+# Plaintext here is fine for a demo seed -- change these via User
+# Management as soon as the app is used for real.
 USER_SEED = [
     {
         "username": "superadmin",
@@ -53,5 +43,5 @@ def seed_users():
 
 
 def seed_dummy_data():
-    """Idempotent: no-op kalau tabel users sudah terisi."""
+    """Idempotent: no-op if the users table already has rows."""
     seed_users()

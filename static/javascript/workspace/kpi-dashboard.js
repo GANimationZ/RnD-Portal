@@ -1,19 +1,17 @@
 // ====================================================================
 // KPI Dashboard -- frontend controller
 //
-// Semua data & kalkulasi (workload bar, completion rate, leaderboard,
-// agregasi Recent/Last Week/Last Month/Last Year, trend chart) sekarang
-// datang SUDAH JADI dari backend (lihat library/workspace/kpi_dashboard/
-// metrics.py & routes.py). File ini murni:
-//   1. fetch data dari /workspace/kpi-dashboard/api/*
-//   2. render ke DOM
-//   3. jalankan Chart.js (satu-satunya bagian yang memang wajib di
-//      client, karena Chart.js adalah library rendering canvas)
+// All data & calculations (workload bar, completion rate, leaderboard,
+// Recent/Last Week/Last Month/Last Year aggregation, trend chart) come
+// pre-computed from the backend (see library/workspace/kpi_dashboard/
+// metrics.py & routes.py). This file only:
+//   1. fetches data from /workspace/kpi-dashboard/api/*
+//   2. renders it to the DOM
+//   3. drives Chart.js (the one thing that must run client-side)
 //
-// createEmployeePanelController() & createTeamPanelController() dipakai
-// DUA KALI: sekali untuk panel live (Individual/Team), sekali lagi untuk
-// sub-panel History (Individual/Team) -- makanya kedua tempat itu selalu
-// tampil identik (layout + filter rentang waktu).
+// createEmployeePanelController() & createTeamPanelController() are each
+// used TWICE: once for the live panel (Individual/Team), once for the
+// History sub-panel -- so both stay visually identical.
 // ====================================================================
 
 const API_BASE = "/workspace/kpi-dashboard";
@@ -33,7 +31,7 @@ async function fetchJSON(url) {
   return response.json();
 }
 
-// ==================== Komponen: Range Tabs (Recent/Last Week/Last Month/Last Year) ====================
+// ==================== Component: Range Tabs (Recent/Last Week/Last Month/Last Year) ====================
 
 function setupRangeTabs(scope, onChange) {
   const group = document.querySelector(
@@ -52,7 +50,7 @@ function setupRangeTabs(scope, onChange) {
   });
 }
 
-// ==================== Panel: Individual (dipakai live & History) ====================
+// ==================== Panel: Individual (used live & in History) ====================
 
 function createEmployeePanelController(ids, rangeScope) {
   let chart = null;
@@ -232,7 +230,7 @@ function createEmployeePanelController(ids, rangeScope) {
   return { load };
 }
 
-// ==================== Panel: Team (dipakai live & History) ====================
+// ==================== Panel: Team (used live & in History) ====================
 
 function createTeamPanelController(ids, rangeScope) {
   let chart = null;
@@ -341,10 +339,10 @@ function createTeamPanelController(ids, rangeScope) {
   return { load };
 }
 
-// ==================== Instansiasi controller ====================
-// Panel Individual & Team "live", plus sub-panel History Individual/Team
-// yang memakai controller & endpoint yang SAMA PERSIS, supaya keempatnya
-// selalu konsisten.
+// ==================== Controller instances ====================
+// Live Individual & Team panels, plus the History Individual/Team
+// sub-panels, share the exact same controllers & endpoints so all four
+// stay consistent.
 
 const individualPanel = createEmployeePanelController(
   {
@@ -384,17 +382,17 @@ const historyTeamPanel = createTeamPanelController(
   "history-team",
 );
 
-// ==================== Arsip Excel bulanan (Import/Export/Download) ====================
-// Bagian ini TIDAK terkait dengan filter Recent/Last Week/Last Month/Last
-// Year -- murni untuk mengelola file .xlsx arsip bulanan yang sudah
-// pernah di-export (fitur lama, tetap dipertahankan).
+// ==================== Monthly Excel archive (Import/Export/Download) ====================
+// Unrelated to the Recent/Last Week/Last Month/Last Year filters -- just
+// manages previously-exported monthly .xlsx archive files (legacy
+// feature, kept as-is).
 
 let historySnapshots = [];
 let historyMonthsLoaded = false;
 
-// "Bulan Arsip lebih advance": dikelompokkan per tahun (optgroup), ditandai
-// kalau itu bulan berjalan, dan bisa dinavigasi lewat tombol Prev/Next
-// tanpa perlu buka dropdown-nya.
+// Archive month picker: grouped by year (optgroup), flags the current
+// month, and can be navigated with Prev/Next without opening the
+// dropdown.
 
 function currentMonthFilename() {
   const now = new Date();
@@ -451,7 +449,7 @@ function updateHistoryNavButtons() {
   if (!select || !prevBtn || !nextBtn) return;
 
   const index = historySnapshots.findIndex((s) => s.filename === select.value);
-  // historySnapshots urut dari terbaru -> terlama, jadi "sebelumnya" = index+1.
+  // historySnapshots is sorted newest -> oldest, so "previous" = index+1.
   prevBtn.disabled = index === -1 || index >= historySnapshots.length - 1;
   nextBtn.disabled = index <= 0;
 }
@@ -503,11 +501,11 @@ async function handleHistoryImport(event) {
       "error",
     );
   } finally {
-    event.target.value = ""; // reset supaya file yang sama bisa dipilih lagi
+    event.target.value = ""; // reset so the same file can be picked again
   }
 }
 
-// ==================== Sub-tab History: Individual / Team ====================
+// ==================== History sub-tabs: Individual / Team ====================
 
 let historySubtab = "individual";
 
@@ -528,7 +526,7 @@ function setHistorySubtab(subtab) {
   }
 }
 
-// ==================== Kartu Ringkasan Global (independen dari tab aktif) ====================
+// ==================== Global summary cards (independent of active tab) ====================
 
 async function loadKpiOverview() {
   try {
@@ -544,7 +542,7 @@ async function loadKpiOverview() {
   }
 }
 
-// ==================== Hubungkan ke panel-switcher.js ====================
+// ==================== Wire up to panel-switcher.js ====================
 
 document.addEventListener("panel:show", (e) => {
   const panel = e.detail.panel;

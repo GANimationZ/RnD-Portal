@@ -1,5 +1,5 @@
-// ---- Tab/panel switcher generic — dipakai semua halaman workspace ----
-// Dimuat SEKALI lewat layout (block script), bukan disalin ulang ke tiap file JS halaman.
+// Generic tab/panel switcher, shared by every workspace page.
+// Loaded once via the layout, not duplicated per page script.
 
 (function () {
   const navBar = document.querySelector(".nav__bar");
@@ -15,7 +15,7 @@
     });
 
     if (!matched) {
-      console.warn(`Belum ada panel untuk tab "${target}"`);
+      console.warn(`No panel found for tab "${target}"`);
       return;
     }
 
@@ -35,9 +35,8 @@
     activatePanel(item.dataset.tab);
   });
 
-  // ---- Aktivasi tab awal DITUNDA sampai semua script halaman selesai
-  // dimuat & dieksekusi, supaya listener 'panel:show' di file JS halaman
-  // (kpi-dashboard.js, issue-monitor.js, dst) sudah pasti terpasang duluan. ----
+  // Delay the initial tab activation until page scripts have finished
+  // loading, so their 'panel:show' listeners are attached first.
   window.addEventListener("load", () => {
     const initialTab =
       navBar.querySelector(".flex-1.active") || navBar.querySelector(".flex-1");

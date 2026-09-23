@@ -1,7 +1,7 @@
 // ============================================================
-// RnD Portal - User Management (khusus Super Admin)
-// Tab switching (klik .nav-item__left) DITANGANI panel-switcher.js
-// yang di-load global lewat layout -- file ini cuma urus data.
+// RnD Portal - User Management (Super Admin only)
+// Tab switching (.nav-item__left clicks) is handled by panel-switcher.js,
+// loaded globally via the layout -- this file only handles data.
 // ============================================================
 
 const UM_API_BASE = "/admin/users/api";
@@ -10,6 +10,17 @@ const ROLE_BADGE_CLASS = {
   "Super Admin": "badge-red",
   "Admin": "badge-blue",
   "Member": "badge-grey",
+};
+
+const STATUS_BADGE_CLASS = {
+  Active: "badge-green",
+  Pending: "badge-yellow",
+  Inactive: "badge-grey",
+};
+const STATUS_LABEL_ID = {
+  Active: "Aktif",
+  Pending: "Menunggu Verifikasi",
+  Inactive: "Nonaktif",
 };
 
 let usersData = [];
@@ -32,7 +43,7 @@ async function fetchUsers() {
 }
 
 // ------------------------------------------------------------
-// RENDER: Ringkasan
+// RENDER: summary
 // ------------------------------------------------------------
 function renderSummary() {
   const setText = (id, val) => {
@@ -44,10 +55,11 @@ function renderSummary() {
   setText("umTotalSuperAdmin", usersData.filter((u) => u.role === "Super Admin").length);
   setText("umTotalAdmin", usersData.filter((u) => u.role === "Admin").length);
   setText("umTotalMember", usersData.filter((u) => u.role === "Member").length);
+  setText("umTotalPending", usersData.filter((u) => u.status_label === "Pending").length);
 }
 
 // ------------------------------------------------------------
-// RENDER: Tabel
+// RENDER: table
 // ------------------------------------------------------------
 function scopeBadges(list, badgeClass) {
   if (!list || list.length === 0) {
@@ -70,7 +82,7 @@ function renderTable() {
       <td><span class="badge ${ROLE_BADGE_CLASS[user.role] || "badge-grey"}">${user.role}</span></td>
       <td><div class="um-scope-cell">${scopeBadges(user.categories, "badge-blue")}</div></td>
       <td><div class="um-scope-cell">${scopeBadges(user.events, "badge-green")}</div></td>
-      <td><span class="badge ${user.is_active ? "badge-green" : "badge-grey"}">${user.is_active ? "Aktif" : "Nonaktif"}</span></td>
+      <td><span class="badge ${STATUS_BADGE_CLASS[user.status_label] || "badge-grey"}">${STATUS_LABEL_ID[user.status_label] || user.status_label}</span></td>
       <td class="center">
         <div class="um-action-buttons">
           <button type="button" data-action="edit" data-id="${user.id}" title="Edit"><i class="bxf bx-edit"></i></button>
@@ -86,7 +98,7 @@ function renderTable() {
 }
 
 // ------------------------------------------------------------
-// FORM: helper reset & isi ulang (edit mode)
+// FORM: reset / prefill helpers (edit mode)
 // ------------------------------------------------------------
 function resetForm() {
   editingId = null;
@@ -112,7 +124,7 @@ function fillFormForEdit(user) {
 
   const usernameEl = document.getElementById("umUsername");
   usernameEl.value = user.username;
-  usernameEl.disabled = true; // username tidak bisa diganti dari sini
+  usernameEl.disabled = true; // username can't be changed here
 
   document.getElementById("umEmail").value = user.email;
   document.getElementById("umPassword").value = "";
@@ -138,7 +150,7 @@ function fillFormForEdit(user) {
 }
 
 // ------------------------------------------------------------
-// EVENTS: Tabel (Edit / Toggle Aktif / Hapus)
+// EVENTS: table (edit / toggle active / delete)
 // ------------------------------------------------------------
 function initTableActions() {
   const tbody = document.getElementById("userTableBody");
@@ -198,7 +210,7 @@ function initTableActions() {
 }
 
 // ------------------------------------------------------------
-// EVENTS: Form Tambah/Edit
+// EVENTS: add/edit form
 // ------------------------------------------------------------
 function initForm() {
   const form = document.getElementById("userForm");
@@ -273,7 +285,7 @@ function initForm() {
 // INIT
 // ------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
-  if (!document.getElementById("userForm")) return; // bukan halaman ini
+  if (!document.getElementById("userForm")) return; // not this page
 
   initTableActions();
   initForm();

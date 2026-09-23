@@ -1,42 +1,26 @@
-"""
-Model SQLAlchemy untuk seluruh data RnD Portal.
+"""SQLAlchemy models for RnD Portal.
 
-PENTING (persiapan migrasi SQLite -> PostgreSQL):
-- Semua kolom pakai tipe generik SQLAlchemy (Integer, String, Float, Date,
-  DateTime, Text, Boolean). Tipe-tipe ini otomatis diterjemahkan ke tipe
-  native masing-masing dialect oleh SQLAlchemy -- tidak ada fitur khusus
-  SQLite yang dipakai (tidak ada kolom JSON blob, tidak ada raw SQL sqlite,
-  tidak ada AUTOINCREMENT manual, dst).
-- Data historis KPI disimpan sebagai baris-baris ternormalisasi
-  (satu KPIRecord per employee per titik waktu), BUKAN sebagai satu kolom
-  JSON list seperti array trend di JS versi lama. Ini sengaja supaya nanti
-  gampang di-index & di-agregasi pakai SQL asli Postgres (GROUP BY, date
-  range query, dst), bukan cuma dummy data yang ditulis ulang.
-- Untuk pindah ke Postgres nanti: pasang `psycopg2-binary`, set env var
-  DATABASE_URL ke `postgresql+psycopg2://user:pass@host:5432/db_name`,
-  lalu jalankan ulang `db.create_all()` (atau pakai Flask-Migrate kalau
-  proyek sudah butuh migration history). Tidak ada satupun kode di model
-  ini yang perlu diubah.
-
-MANAJEMEN USER & HAK AKSES (ditambahkan bareng fitur User Management):
-- Cuma ADA SATU team dengan 3 level akses (User.role): "Super Admin" (dev,
-  mengelola user), "Admin" (QA, membuat & menutup issue), "Member" (cuma
-  bisa melihat issue). Lihat library/auth.py:roles_required().
-- UserCategoryScope & UserEventScope = tabel pivot ternormalisasi (bukan
-  CSV/JSON di satu kolom, konsisten dengan filosofi KPIRecord di atas).
-  Satu Member bisa punya BANYAK baris category & BANYAK baris event --
-  itulah yang bikin "kategori/event bisa lebih dari 1 per orang".
-- Issue.assignee_id menunjuk ke User (Member) yang ditugaskan mengerjakan
-  issue tsb -- terpisah dari owner_name (yang membuat issue/QA-nya).
+Notes:
+- All columns use generic SQLAlchemy types (Integer, String, Float, Date,
+  DateTime, Text, Boolean) so nothing here needs to change when migrating
+  from SQLite to PostgreSQL -- just set DATABASE_URL (see MIGRATION.md).
+- Historical KPI data is stored as normalized rows (one KPIRecord per user
+  per period), not as a JSON blob, so it stays queryable/indexable in
+  Postgres.
+- Single team, three access levels via User.role: "Super Admin" (manages
+  users), "Admin" (QA, creates/closes issues), "Member" (view issues,
+  execute assigned ones). See library/auth.py:roles_required().
+- UserCategoryScope / UserEventScope are normalized pivot tables so a
+  Member can have more than one category/event.
 """
 
 from library.extensions import db
 
 ROLE_CHOICES = ["Super Admin", "Admin", "Member"]
 
-# Sengaja disamakan PERSIS dengan string yang sudah dipakai Issue.category /
-# Issue.event & static/javascript/workspace/issue-monitor.js (CATEGORY_META /
-# EVENT_META) supaya pencocokan scope Member <-> Issue tidak meleset.
+# Must match Issue.category / Issue.event and issue-monitor.js's
+# CATEGORY_META / EVENT_META exactly, so Member <-> Issue scope matching
+# stays correct.
 CATEGORY_CHOICES = ["PCBA/SMT", "SQA", "Line-Prod", "OQA", "CSS/SVC"]
 EVENT_CHOICES = ["PV", "Pre-MP", "MP", "Field"]
 
@@ -49,10 +33,9 @@ class User(db.Model):
     email = db.Column(db.String(255), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="Member")
-    # Judul/jabatan bebas buat tampilan KPI Dashboard (mis. "PCBA Engineer") --
-    # murni kosmetik, tidak dipakai buat otorisasi (itu urusan `role`).
-    job_title = db.Column(db.String(120), nullable=True)
+    job_title = db.Column(db.String(120), nullable=True)  # cosmetic label for KPI Dashboard
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     category_scopes = db.relationship(
@@ -87,10 +70,15 @@ class User(db.Model):
         return sorted(s.event for s in self.event_scopes)
 
     def covers(self, category, event):
-        """True kalau user ini (biasanya Member) di-scope ke KEDUA
-        category & event tsb -- inilah syarat muncul di combobox assignee
-        Issue Register."""
+        """True if this user's scope includes both category and event --
+        the requirement to appear in the Issue Register assignee combobox."""
         return category in self.categories and event in self.events
+
+    @property
+    def status_label(self):
+        if self.is_active:
+            return "Active"
+        return "Pending" if self.approved_at is None else "Inactive"
 
     def to_dict(self):
         return {
@@ -99,6 +87,7 @@ class User(db.Model):
             "email": self.email,
             "role": self.role,
             "is_active": self.is_active,
+            "status_label": self.status_label,
             "categories": self.categories,
             "events": self.events,
             "created_at": self.created_at.strftime("%d-%m-%Y") if self.created_at else None,
@@ -109,8 +98,8 @@ class User(db.Model):
 
 
 class UserCategoryScope(db.Model):
-    """Satu baris = satu kategori yang boleh ditangani seorang user.
-    Banyak baris per user_id = boleh lebih dari satu kategori."""
+    """One row = one category a user may handle. Multiple rows per user_id
+    means more than one category."""
 
     __tablename__ = "user_category_scopes"
 
@@ -124,7 +113,7 @@ class UserCategoryScope(db.Model):
 
 
 class UserEventScope(db.Model):
-    """Sama seperti UserCategoryScope, tapi untuk Event."""
+    """Same as UserCategoryScope, for Event."""
 
     __tablename__ = "user_event_scopes"
 
@@ -138,17 +127,13 @@ class UserEventScope(db.Model):
 
 
 class KPIRecord(db.Model):
-    """Satu baris = ringkasan kinerja seorang Member pada satu titik waktu
-    (mingguan). Tabel inilah yang menopang filter Recent / Last Week /
-    Last Month / Last Year -- semuanya tinggal query
-    `WHERE period_date >= cutoff`, tidak perlu struktur khusus per rentang.
+    """One row = a Member's performance summary for one week. Backs the
+    Recent / Last Week / Last Month / Last Year filters via a simple
+    `WHERE period_date >= cutoff` query.
 
-    Diisi OTOMATIS oleh Issue Monitor (bukan data dummy lagi):
-    - Issue baru dibuat dengan assignee -> total_assigned & pending +1
-      untuk Member itu di minggu berjalan.
-    - Issue ditandai Closed (assignee sudah/baru ditentukan saat itu) ->
-      completed +1, pending -1, avg_resolution_days dihitung ulang.
-    Lihat library/workspace/kpi_dashboard/recording.py.
+    Filled automatically from Issue Monitor activity (see recording.py):
+    - Issue created with an assignee -> total_assigned & pending +1.
+    - Issue closed -> completed +1, pending -1, avg_resolution_days updated.
     """
 
     __tablename__ = "kpi_records"
@@ -171,9 +156,8 @@ class KPIRecord(db.Model):
 
 
 class BestPractice(db.Model):
-    """Catatan praktik-baik per Member -- ditulis manual (oleh Member
-    sendiri atau Super Admin), BUKAN digenerate otomatis dari Issue.
-    Lihat library/workspace/kpi_dashboard/routes.py -> api_add_best_practice."""
+    """A manually-written tip for a Member (by themselves or Super Admin),
+    not auto-generated from Issue activity."""
 
     __tablename__ = "best_practices"
 
@@ -185,16 +169,12 @@ class BestPractice(db.Model):
 
 
 class Issue(db.Model):
-    """Satu baris = satu issue yang didaftarkan lewat panel Issue Register.
-    `image_filename` cuma nyimpen nama file -- file aslinya disimpan di
-    static/assets/upload/ (lihat library/workspace/issue_monitor/routes.py),
-    supaya DB tidak perlu nyimpen BLOB besar.
+    """One row = one issue registered via Issue Register.
 
-    `owner_name` = nama QA/Admin yang MENDAFTARKAN issue (siapa yang bikin).
-    `assignee_id` = User (role Member) yang DITUGASKAN MENGERJAKAN issue,
-    dipilih lewat combobox di form Register yang otomatis difilter sesuai
-    category & event issue ini (lihat User.covers() di models.py &
-    library/admin/user_management/routes.py:api_assignable_users)."""
+    `owner_name` = the QA/Admin who created the issue.
+    `assignee_id` = the Member assigned to execute it (chosen from a
+    combobox filtered by category/event, see User.covers()).
+    """
 
     __tablename__ = "issues"
 
@@ -235,7 +215,7 @@ class Issue(db.Model):
             "assignee_id": self.assignee_id,
             "assignee_name": self.assignee.username if self.assignee else None,
             "image_url": (
-                url_for("static", filename=f"assets/upload/{self.image_filename}")
+                url_for("static", filename=f"assets/uploads/issues/{self.image_filename}")
                 if self.image_filename
                 else None
             ),
@@ -247,10 +227,9 @@ class Issue(db.Model):
 
 
 class IssueAttachment(db.Model):
-    """Satu baris = satu file lampiran (bisa gambar, Word, Excel, atau
-    PowerPoint) untuk sebuah Issue -- sengaja dipisah dari
-    Issue.image_filename (yang dipertahankan untuk kompatibilitas gambar
-    lama) supaya satu Issue bisa punya BANYAK lampiran sekaligus."""
+    """One file attached to an Issue (image, Word, Excel, or PowerPoint).
+    Kept separate from Issue.image_filename (retained for backward
+    compatibility) so an issue can have multiple attachments."""
 
     __tablename__ = "issue_attachments"
 
@@ -268,5 +247,66 @@ class IssueAttachment(db.Model):
             "id": self.id,
             "name": self.original_name,
             "type": self.file_type,
-            "url": url_for("static", filename=f"assets/upload/{self.filename}"),
+            "url": url_for("static", filename=f"assets/uploads/issues/{self.filename}"),
+        }
+
+
+class TvDesignAsset(db.Model):
+    """One board/product design entry in the TV Design Concept library.
+    Searchable by serial_number, production, and origin."""
+
+    __tablename__ = "tv_design_assets"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    serial_number = db.Column(db.String(120), nullable=False, index=True)
+    production = db.Column(db.String(120), nullable=True, index=True)
+    origin = db.Column(db.String(120), nullable=True, index=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+    attachments = db.relationship(
+        "TvDesignAttachment", backref="asset", cascade="all, delete-orphan",
+        order_by="TvDesignAttachment.id",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "serial_number": self.serial_number,
+            "production": self.production,
+            "origin": self.origin,
+            "notes": self.notes,
+            "created_by": self.created_by.username if self.created_by else None,
+            "created_at": self.created_at.strftime("%d-%m-%Y") if self.created_at else None,
+            "attachments": [a.to_dict() for a in self.attachments],
+        }
+
+    def __repr__(self):
+        return f"<TvDesignAsset {self.serial_number}>"
+
+
+class TvDesignAttachment(db.Model):
+    """One file (image / excel / ppt / pdf) attached to a TvDesignAsset."""
+
+    __tablename__ = "tv_design_attachments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    asset_id = db.Column(db.Integer, db.ForeignKey("tv_design_assets.id"), nullable=False, index=True)
+    filename = db.Column(db.String(255), nullable=False)
+    original_name = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(20), nullable=False, default="other")
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def to_dict(self):
+        from flask import url_for
+
+        return {
+            "id": self.id,
+            "name": self.original_name,
+            "type": self.file_type,
+            "url": url_for("static", filename=f"assets/uploads/tv-design/{self.filename}"),
         }

@@ -351,6 +351,8 @@
   font-size: 12px;
   color: #333;
   text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 .attachment-chip:hover {
   background: #eceff3;

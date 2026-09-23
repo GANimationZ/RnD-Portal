@@ -1,18 +1,14 @@
-"""
-Flask blueprint KPI Dashboard.
+"""KPI Dashboard blueprint.
 
-Alur data (setelah perombakan):
-- Employee / KPIRecord / BestPractice (lihat library/models.py) adalah
-  sumber data utama, sudah portable SQLite <-> PostgreSQL (poin 1).
-- Semua kalkulasi (workload bar, completion rate, leaderboard, agregasi
-  per rentang waktu) ada di metrics.py, bukan lagi di kpi-dashboard.js
-  (poin 4). Endpoint di bawah cuma query DB lalu memanggil metrics.py,
-  hasilnya langsung JSON siap-render.
-- Endpoint /api/* dipakai BERSAMA oleh panel Individual & Team (live) dan
-  sub-panel History (Individual/Team), supaya tampilan & filter
-  Recent/Last Week/Last Month/Last Year konsisten di semua tempat
-  (poin 2 & 3). Fitur export/import/snapshot .xlsx tetap ada terpisah,
-  khusus untuk kebutuhan arsip dokumen bulanan.
+- User (role="Member") + KPIRecord + BestPractice are the data source,
+  portable across SQLite/PostgreSQL.
+- All calculations (workload bar, completion rate, leaderboard, range
+  aggregation) live in metrics.py -- these routes just query the DB and
+  call metrics.py, returning ready-to-render JSON.
+- /api/* is shared by the Individual/Team panels (live) and the History
+  sub-panels, so Recent/Last Week/Last Month/Last Year stay consistent
+  everywhere. Export/import/.xlsx snapshot history is a separate,
+  archival-only feature.
 """
 
 import os
@@ -20,7 +16,7 @@ from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, request, send_file, send_from_directory
 
-from library.auth import login_required, roles_required
+from library.auth import login_required
 from library.extensions import db
 from library.models import BestPractice, User
 
@@ -45,11 +41,9 @@ kpi_dashboard_bp = Blueprint("kpi_dashboard", __name__, url_prefix="/workspace/k
 @kpi_dashboard_bp.before_request
 @login_required
 def _restrict_kpi_dashboard():
-    """Poin 1: QA (role "Admin") TIDAK boleh melihat KPI Dashboard sama
-    sekali -- baik halaman maupun API-nya. Dipasang sebagai before_request
-    (bukan decorator di tiap route satu-satu) supaya tidak ada endpoint
-    yang kelewat, sesuai pelajaran dari bug blueprint-lupa-diproteksi
-    sebelumnya."""
+    """QA (role "Admin") has no access to KPI Dashboard at all -- page or
+    API. Enforced as before_request (not a per-route decorator) so no
+    endpoint can be added later without this protection."""
     from flask import jsonify, session
 
     if session.get("role") == "Admin":
@@ -61,7 +55,7 @@ MONTH_LABELS_ID = [
 ]
 
 VALID_RANGES = set(RANGE_LABELS.keys())
-EXPORT_RANGE = "month"  # snapshot bulanan merepresentasikan data 30 hari terakhir
+EXPORT_RANGE = "month"  # a monthly snapshot represents the last 30 days
 
 
 def _range_param():
@@ -74,9 +68,8 @@ def _all_employees():
 
 
 def get_employees_for_export(range_key=EXPORT_RANGE):
-    """Bentuk dict rata (name/role/totalAssigned/...) yang dipakai
-    kpi_excel.py untuk nulis file .xlsx -- sumbernya sekarang DB asli,
-    bukan dummy list statis lagi."""
+    """Flat dicts (name/role/totalAssigned/...) for kpi_excel.py to write
+    into .xlsx -- sourced from the real DB, not a static dummy list."""
     summaries = employee_list_summary(_all_employees(), range_key)
     return [
         {
@@ -99,8 +92,8 @@ def _history_dir():
 
 
 def _ensure_current_month_snapshot():
-    """Kalau snapshot bulan ini belum ada, generate otomatis (berjaga-jaga
-    kalau user lupa export manual bulan ini)."""
+    """Auto-generate this month's snapshot if it doesn't exist yet, in
+    case nobody exported manually."""
     now = datetime.now()
     filename = f"{now.year}-{now.month:02d}.xlsx"
     filepath = os.path.join(_history_dir(), filename)
@@ -112,12 +105,12 @@ def _ensure_current_month_snapshot():
     return filepath
 
 
-# ==================== API: dipakai panel Individual/Team & History ====================
+# ==================== API: shared by Individual/Team panels & History ====================
 
 @kpi_dashboard_bp.route("/api/employees")
 def api_employees():
-    """Daftar ringkas semua karyawan untuk rentang waktu tertentu.
-    Dipakai tabel di panel Individual (live) & sub-panel History Individual."""
+    """Employee summary list for a given range. Used by the Individual
+    panel table (live) and the History Individual sub-panel."""
     range_key = _range_param()
     employees = _all_employees()
     summaries = employee_list_summary(employees, range_key)
@@ -136,8 +129,8 @@ def api_employees():
 
 @kpi_dashboard_bp.route("/api/employees/<int:employee_id>")
 def api_employee_detail(employee_id):
-    """Detail 1 karyawan (stat card, trend chart, best practices) untuk
-    rentang waktu tertentu."""
+    """Single employee detail (stat card, trend chart, best practices)
+    for a given range."""
     range_key = _range_param()
     employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
     return jsonify(employee_summary(employee, range_key))
@@ -145,9 +138,8 @@ def api_employee_detail(employee_id):
 
 @kpi_dashboard_bp.route("/api/team")
 def api_team():
-    """Ringkasan tim (totals, chart perbandingan, leaderboard) untuk
-    rentang waktu tertentu. Dipakai panel Team (live) & sub-panel
-    History Team."""
+    """Team summary (totals, comparison chart, leaderboard) for a given
+    range. Used by the Team panel (live) and History Team sub-panel."""
     range_key = _range_param()
     employees = _all_employees()
     return jsonify(team_summary(employees, range_key))
@@ -155,10 +147,9 @@ def api_team():
 
 @kpi_dashboard_bp.route("/api/employees/<int:employee_id>/best-practices", methods=["POST"])
 def api_add_best_practice(employee_id):
-    """Best Practice = catatan yang DITULIS MANUAL (bukan digenerate
-    otomatis dari Issue), supaya isinya benar-benar wawasan/tips yang
-    disengaja dibagikan. Member cuma boleh menambah catatan untuk dirinya
-    sendiri; Super Admin boleh menambah untuk siapa saja."""
+    """Best Practice notes are written MANUALLY (never auto-generated
+    from Issues). A Member may only add notes for themselves; Super
+    Admin may add notes for anyone."""
     from flask import session
 
     employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
@@ -179,7 +170,7 @@ def api_add_best_practice(employee_id):
     return jsonify({"message": "Catatan ditambahkan.", "note": note}), 201
 
 
-# ==================== Export / Import / History (arsip .xlsx) ====================
+# ==================== Export / Import / History (.xlsx archive) ====================
 
 @kpi_dashboard_bp.route("/export/individual")
 def export_individual():
@@ -218,10 +209,9 @@ def import_employees():
     except Exception as exc:  # noqa: BLE001
         return jsonify({"message": f"Gagal membaca file: {exc}"}), 400
 
-    # TODO: upsert `rows` ke tabel Employee/KPIRecord berdasarkan nama kalau
-    # nanti import Excel memang dimaksudkan untuk menimpa data DB (bukan
-    # cuma preview). Untuk sekarang cuma dihitung supaya frontend bisa
-    # tampilkan notifikasi, seperti versi sebelumnya.
+    # TODO: upsert `rows` into User/KPIRecord by name if Excel import is
+    # meant to overwrite DB data (not just preview). For now this only
+    # counts rows so the frontend can show a notification, as before.
     updated = len(rows)
     created = 0
 
@@ -260,10 +250,10 @@ def download_history(filename):
 
 @kpi_dashboard_bp.route("/history/data/<path:filename>")
 def history_data(filename):
-    """Baca isi satu snapshot bulanan (.xlsx arsip) dan kembalikan sebagai
-    JSON. Dipertahankan untuk kebutuhan audit/preview arsip lama; tampilan
-    utama History Individual/Team sekarang memakai /api/* (data DB
-    langsung) supaya konsisten dengan panel live."""
+    """Read one archived monthly .xlsx snapshot back as JSON. Kept for
+    audit/preview of old archives; the live History Individual/Team view
+    now uses /api/* (direct DB data) to stay consistent with the live
+    panels."""
     filepath = os.path.join(_history_dir(), filename)
     if not os.path.exists(filepath):
         return jsonify({"message": "Snapshot tidak ditemukan."}), 404

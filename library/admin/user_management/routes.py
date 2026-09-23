@@ -1,16 +1,13 @@
-"""
-Flask blueprint User Management.
+"""User Management blueprint.
 
-- Halaman `/admin/users` (list user + form tambah/edit) -- khusus role
-  "Super Admin" (lihat library/auth.py:roles_required).
-- API CRUD user, termasuk assign role & scope (category/event) per user.
-  Scope disimpan ternormalisasi lewat UserCategoryScope/UserEventScope
-  (satu user boleh punya banyak category & banyak event).
-- API `/api/assignable` dipakai form "Issue Register" (issue_monitor) buat
-  ngisi combobox "Ditugaskan ke" -- balikin Member yang scope-nya
-  mencakup category & event issue yang lagi dibuat. Endpoint ini boleh
-  diakses Admin (QA) juga, bukan cuma Super Admin, karena Admin-lah yang
-  bikin issue & butuh milih assignee-nya.
+- `/admin/users` page (user list + create/edit form) -- Super Admin only.
+- CRUD API for users, including role and scope (category/event) per user.
+  Scope is normalized via UserCategoryScope/UserEventScope (a user can
+  have several categories and events).
+- `/api/assignable` is used by the Issue Register form to fill the
+  "Assignee" combobox -- returns Members whose scope covers the given
+  category and event. Also reachable by Admin (QA), since QA is who
+  creates issues and picks the assignee.
 """
 
 from flask import Blueprint, jsonify, render_template, request, session
@@ -32,12 +29,12 @@ user_management_bp = Blueprint(
 
 
 def _apply_scope(user, categories, events):
-    """Ganti total scope category & event milik `user` sesuai list baru
-    (dipakai bareng buat create & update supaya konsisten)."""
+    """Replace a user's full category/event scope with the given lists
+    (shared by create and update for consistency)."""
     UserCategoryScope.query.filter_by(user_id=user.id).delete()
     UserEventScope.query.filter_by(user_id=user.id).delete()
 
-    for category in dict.fromkeys(categories):  # dedupe, jaga urutan
+    for category in dict.fromkeys(categories):  # dedupe, keep order
         if category in CATEGORY_CHOICES:
             db.session.add(UserCategoryScope(user_id=user.id, category=category))
 
@@ -46,7 +43,7 @@ def _apply_scope(user, categories, events):
             db.session.add(UserEventScope(user_id=user.id, event=event))
 
 
-# ==================== Halaman ====================
+# ==================== Page ====================
 
 @user_management_bp.route("", methods=["GET"])
 @login_required
@@ -98,8 +95,13 @@ def api_create_user():
 
     user = User(username=username, email=email, role=role)
     user.set_password(password)
+    # Created directly by Super Admin -> treated as already verified
+    # (approved_at set), so if later deactivated the status_label becomes
+    # "Inactive" rather than "Pending" again.
+    from datetime import datetime
+    user.approved_at = datetime.utcnow()
     db.session.add(user)
-    db.session.flush()  # supaya user.id kebentuk buat _apply_scope
+    db.session.flush()  # populate user.id for _apply_scope
 
     _apply_scope(user, categories, events)
     db.session.commit()
@@ -123,8 +125,7 @@ def api_update_user(user_id):
         role = data.get("role")
         if role not in ROLE_CHOICES:
             return jsonify({"message": "Role tidak valid."}), 400
-        # Jangan sampai Super Admin terakhir kehapus role-nya sendiri
-        # sampai tidak ada Super Admin tersisa sama sekali.
+        # Never let the last Super Admin demote themselves away.
         if user.role == "Super Admin" and role != "Super Admin":
             remaining = User.query.filter(User.role == "Super Admin", User.id != user.id).count()
             if remaining == 0:
@@ -132,7 +133,11 @@ def api_update_user(user_id):
         user.role = role
 
     if "is_active" in data:
-        user.is_active = bool(data.get("is_active"))
+        new_active = bool(data.get("is_active"))
+        user.is_active = new_active
+        if new_active and user.approved_at is None:
+            from datetime import datetime
+            user.approved_at = datetime.utcnow()
 
     if "password" in data and data.get("password"):
         if len(data["password"]) < 8:
@@ -169,15 +174,15 @@ def api_delete_user(user_id):
     return jsonify({"message": f"User {user.username} berhasil dihapus."})
 
 
-# ==================== API: Assignee combobox (Issue Register) ====================
+# ==================== API: assignee combobox (Issue Register) ====================
 
 @user_management_bp.route("/api/assignable", methods=["GET"])
 @login_required
 @roles_required("Super Admin", "Admin")
 def api_assignable_users():
-    """Dipanggil issue-monitor.js tiap category & event di form Register
-    sudah sama-sama terisi. Balikin Member (role="Member", aktif) yang
-    scope-nya mencakup KEDUA nilai tsb."""
+    """Called by issue-monitor.js once both category and event are
+    selected in the Register form. Returns active Members whose scope
+    covers both values."""
     category = (request.args.get("category") or "").strip()
     event = (request.args.get("event") or "").strip()
 

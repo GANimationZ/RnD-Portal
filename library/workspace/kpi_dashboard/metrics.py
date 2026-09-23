@@ -1,24 +1,18 @@
-"""
-Semua perhitungan yang dulu dilakukan di static/javascript/workspace/
-kpi-dashboard.js (interpolasi warna beban kerja, completion rate, ranking
-leaderboard, agregasi rentang waktu, dsb) sekarang pindah ke sini.
-
-kpi-dashboard.js versi baru cuma fetch endpoint /api/* di routes.py dan
-merender field yang SUDAH JADI (angka, warna hex, persentase, label) ke
-DOM/Chart.js -- tidak ada lagi logic matematis di sisi client selain hal
-yang memang wajib di browser (Chart.js butuh dipanggil dari JS).
-"""
+"""All KPI calculations (workload color, completion rate, leaderboard
+ranking, range aggregation) live here. kpi-dashboard.js just fetches
+/api/* and renders the ready-made fields -- no math on the client side
+beyond what Chart.js itself requires."""
 
 from datetime import date, timedelta
 
-# ---- Rentang waktu: Recent / Last Week / Last Month / Last Year ----
-# Semua rentang dihitung relatif ke hari ini terhadap KPIRecord.period_date,
-# jadi menambah rentang baru nanti cukup nambah 1 baris di sini.
+# ---- Ranges: Recent / Last Week / Last Month / Last Year ----
+# All ranges are relative to today via KPIRecord.period_date, so adding a
+# new range later is a single line here.
 RANGE_WINDOW_DAYS = {
-    "recent": 14,   # ringkasan cepat ~2 minggu terakhir (default panel)
-    "week": 7,      # 7 hari terakhir
-    "month": 30,    # 30 hari terakhir
-    "year": 365,    # 365 hari terakhir
+    "recent": 14,   # default panel view, last ~2 weeks
+    "week": 7,
+    "month": 30,
+    "year": 365,
 }
 
 RANGE_LABELS = {
@@ -30,8 +24,7 @@ RANGE_LABELS = {
 
 DEFAULT_RANGE = "recent"
 
-# Sama seperti WORKLOAD_STOPS versi JS lama: hijau (cepat/ringan) -> kuning
-# (sedang) -> merah (lama/berat).
+# Green (light/fast) -> yellow (medium) -> red (heavy/slow).
 WORKLOAD_STOPS = [
     (30, 126, 51),    # #1e7e33
     (242, 166, 35),   # #f2a623
@@ -55,10 +48,10 @@ def _interpolate_workload_color(ratio):
 
 
 def workload_bar(avg_hours):
-    """hours ~20 dianggap ringan/cepat, ~60+ dianggap berat/lama."""
+    """~20h counts as light/fast, ~60h+ counts as heavy/slow."""
     lo, hi = 20, 60
     ratio = (min(max(avg_hours, lo), hi) - lo) / (hi - lo)
-    width_pct = round(15 + ratio * 85)  # floor 15% biar bar selalu kelihatan
+    width_pct = round(15 + ratio * 85)  # 15% floor so the bar stays visible
     return {"widthPct": width_pct, "color": _interpolate_workload_color(ratio)}
 
 
@@ -87,8 +80,8 @@ def cutoff_date(range_key):
 def records_in_range(employee, range_key):
     cutoff = cutoff_date(range_key)
     in_range = [r for r in employee.kpi_records if r.period_date >= cutoff]
-    # Kalau rentangnya kosong (mis. karyawan baru), tetap tampilkan minimal
-    # 1 titik data terakhir supaya panel tidak kosong total.
+    # If nothing falls in range (e.g. a brand new member), still show the
+    # latest single record so the panel isn't completely empty.
     if in_range:
         return in_range
     return employee.kpi_records[-1:]
@@ -123,8 +116,8 @@ def build_trend_series(records):
 
 
 def employee_list_summary(employees, range_key=DEFAULT_RANGE):
-    """Ringkasan per-karyawan untuk tabel/list (tanpa trend & catatan,
-    biar payload kecil) -- dipakai di panel Individual (daftar) & Team."""
+    """Per-employee summary for tables/lists (no trend/notes, to keep
+    the payload small) -- used by the Individual list and Team panel."""
     result = []
     for emp in employees:
         records = records_in_range(emp, range_key)
@@ -151,8 +144,7 @@ def employee_list_summary(employees, range_key=DEFAULT_RANGE):
 
 
 def employee_insights(per_employee):
-    """Setara renderEmployeeInsights() versi JS lama: siapa paling ringan &
-    siapa paling perlu perhatian."""
+    """Who has the lightest workload, and who needs the most attention."""
     if not per_employee:
         return None
 
@@ -173,9 +165,9 @@ def employee_insights(per_employee):
 
 
 def employee_summary(employee, range_key=DEFAULT_RANGE):
-    """Detail lengkap 1 karyawan: stat cards, trend chart, best practices.
-    Dipakai baik oleh panel Individual (live) maupun sub-panel History
-    Individual, supaya tampilannya konsisten (poin 2 & 3 permintaan)."""
+    """Full detail for one employee: stat cards, trend chart, best
+    practices. Used by both the live Individual panel and the History
+    Individual sub-panel so they stay consistent."""
     records = records_in_range(employee, range_key)
     totals = aggregate_records(records)
     avg_hours = round(totals["avgResolutionDays"] * 24, 1)
@@ -201,9 +193,7 @@ def employee_summary(employee, range_key=DEFAULT_RANGE):
 
 
 def team_summary(employees, range_key=DEFAULT_RANGE):
-    """Setara renderTeamPanel() versi JS lama: totals tim, chart perbandingan
-    per orang, dan leaderboard completion rate -- semua sudah dihitung di
-    Python."""
+    """Team totals, per-person comparison chart, and completion-rate leaderboard."""
     per_employee = employee_list_summary(employees, range_key)
 
     totals = {
