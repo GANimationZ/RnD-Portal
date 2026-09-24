@@ -1,14 +1,17 @@
-{% extends "partials/top-sidebar.html" %}
-{% block title %}<title>Akses Ditolak - RnD Portal</title>{% endblock %}
-{% block styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/style.css') }}" />
-{% endblock %}
+{% extends "errors/base_error.html" %}
+{% block error_title %}Akses Ditolak{% endblock %}
+{% block error_icon %}bx-lock{% endblock %}
+{% block error_code %}403{% endblock %}
+{% block error_heading %}Akses Ditolak{% endblock %}
 
-{% block content %}
-  <div class="forbidden-page">
-    <i class="bxf bx-lock-alt"></i>
-    <h2>403 - Akses Ditolak</h2>
-    <p>Role kamu saat ini tidak punya izin untuk membuka halaman ini.</p>
-    <a href="/" class="btn-back">Kembali ke Beranda</a>
-  </div>
+{% block error_body %}
+  <p class="error-card__text">
+    {{ detail or "Kamu tidak punya izin untuk membuka halaman ini." }}
+  </p>
+  {% if logged_in and current_role %}
+    <span class="error-card__meta">Role kamu saat ini: <strong>{{ current_role }}</strong></span>
+  {% endif %}
+  <p class="error-card__hint">
+    Merasa seharusnya punya akses? Hubungi Super Admin.
+  </p>
 {% endblock %}

@@ -11,6 +11,7 @@ import secrets
 from flask import Flask
 from flask_scss import Scss
 
+from library.errors import register_error_handlers
 from library.extensions import db
 
 
@@ -22,6 +23,7 @@ def create_app():
     db.init_app(app)
     _register_blueprints(app)
     _register_context_processors(app)
+    register_error_handlers(app)
 
     return app
 

@@ -66,13 +66,71 @@ document
     }
   });
 
-document.getElementById("login").addEventListener("submit", async function (e) {
+// ---- Login ---- //
+const loginForm = document.getElementById("login");
+const loginUsernameInput = document.getElementById("loginUsername");
+const loginPasswordInput = document.getElementById("loginPassword");
+const loginMessageEl = document.getElementById("loginmessage");
+const loginFields = {
+  username: loginUsernameInput,
+  password: loginPasswordInput,
+};
+
+// Tampilkan pesan di bawah form. #loginmessage default-nya display:none di
+// CSS, jadi HARUS di-set "block" di sini -- kalau tidak pesan tidak akan
+// pernah terlihat.
+function showLoginMessage(text, type = "error") {
+  loginMessageEl.innerText = text;
+  loginMessageEl.style.color = type === "success" ? "green" : "red";
+  loginMessageEl.style.display = "block";
+}
+
+function clearLoginFeedback() {
+  loginMessageEl.innerText = "";
+  loginMessageEl.style.display = "none";
+  Object.values(loginFields).forEach((input) => {
+    input.classList.remove("is-invalid");
+    input.removeAttribute("aria-invalid");
+  });
+}
+
+// Tandai kolom yang bermasalah (border merah) dan fokuskan supaya user
+// langsung bisa memperbaikinya.
+function markLoginFieldInvalid(field) {
+  const input = loginFields[field];
+  if (!input) return;
+  input.classList.add("is-invalid");
+  input.setAttribute("aria-invalid", "true");
+  input.focus();
+  if (field === "password") input.select();
+}
+
+// Begitu user mulai mengetik ulang, hilangkan status error kolom itu.
+Object.values(loginFields).forEach((input) => {
+  input.addEventListener("input", clearLoginFeedback);
+});
+
+loginForm.addEventListener("submit", async function (e) {
   e.preventDefault();
 
-  const username = document.getElementById("loginUsername").value;
-  const password = document.getElementById("loginPassword").value;
-  const messageEl = document.getElementById("loginmessage");
+  const username = loginUsernameInput.value.trim();
+  const password = loginPasswordInput.value;
   const submitBtn = this.querySelector(".btn");
+
+  clearLoginFeedback();
+
+  // Validasi cepat di sisi client (atribut `required` tidak menangkap input
+  // yang hanya berisi spasi). Backend tetap memvalidasi ulang.
+  if (!username) {
+    showLoginMessage("Username wajib diisi.");
+    markLoginFieldInvalid("username");
+    return;
+  }
+  if (!password) {
+    showLoginMessage("Password wajib diisi.");
+    markLoginFieldInvalid("password");
+    return;
+  }
 
   submitBtn.disabled = true;
   submitBtn.value = "Processing...";
@@ -84,23 +142,37 @@ document.getElementById("login").addEventListener("submit", async function (e) {
       body: JSON.stringify({ username, password }),
     });
 
-    const result = await response.json();
+    // Server error kadang membalas HTML (bukan JSON) -- jangan sampai
+    // parse gagal dilaporkan sebagai "masalah koneksi".
+    let result = {};
+    try {
+      result = await response.json();
+    } catch (parseError) {
+      result = {};
+    }
 
     if (response.ok) {
-      messageEl.style.color = "green";
-      messageEl.innerText = result.message;
-      window.location.href = "/workspace/kpi-dashboard";
-    } else {
-      messageEl.style.color = "red";
-      messageEl.innerText = result.error;
-      submitBtn.disabled = false;
-      submitBtn.value = "Login";
+      showLoginMessage(result.message || "Login berhasil.", "success");
+      // Tombol sengaja dibiarkan disabled selama proses pindah halaman.
+      // Tujuan ditentukan backend berdasarkan role (Admin/QA tidak boleh
+      // masuk KPI Dashboard).
+      window.location.href = result.redirect || "/";
+      return;
     }
+
+    const fallback =
+      response.status >= 500
+        ? "Terjadi kesalahan pada server. Silakan coba lagi beberapa saat lagi."
+        : "Login gagal. Silakan coba lagi.";
+    showLoginMessage(result.error || result.message || fallback);
+    markLoginFieldInvalid(result.field);
   } catch (err) {
     console.error("Fetch error:", err);
-    messageEl.innerText = "Terjadi kesalahan koneksi.";
-    messageEl.style.color = "red";
-    submitBtn.disabled = false;
-    submitBtn.value = "Login";
+    showLoginMessage(
+      "Tidak dapat terhubung ke server. Periksa koneksi Anda lalu coba lagi.",
+    );
   }
+
+  submitBtn.disabled = false;
+  submitBtn.value = "Login";
 });

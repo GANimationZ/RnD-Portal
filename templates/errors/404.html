@@ -1,0 +1,12 @@
+{% extends "errors/base_error.html" %}
+{% block error_title %}Halaman Tidak Ditemukan{% endblock %}
+{% block error_icon %}bx-search-big-x{% endblock %}
+{% block error_code %}404{% endblock %}
+{% block error_heading %}Halaman Tidak Ditemukan{% endblock %}
+
+{% block error_body %}
+  <p class="error-card__text">
+    {{ detail or "Alamat yang kamu buka tidak ada, atau halamannya sudah dipindahkan atau dihapus." }}
+  </p>
+  <span class="error-card__meta"><code>{{ request.path }}</code></span>
+{% endblock %}

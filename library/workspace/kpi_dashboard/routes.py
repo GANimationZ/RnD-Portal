@@ -43,11 +43,15 @@ kpi_dashboard_bp = Blueprint("kpi_dashboard", __name__, url_prefix="/workspace/k
 def _restrict_kpi_dashboard():
     """QA (role "Admin") has no access to KPI Dashboard at all -- page or
     API. Enforced as before_request (not a per-route decorator) so no
-    endpoint can be added later without this protection."""
-    from flask import jsonify, session
+    endpoint can be added later without this protection.
+
+    Uses abort(403) so the shared error handler (library/errors.py) picks
+    the format: JSON for API/fetch calls, the 403 page for plain browser
+    navigation (e.g. export/history downloads opened directly)."""
+    from flask import abort, session
 
     if session.get("role") == "Admin":
-        return jsonify({"message": "QA (Admin) tidak memiliki akses ke KPI Dashboard."}), 403
+        abort(403, description="QA (Admin) tidak memiliki akses ke KPI Dashboard.")
 
 MONTH_LABELS_ID = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",

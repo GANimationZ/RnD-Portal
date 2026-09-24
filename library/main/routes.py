@@ -7,9 +7,10 @@ No url_prefix, so URL paths stay the same as before ("/", "/login",
 prefix (see url_for usage in library/auth.py and this file).
 """
 
-from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request, session
+from sqlalchemy.exc import SQLAlchemyError
 
-from library.auth import login_required, roles_required
+from library.auth import home_url, login_required, roles_required
 from library.extensions import db
 from library.models import User
 
@@ -21,7 +22,7 @@ main_bp = Blueprint("main", __name__)
 @main_bp.route("/", methods=["GET"])
 def onboard():
     if "user_id" in session:
-        return redirect(url_for("main.kpi_dashboard"))
+        return redirect(home_url())
     return render_template("auth/auth.html")
 
 
@@ -57,34 +58,65 @@ def register():
     return render_template("auth/auth.html")
 
 
+def _login_error(message, status, field=None):
+    """Balasan error login yang seragam. `field` ("username"/"password")
+    memberi tahu frontend kolom mana yang perlu di-highlight & difokuskan."""
+    payload = {"error": message}
+    if field:
+        payload["field"] = field
+    return jsonify(payload), status
+
+
 @main_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Invalid request."}), 400
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _login_error("Permintaan login tidak valid. Muat ulang halaman lalu coba lagi.", 400)
 
     username = data.get("username")
     password = data.get("password")
+    if not isinstance(username, str) or not isinstance(password, str):
+        return _login_error("Permintaan login tidak valid. Muat ulang halaman lalu coba lagi.", 400)
 
-    if not username or not password:
-        return jsonify({"error": "Please fill the empty box."}), 400
+    username = username.strip()
+    if not username:
+        return _login_error("Username wajib diisi.", 400, "username")
+    if not password:
+        return _login_error("Password wajib diisi.", 400, "password")
 
-    user = User.query.filter_by(username=username).first()
-    if not user or not user.check_password(password):
-        return jsonify({"error": "Invalid username or password."}), 401
+    try:
+        user = User.query.filter_by(username=username).first()
+    except SQLAlchemyError:
+        current_app.logger.exception("Login gagal: error database")
+        return _login_error("Terjadi kesalahan pada server. Silakan coba lagi beberapa saat lagi.", 500)
+
+    # Pesan dibedakan (username tidak ada vs password salah) supaya user tahu
+    # persis apa yang harus dikoreksi. Status akun (menunggu persetujuan /
+    # nonaktif) baru diberitahukan SETELAH password benar, jadi orang yang
+    # tidak punya password tidak bisa mengintip status akun.
+    if user is None:
+        return _login_error("Username tidak ditemukan.", 401, "username")
+    if not user.check_password(password):
+        return _login_error("Password salah. Silakan coba lagi.", 401, "password")
     if not user.is_active:
         message = (
             "Akun Anda menunggu persetujuan Super Admin sebelum bisa login."
             if user.approved_at is None
             else "Akun ini sudah dinonaktifkan. Hubungi Super Admin."
         )
-        return jsonify({"error": message}), 403
+        return _login_error(message, 403)
 
+    session.clear()
     session["user_id"] = user.id
     session["username"] = user.username
     session["role"] = user.role
 
-    return jsonify({"message": f"Welcome back, {username}!"}), 200
+    return jsonify({
+        "message": f"Login berhasil. Selamat datang, {user.username}!",
+        # Tujuan setelah login ditentukan backend (per role) supaya frontend
+        # tidak perlu tahu aturan akses -- lihat library/auth.py:home_url().
+        "redirect": home_url(user.role),
+    }), 200
 
 
 @main_bp.route("/logout", methods=["POST"])
@@ -97,7 +129,7 @@ def logout():
 
 @main_bp.route("/workspace/kpi-dashboard", methods=["GET"])
 @login_required
-@roles_required("Super Admin", "Member")  # QA (Admin) has no access to KPI Dashboard
+@roles_required("Super Admin", "Member")  # QA (Admin) has no access -> 403 page
 def kpi_dashboard():
     return render_template(
         "workspace/kpi_dashboard.html",

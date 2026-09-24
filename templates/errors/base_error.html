@@ -1,0 +1,59 @@
+{# ---- Layout dasar halaman error (dipakai 403.html & 404.html) ----
+   Sengaja berdiri sendiri (tanpa sidebar): bisa tampil untuk user yang
+   belum login, dan tidak bergantung pada session/JS sidebar. #}
+{% extends "base.html" %}
+{% block title %}<title>{% block error_title %}{% endblock %} - RnD Portal</title>{% endblock %}
+{% block styles %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/errors/style.css') }}"
+  />
+{% endblock %}
+
+{% block body %}
+  <main class="error-page">
+    <section class="error-card" aria-labelledby="errorTitle">
+      <a class="error-card__brand" href="{{ home_url }}">
+        <img
+          src="{{ url_for('static', filename='assets/img/logo.png') }}"
+          alt=""
+        />
+        <span>RnD Portal</span>
+      </a>
+
+      <div class="error-card__icon" aria-hidden="true">
+        <i class="bxf {% block error_icon %}{% endblock %}"></i>
+      </div>
+      <p class="error-card__code">{% block error_code %}{% endblock %}</p>
+      <h1 class="error-card__title" id="errorTitle">
+        {% block error_heading %}{% endblock %}
+      </h1>
+
+      {% block error_body %}{% endblock %}
+
+      <div class="error-card__actions">
+        <a class="error-btn error-btn--primary" href="{{ home_url }}">
+          <i class="bxf bx-home"></i>
+          {{ "Ke Halaman Utama" if logged_in else "Ke Halaman Login" }}
+        </a>
+        <button type="button" class="error-btn error-btn--ghost" id="errorBackBtn">
+          <i class="bxf bx-arrow-left"></i>
+          Kembali
+        </button>
+      </div>
+    </section>
+  </main>
+{% endblock %}
+
+{# Menimpa script bawaan base.html (sidebar/panel-switcher tidak ada di sini) #}
+{% block script %}
+  <script>
+    document.getElementById("errorBackBtn").addEventListener("click", () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = {{ home_url | tojson }};
+      }
+    });
+  </script>
+{% endblock %}

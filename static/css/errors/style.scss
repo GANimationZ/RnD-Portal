@@ -1,0 +1,178 @@
+@use '../base' as *;
+
+// Halaman error (403 / 404) -- berdiri sendiri, tanpa sidebar, supaya tetap
+// tampil benar untuk user yang belum login maupun yang sudah login.
+
+// base.css tidak me-reset margin bawaan browser (8px) -- tanpa ini halaman
+// punya tepi putih dan bisa di-scroll karena min-height: 100vh + margin.
+body {
+  margin: 0;
+}
+
+.error-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 15% 10%, rgba($primary-color, 0.09), transparent 45%),
+    radial-gradient(circle at 90% 90%, rgba($primary-color, 0.06), transparent 40%),
+    $tertiary-color;
+}
+
+.error-card {
+  width: 100%;
+  max-width: 460px;
+  box-sizing: border-box;
+  padding: 36px 32px 32px;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 14px;
+  border-top: 4px solid $primary-color;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  animation: errorCardIn 0.35s ease-out;
+
+  &__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: $fiftiary-color;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+
+    img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 8px;
+    border-radius: 50%;
+    background: rgba($primary-color, 0.1);
+    color: $primary-color;
+    font-size: 30px;
+  }
+
+  &__code {
+    margin: 0;
+    color: $primary-color;
+    font-size: 5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: 2px;
+  }
+
+  &__title {
+    margin: 4px 0 10px;
+    color: $fiftiary-color;
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+
+  &__text {
+    margin: 0;
+    color: $secondary-color;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  &__meta {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: 14px;
+    padding: 6px 12px;
+    box-sizing: border-box;
+    border-radius: 6px;
+    background: $tertiary-color;
+    color: $secondary-hover-color;
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+  }
+
+  &__hint {
+    margin: 12px 0 0;
+    color: $secondary-color;
+    font-size: 0.78rem;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 26px;
+  }
+}
+
+.error-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out;
+
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+
+  &--primary {
+    background: $primary-color;
+    color: #ffffff;
+
+    &:hover {
+      background: $primary-hover-color;
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    border-color: $fourtiary-color;
+    color: $secondary-hover-color;
+
+    &:hover {
+      background: $tertiary-color;
+    }
+  }
+}
+
+@keyframes errorCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .error-card {
+    animation: none;
+  }
+}
