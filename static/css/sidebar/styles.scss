@@ -338,6 +338,13 @@ body {
   color: $tertiary-color;
   font-weight: 600;
   font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: darken($fourtiary-color, 6%);
+  }
 }
 
 .profile__info {

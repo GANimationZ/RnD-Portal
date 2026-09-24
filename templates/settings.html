@@ -1,0 +1,77 @@
+{% extends "partials/top-sidebar.html" %}
+{% block title %}<title>Settings - RnD Portal</title>{% endblock %}
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/settings/style.css') }}" />
+{% endblock %}
+
+{% block content %}
+  <div class="settings-page">
+    <div class="settings-page__header">
+      <span class="settings-page__title"><i class="bxf bx-cog"></i> Settings</span>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-card__identity">
+        <span class="settings-card__avatar">{{ (user.username or "?")[:2] | upper }}</span>
+        <div>
+          <div class="settings-card__username">{{ user.username }}</div>
+          <span class="settings-card__role-badge">{{ user.role }}</span>
+        </div>
+      </div>
+
+      {% if user.role == "Member" %}
+        <div class="settings-card__scope">
+          <span class="settings-card__scope-label">Category</span>
+          {% for c in user.categories %}<span class="chip">{{ c }}</span>{% else %}<span class="chip chip--muted">-</span>{% endfor %}
+          <span class="settings-card__scope-label">Event</span>
+          {% for e in user.events %}<span class="chip">{{ e }}</span>{% else %}<span class="chip chip--muted">-</span>{% endfor %}
+          <p class="settings-card__scope-note">
+            Role, category, dan event cuma bisa diubah Super Admin lewat User Management.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+
+    <form class="settings-card" id="profileForm">
+      <span class="settings-card__title">Informasi Profil</span>
+
+      <label class="settings-field">
+        <span>Email</span>
+        <input type="email" name="email" value="{{ user.email or '' }}" required />
+      </label>
+
+      <label class="settings-field">
+        <span>Job Title <small>(label kosmetik, tampil di KPI Dashboard)</small></span>
+        <input type="text" name="job_title" value="{{ user.job_title or '' }}" placeholder="mis. PCBA Engineer" />
+      </label>
+
+      <button type="submit" class="btn-primary">Simpan Perubahan</button>
+    </form>
+
+    <form class="settings-card" id="passwordForm">
+      <span class="settings-card__title">Ubah Password</span>
+
+      <label class="settings-field">
+        <span>Password Saat Ini</span>
+        <input type="password" name="current_password" required autocomplete="current-password" />
+      </label>
+
+      <label class="settings-field">
+        <span>Password Baru <small>(minimal 8 karakter)</small></span>
+        <input type="password" name="new_password" required minlength="8" autocomplete="new-password" />
+      </label>
+
+      <label class="settings-field">
+        <span>Konfirmasi Password Baru</span>
+        <input type="password" name="confirm_password" required minlength="8" autocomplete="new-password" />
+      </label>
+
+      <button type="submit" class="btn-primary">Ubah Password</button>
+    </form>
+  </div>
+{% endblock %}
+
+{% block script %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='javascript/settings/script.js') }}"></script>
+{% endblock %}

@@ -44,12 +44,14 @@ def _register_blueprints(app):
     from library.workspace.issue_monitor.routes import issue_monitor_bp
     from library.workspace.tv_design.routes import tv_design_bp
     from library.admin.user_management.routes import user_management_bp
+    from library.settings.routes import settings_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(kpi_dashboard_bp)
     app.register_blueprint(issue_monitor_bp)
     app.register_blueprint(tv_design_bp)
     app.register_blueprint(user_management_bp)
+    app.register_blueprint(settings_bp)
 
 
 def _register_context_processors(app):

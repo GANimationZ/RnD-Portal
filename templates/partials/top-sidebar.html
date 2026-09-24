@@ -42,7 +42,7 @@
       <nav class="nav" id="nav"></nav>
       <div class="sidebar__footer" id="footer"></div>
       <div class="profile">
-        <div class="profile__avatar">RA</div>
+        <a class="profile__avatar" href="/settings" title="Pengaturan Akun">{{ (username or "?")[:2] | upper }}</a>
         <div class="profile__info">
           <div class="profile__name">{{ username }}</div>
         </div>

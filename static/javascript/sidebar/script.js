@@ -88,7 +88,9 @@ if (window.CURRENT_ROLE === "Super Admin") {
   });
 }
 
-const FOOTER_ITEMS = [{ id: "settings", label: "Settings", icon: "cog" }];
+const FOOTER_ITEMS = [
+  { id: "settings", label: "Settings", icon: "cog", href: "/settings" },
+];
 
 // ---- State ----
 let openMenu = null;
@@ -162,29 +164,26 @@ function renderNav() {
   });
 }
 
-// Render footer menu (unused)
+// Render footer menu
 function renderFooter() {
   const footer = document.getElementById("footer");
   footer.innerHTML = "";
 
   FOOTER_ITEMS.forEach((item) => {
     const isActive = active === item.id;
-    const btn = document.createElement("button");
+    const btn = document.createElement("a");
+    btn.href = item.href || "#";
     btn.className = "footer-item" + (isActive ? " is-active" : "");
     btn.title = collapsed ? item.label : "";
     btn.innerHTML = `
       <span class="footer-item__icon">${iconTag(item.icon)}</span>
       <span class="footer-item__label">${item.label}</span>
     `;
-    btn.addEventListener("click", () => {
-      active = item.id;
-      renderAll();
-    });
     footer.appendChild(btn);
   });
 }
 
-// findActiveChildren (unused)
+// findActiveChildren
 function findActiveItem() {
   for (const group of NAV_GROUPS) {
     for (const item of group.items) {
@@ -195,6 +194,10 @@ function findActiveItem() {
       }
     }
   }
+
+  const footerItem = FOOTER_ITEMS.find((item) => item.id === active);
+  if (footerItem) return { item: footerItem, group: { label: "Account" } };
+
   return null;
 }
 
