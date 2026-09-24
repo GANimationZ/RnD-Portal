@@ -1,9 +1,9 @@
-"""
-Modul pembuat & pembaca file Excel KPI Dashboard pakai openpyxl (gantikan SheetJS).
-Styling dibuat meniru file referensi yang diupload user (kpi-individual-2026-09-14.xlsx):
-- Baris judul "KPI DASHBOARD" merge penuh, background kuning, bold.
-- Header tabel: background abu-biru, bold, center, border tipis semua sisi.
-- Baris data: background biru muda, border tipis semua sisi.
+"""Builds and reads KPI Dashboard Excel files with openpyxl.
+
+Styling mirrors the original reference file:
+- "KPI DASHBOARD" title row: full merge, yellow background, bold.
+- Table header: gray-blue background, bold, centered, thin border all sides.
+- Data rows: light blue background, thin border all sides.
 """
 
 from io import BytesIO
@@ -16,9 +16,9 @@ from openpyxl.utils import get_column_letter
 FONT_NAME = "Calibri"
 FONT_SIZE = 12
 
-TITLE_FILL = PatternFill("solid", fgColor="FFFF00")           # kuning
-HEADER_FILL = PatternFill("solid", fgColor="B4BBC3")          # abu-biru (approx tema file referensi)
-DATA_FILL = PatternFill("solid", fgColor="DAE3F3")            # biru muda (approx tema file referensi)
+TITLE_FILL = PatternFill("solid", fgColor="FFFF00")           # yellow
+HEADER_FILL = PatternFill("solid", fgColor="B4BBC3")          # gray-blue, matches reference file
+DATA_FILL = PatternFill("solid", fgColor="DAE3F3")            # light blue, matches reference file
 
 THIN = Side(style="thin", color="000000")
 BORDER_ALL = Border(top=THIN, bottom=THIN, left=THIN, right=THIN)
@@ -31,7 +31,7 @@ COLUMNS = [
     "No", "Name", "Role", "Total Assigned", "Completed",
     "Pending", "Overdue", "Completion", "Avg Resolution", "Avg Resolution",
 ]
-SUB_HEADERS = {9: "(Days)", 10: "(Hours)"}  # kolom I & J (index 1-based)
+SUB_HEADERS = {9: "(Days)", 10: "(Hours)"}  # columns I & J (1-indexed)
 
 # Lebar kolom persis seperti file referensi (kolom yang tidak disebut dibiarkan default Excel).
 COLUMN_WIDTHS = {
@@ -54,8 +54,8 @@ def _style_title_row(ws, last_col):
 
 def _style_header_rows(ws, last_col):
     # Baris 3 & 4: kolom A-H merge vertikal (satu header, 2 baris tinggi),
-    # kolom I & J TIDAK di-merge (persis seperti file referensi: "Avg Resolution"
-    # ditulis ulang di I3 & J3, lalu "(Days)"/"(Hours)" di baris 4).
+    # Columns I & J are NOT merged (matches the reference file: "Avg
+    # Resolution" is repeated in I3 & J3, then "(Days)"/"(Hours)" in row 4).
     for col in range(1, last_col + 1):
         header_cell = ws.cell(row=3, column=col)
         header_cell.value = COLUMNS[col - 1]
@@ -83,7 +83,7 @@ def _write_data_rows(ws, rows, start_row=5):
             cell.font = Font(name=FONT_NAME, size=FONT_SIZE)
             cell.fill = DATA_FILL
             cell.border = BORDER_ALL
-            if col == 1:  # kolom "No" rata tengah, sama seperti referensi
+            if col == 1:  # "No" column is centered, matches reference
                 cell.alignment = CENTER_H_ONLY
 
 
@@ -167,7 +167,7 @@ def build_team_workbook(employees):
     for col_letter in ["A", "B", "C", "D", "E"]:
         ws_summary.column_dimensions[col_letter].width = 20
 
-    # Sheet kedua: detail per employee, style identik dengan export Individual.
+    # Second sheet: per-employee detail, same style as the Individual export.
     ws_detail = wb.create_sheet("Per Employee")
     last_col_detail = len(COLUMNS)
     _style_title_row(ws_detail, last_col_detail)
@@ -195,7 +195,7 @@ def parse_employee_workbook(file_stream):
 
     rows = []
     for row in ws.iter_rows(min_row=5, values_only=True):
-        if not row or row[1] is None:  # kolom Name kosong -> baris kosong, berhenti
+        if not row or row[1] is None:  # empty Name column -> stop reading
             continue
         _, name, role, total_assigned, completed, pending, overdue, completion, avg_days, avg_hours = row[:10]
         rows.append({

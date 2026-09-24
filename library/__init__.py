@@ -1,19 +1,8 @@
-"""
-Application factory -- cara standar Flask merakit aplikasi (lihat
-flask.palletsprojects.com/en/latest/patterns/appfactory/).
+"""Application factory -- see flask.palletsprojects.com/en/latest/patterns/appfactory/.
 
-Kenapa dipindah ke sini (bug yang baru diperbaiki): sebelumnya
-`app = Flask(__name__)` dibuat langsung di app.py, lalu blueprint
-di-import & di-register sebagai baris terpisah di antara puluhan baris
-route lain. Baris registrasi itu KEHAPUS/TERLEWAT saat refactor, hasilnya
-blueprint kpi_dashboard & issue_monitor tidak pernah aktif walau
-file route-nya sendiri tidak error (makanya errornya baru muncul di
-runtime sebagai BuildError, bukan di saat start server).
-
-Dengan create_app(), init db + register semua blueprint jadi SATU alur
-wajib yang jelas urutannya, tidak mungkin lupa satu tanpa ketahuan --
-kalau lupa, `create_app()` sendiri yang tidak lengkap dan gampang
-ketahuan saat baca fungsi ini.
+All setup (config, db, blueprints) happens in one place (create_app())
+instead of being scattered across app.py, so a step can't be silently
+skipped without it being obvious from reading this file.
 """
 
 import os
@@ -40,9 +29,7 @@ def create_app():
 def _configure(app):
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 
-    # Persiapan migrasi SQLite -> PostgreSQL: cukup set env var DATABASE_URL,
-    # tidak perlu ubah kode apa pun (model sudah pakai tipe kolom generik --
-    # lihat library/models.py & MIGRATION.md).
+    # To migrate SQLite -> PostgreSQL, just set DATABASE_URL (see MIGRATION.md).
     database_url = os.environ.get("DATABASE_URL", "sqlite:///database.db")
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -55,21 +42,18 @@ def _register_blueprints(app):
     from library.main.routes import main_bp
     from library.workspace.kpi_dashboard.routes import kpi_dashboard_bp
     from library.workspace.issue_monitor.routes import issue_monitor_bp
+    from library.workspace.tv_design.routes import tv_design_bp
     from library.admin.user_management.routes import user_management_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(kpi_dashboard_bp)
     app.register_blueprint(issue_monitor_bp)
+    app.register_blueprint(tv_design_bp)
     app.register_blueprint(user_management_bp)
 
 
 def _register_context_processors(app):
-    """Suntik info role user yang lagi login ke SEMUA template, tanpa
-    perlu tambahin `role=...` manual ke tiap render_template() satu-satu
-    (ada belasan route yang render halaman workspace/team). Dipakai oleh
-    templates/partials/top-sidebar.html buat nampilin/nyembunyiin menu
-    "User Management" (khusus Super Admin) & oleh issue_monitor.html buat
-    nyembunyiin tab "Issue Register" dari Member (view-only)."""
+    """Expose the logged-in user's role to every template."""
 
     from flask import session
 

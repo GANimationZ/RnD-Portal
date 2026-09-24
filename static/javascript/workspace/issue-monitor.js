@@ -1,12 +1,12 @@
 // ============================================================
 // RnD Portal - Issue Monitoring (LVT/MNT)
-// Semua panel (Dashboard, Issue Register, List Issue, Priority
-// Matrix) berbagi satu sumber data: `issueData`, yang di-fetch
-// dari API (/workspace/issue-monitor/api/issues).
+// Every panel (Dashboard, Issue Register, List Issue, Priority
+// Matrix) shares one data source: `issueData`, fetched from
+// /workspace/issue-monitor/api/issues.
 //
-// Tab switching (klik .nav-item__left) DITANGANI oleh
-// static/javascript/workspace/panel-switcher.js yang di-load
-// global lewat layout -- file ini tidak bikin logic tab sendiri.
+// Tab switching (.nav-item__left clicks) is handled by
+// static/javascript/workspace/panel-switcher.js, loaded globally
+// via the layout -- this file has no tab logic of its own.
 // ============================================================
 
 Chart.register(ChartDataLabels);
@@ -14,7 +14,7 @@ Chart.register(ChartDataLabels);
 const API_BASE = "/workspace/issue-monitor/api";
 
 // ------------------------------------------------------------
-// CONFIG: mapping label -> warna
+// CONFIG: label -> color mapping
 // ------------------------------------------------------------
 const CATEGORY_META = {
   "PCBA/SMT": { color: "#b32e2e" },
@@ -31,8 +31,8 @@ const EVENT_META = {
   "Field": { color: "#8a8f98" },
 };
 
-// Ikon lampiran per tipe file (lihat Issue Monitor routes.py -> _file_type())
-// -- dibatasi ke nama class boxicons yang benar-benar ada di vendor/boxicons.
+// Attachment icon per file type (see issue_monitor routes.py -> get_file_type())
+// -- restricted to boxicons class names that actually exist in vendor/boxicons.
 const ATTACHMENT_ICON = {
   image: "bx-image",
   pdf: "bx-file",
@@ -77,14 +77,14 @@ let issueData = [];
 let filteredData = [];
 
 // ============================================================
-// ---- Helpers umum ---- //
+// ---- Generic helpers ---- //
 // ============================================================
 function normalize(str) {
   return (str || "").toString().toLowerCase().replace(/[\s-]/g, "");
 }
 
 function parseDeadline(deadline) {
-  // format: dd-mm-yyyy (dari API)
+  // format: dd-mm-yyyy (from the API)
   const [day, month, year] = deadline.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
@@ -124,7 +124,7 @@ function setText(id, value) {
 }
 
 // ============================================================
-// ---- Data layer: fetch dari API ---- //
+// ---- Data layer: fetch from API ---- //
 // ============================================================
 async function fetchIssues() {
   try {
@@ -139,7 +139,7 @@ async function fetchIssues() {
 }
 
 // ============================================================
-// ---- Panel Dashboard ---- //
+// ---- Dashboard panel ---- //
 // ============================================================
 function computeCategoryData() {
   return Object.keys(CATEGORY_META).map((label) => ({
@@ -395,12 +395,12 @@ function renderDashboardSummary() {
 }
 
 // ============================================================
-// ---- Panel Issue Register ---- //
+// ---- Issue Register panel ---- //
 // ============================================================
 
-// ---- Combobox Assignee: diisi ulang tiap Category & Event berubah,
-// ambil daftar Member yang scope-nya (diatur di /admin/users) mencakup
-// KEDUA nilai tsb. Endpoint balikin [] kalau salah satu belum dipilih. ----
+// ---- Assignee combobox: refetched whenever Category & Event change,
+// pulling Members whose scope (set in /admin/users) covers BOTH values.
+// The endpoint returns [] if either field isn't selected yet. ----
 async function loadAssignableUsers() {
   const categoryEl = document.getElementById("issueCategory");
   const eventEl = document.getElementById("issueEvent");
@@ -475,7 +475,7 @@ function initIssueRegister() {
     const categoryVal = categoryEl.value;
     const eventVal = eventEl.value;
     const description = descEl.value.trim();
-    const deadlineRaw = dateEl.value; // format Y-m-d dari flatpickr
+    const deadlineRaw = dateEl.value; // format Y-m-d from flatpickr
 
     if (!title || !categoryVal || !eventVal || !description || !deadlineRaw) {
       showToast("Mohon lengkapi semua field sebelum submit.", "error");
@@ -533,7 +533,7 @@ function initIssueRegister() {
 }
 
 // ============================================================
-// ---- Panel List Issue ---- //
+// ---- List Issue panel ---- //
 // ============================================================
 let currentPage = 1;
 let rowsPerPage = 10;
@@ -717,7 +717,7 @@ function exportData(type) {
 }
 
 // ============================================================
-// ---- Inline Detail (muncul di bawah tabel List Issue) ---- //
+// ---- Inline Detail (modal overlay opened from List Issue) ---- //
 // ============================================================
 function showInlineDetail(issueId) {
   const issue = issueData.find((i) => i.id === Number(issueId));
@@ -747,7 +747,7 @@ function showInlineDetail(issueId) {
     statusBadge.className = `badge ${STATUS_CLASS[issue.status] || ""}`;
   }
 
-  // Gambar (kalau ada) -- backend mengirim field `image_url`, bukan `image`
+  // Image (if any) -- backend sends `image_url`, not `image`
   const imgWrapper = document.getElementById("inlineDetailImageWrapper");
   if (imgWrapper) {
     imgWrapper.innerHTML = issue.image_url
@@ -755,30 +755,36 @@ function showInlineDetail(issueId) {
       : "";
   }
 
-  // Lampiran (Word/Excel/PPT/PDF/gambar, bisa lebih dari satu)
+  // Attachments (Word/Excel/PPT/PDF/image, can be more than one) -- click
+  // to preview; the small button in the corner downloads directly.
   const attachmentsWrapper = document.getElementById("inlineDetailAttachments");
   if (attachmentsWrapper) {
     const attachments = issue.attachments || [];
     attachmentsWrapper.innerHTML = attachments
       .map(
-        (att) => `
-        <a class="attachment-chip" href="${att.url}" target="_blank" rel="noopener">
+        (att, idx) => `
+        <button type="button" class="attachment-chip" data-attachment-index="${idx}">
           <i class="bxf ${ATTACHMENT_ICON[att.type] || "bx-file"}"></i> ${att.name}
-        </a>`,
+        </button>`,
       )
       .join("");
+    attachmentsWrapper.querySelectorAll("[data-attachment-index]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        openFilePreview(attachments[Number(chip.dataset.attachmentIndex)]);
+      });
+    });
   }
 
-  // Tombol aksi di dalam inline detail
+  // Action buttons inside the inline detail
   const holdBtn = document.getElementById("inlineDetailHoldBtn");
   if (holdBtn) {
     holdBtn.textContent = issue.status === "On Hold" ? "Lepas Hold" : "Hold Issue";
     holdBtn.onclick = () => toggleHold(issue.id, issue.status);
   }
 
-  // Kalau issue ini BELUM punya assignee, tampilkan combobox "pelaksana"
-  // supaya bisa dicatat siapa yang benar-benar mengerjakan begitu ditutup
-  // (poin 4: "assign pelaksana di akhir" supaya tercatat di KPI Dashboard).
+  // If this issue has no assignee yet, show the "executor" combobox so
+  // whoever actually did the work can be recorded when it's closed
+  // (assign-at-close-time, so it's credited on the KPI Dashboard).
   const assigneeSelect = document.getElementById("inlineDetailAssigneeSelect");
   const closeBtn = document.getElementById("inlineDetailCloseBtn");
 
@@ -815,7 +821,7 @@ function showInlineDetail(issueId) {
     };
   }
 
-  // Tampilkan overlay
+  // Show the overlay
   panel.classList.remove("is-hidden");
 }
 
@@ -825,8 +831,8 @@ function initInlineDetail() {
   if (closeBtn && panel) {
     closeBtn.addEventListener("click", () => panel.classList.add("is-hidden"));
   }
-  // Klik area gelap di luar dialog (bukan di dalam kartu) -> tutup juga,
-  // seperti modal pada umumnya.
+  // Clicking the dark area outside the dialog (not the card) also
+  // closes it, like a typical modal.
   if (panel) {
     panel.addEventListener("click", (e) => {
       if (e.target === panel) panel.classList.add("is-hidden");
@@ -889,7 +895,7 @@ function initListIssue() {
     });
   }
 
-  // ---- Klik baris / tombol aksi ----
+  // ---- Row click / action buttons ----
   const tbody = document.getElementById("issueTableBody");
   if (tbody) {
     tbody.addEventListener("click", async (e) => {
@@ -909,12 +915,12 @@ function initListIssue() {
       if (action === "hold") {
         toggleHold(issue.id, issue.status);
       } else if (action === "info") {
-        // Icon INFO → buka inline detail
+        // Icon INFO -> open inline detail
         showInlineDetail(issue.id);
       } else if (action === "hand") {
-        // Icon HAND → close issue cepat dari tabel. Kalau issue-nya belum
-        // ada pelaksana, arahkan ke modal detail (di sana ada combobox
-        // buat nentuin pelaksana dulu supaya tercatat di KPI Dashboard).
+        // Icon HAND -> quick close from the table. If there's no
+        // assignee yet, redirect to the detail modal (it has a combobox
+        // for picking the executor so it's credited on the KPI Dashboard).
         if (!issue.assignee_id) {
           showToast("Issue ini belum ada pelaksana -- tentukan pelaksana dulu di halaman detail.", "info");
           showInlineDetail(issue.id);
@@ -928,15 +934,15 @@ function initListIssue() {
     });
   }
 
-  // Init inline detail (close button) — cukup sekali
+  // Init inline detail (close button) -- once is enough
   initInlineDetail();
 }
 
 // ============================================================
-// ---- Panel Priority Matrix -> Quarterly Gantt Chart ---- //
+// ---- Priority Matrix panel -> Quarterly Gantt Chart ---- //
 // ============================================================
-// Rentang quarter kalender berjalan (Q1 Jan-Mar, Q2 Apr-Jun, dst) --
-// sumbu-X Gantt selalu menunjukkan quarter yang sedang berjalan hari ini.
+// Current calendar quarter (Q1 Jan-Mar, Q2 Apr-Jun, etc) -- the Gantt
+// X-axis always shows the quarter that contains today.
 function currentQuarterRange() {
   const today = new Date();
   const quarterIndex = Math.floor(today.getMonth() / 3); // 0..3
@@ -965,8 +971,8 @@ function ganttBarMeta(issue, rangeStart, rangeEnd) {
   const deadline = parseDeadline(issue.deadline);
   const isOverdue = deadline < today && issue.status !== "Closed";
 
-  // Overdue -> ujung batang "terus memanjang" sampai hari ini (bukan
-  // berhenti di deadline lagi), dan warnanya dipaksa merah.
+  // Overdue -> the bar's end keeps stretching to today (instead of
+  // stopping at the deadline), and its color is forced to red.
   const barEndDate = isOverdue ? today : deadline;
 
   const barStart = clampDate(created, rangeStart, rangeEnd);
@@ -992,7 +998,7 @@ function renderGanttHeader(rangeStart, rangeEnd) {
   const { quarterIndex, year } = currentQuarterRange();
   if (label) label.textContent = `Q${quarterIndex + 1} ${year} (${rangeStart.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} - ${rangeEnd.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})`;
 
-  // Satu tick per minggu supaya tidak terlalu padat.
+  // One tick per week so the header doesn't get too crowded.
   const ticks = [];
   const cursor = new Date(rangeStart);
   while (cursor <= rangeEnd) {
@@ -1026,14 +1032,14 @@ function renderPriorityMatrix() {
   }
   if (emptyState) emptyState.classList.add("is-hidden");
 
-  // Overdue duluan (paling lewat dulu), baru sisanya berdasar deadline
-  // terdekat -- sesuai permintaan "diposisikan di baris paling atas".
+  // Overdue rows first (most overdue on top), then the rest sorted by
+  // nearest deadline.
   const rows = activeIssues
     .map((issue) => ({ issue, meta: ganttBarMeta(issue, rangeStart, rangeEnd) }))
     .sort((a, b) => {
       if (a.meta.isOverdue !== b.meta.isOverdue) return a.meta.isOverdue ? -1 : 1;
-      if (a.meta.isOverdue) return a.meta.daysLeft - b.meta.daysLeft; // paling lewat dulu
-      return a.meta.daysLeft - b.meta.daysLeft; // paling dekat deadline dulu
+      if (a.meta.isOverdue) return a.meta.daysLeft - b.meta.daysLeft; // most overdue first
+      return a.meta.daysLeft - b.meta.daysLeft; // nearest deadline first
     });
 
   const todayPercent = rows[0].meta.todayPercent;
@@ -1055,7 +1061,7 @@ function renderPriorityMatrix() {
     `)
     .join("");
 
-  // Klik baris Gantt -> pindah ke tab List Issue lalu buka detail overlay
+  // Clicking a Gantt row -> switch to List Issue tab and open the detail overlay
   body.querySelectorAll(".gantt__row").forEach((row) => {
     row.addEventListener("click", () => {
       document.querySelector('.nav-item__left[data-tab="list-issue"]')?.click();

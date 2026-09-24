@@ -1,4 +1,4 @@
-// ---- Ikon Boxicons ----
+// ---- Boxicons ----
 const icons = {
   chart: "bx-chart-bar-big-columns",
   concept: "bx-monitor-wallpaper",
@@ -18,19 +18,18 @@ function iconTag(name) {
   return `<i class="bxf ${icons[name]}"></i>`;
 }
 
-// ---- Struktur menu ----
-// Grup "Administration" cuma ditambahkan kalau role user yang login
-// (window.CURRENT_ROLE, di-inject lewat templates/partials/top-sidebar.html)
-// adalah "Super Admin" -- Admin & Member tidak akan pernah melihat menu ini
-// sama sekali (bukan cuma disembunyikan CSS, tapi memang tidak dirender).
+// ---- Menu structure ----
+// The "Administration" group is only added for role "Super Admin"
+// (window.CURRENT_ROLE, injected via templates/partials/top-sidebar.html)
+// -- Admin & Member never see this menu at all (not rendered, not just
+// hidden with CSS).
 const NAV_GROUPS = [
   {
     label: "Workspace",
     items: [
-      // Poin 1: QA (Admin) tidak boleh lihat KPI Dashboard -- menu ini
-      // cuma dirender untuk Super Admin & Member (backend juga menolak
-      // lewat roles_required, ini supaya Admin tidak melihat link yang
-      // bakal 403 kalau diklik).
+      // QA (Admin) has no access to KPI Dashboard -- only render this
+      // item for Super Admin & Member (backend also enforces this via
+      // roles_required; this just keeps Admin from seeing a dead link).
       ...(window.CURRENT_ROLE === "Admin"
         ? []
         : [
@@ -96,7 +95,7 @@ let openMenu = null;
 let active = window.ACTIVE_NAV || "kpi-dashboard";
 let collapsed = true;
 
-// ---- Render menu nav ----
+// ---- Render nav menu ----
 function renderNav() {
   const nav = document.getElementById("nav");
   nav.innerHTML = "";
@@ -128,12 +127,12 @@ function renderNav() {
       btn.addEventListener("click", () => {
         if (hasChildren && !collapsed) {
           openMenu = openMenu === item.id ? null : item.id;
-          renderNav(); // cuma buka/tutup submenu, tidak sentuh topbar
+          renderNav(); // only toggles the submenu, doesn't touch the topbar
         }
       });
       wrapper.appendChild(btn);
 
-      // Dropdown/submenu (Unused)
+      // Dropdown/submenu (unused)
       if (hasChildren) {
         const submenu = document.createElement("div");
         submenu.className =
@@ -163,7 +162,7 @@ function renderNav() {
   });
 }
 
-// Render Menu Footer (Unused)
+// Render footer menu (unused)
 function renderFooter() {
   const footer = document.getElementById("footer");
   footer.innerHTML = "";
@@ -185,7 +184,7 @@ function renderFooter() {
   });
 }
 
-// findActiveChildren (Unused)
+// findActiveChildren (unused)
 function findActiveItem() {
   for (const group of NAV_GROUPS) {
     for (const item of group.items) {

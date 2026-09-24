@@ -1,8 +1,6 @@
-"""
-Instance ekstensi Flask yang dipakai bareng oleh app.py & seluruh blueprint
-(mis. library/workspace/kpi_dashboard). Dipisah ke file sendiri supaya
-tidak ada circular import antara app.py <-> models.py <-> routes.py.
-"""
+"""Shared Flask extension instances, used by app.py and every blueprint.
+Kept in its own module to avoid circular imports between app.py, models.py,
+and routes.py."""
 
 from flask_sqlalchemy import SQLAlchemy
 

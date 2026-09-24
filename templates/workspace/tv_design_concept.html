@@ -1,16 +1,68 @@
 {% extends "partials/top-sidebar.html" %}
 
-{% block title %}<title>Workspace - RnD Portal</title>{% endblock %}
+{% block title %}<title>TV Design Concept - RnD Portal</title>{% endblock %}
+
 {% block styles %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/workspace/tv-design/style.css') }}"
+  />
 {% endblock %}
 
 {% block content %}
-  <div>
-    <h1>Ini Content TV Design Concept</h1>
+  <div class="nav__bar">
+    <span class="nav-item__left flex-1 active" data-tab="browse">Browse</span>
+    <span class="nav-item__left flex-1" data-tab="add-new">Add New</span>
+  </div>
+
+  <div class="main-body-content">
+    {# ---- Panel Browse ---- #}
+    <div class="body active" data-panel="browse">
+      <div class="tv-search">
+        <div class="tv-search__box">
+          <i class="bxf bx-search"></i>
+          <input
+            type="text"
+            id="tvSearchInput"
+            placeholder="Cari Serial Number, Produksi, atau Asal..."
+          />
+        </div>
+        <span class="tv-search__count" id="tvResultCount">0 data</span>
+      </div>
+
+      <div class="tv-grid" id="tvGrid"></div>
+      <div class="tv-empty is-hidden" id="tvEmpty">
+        <i class="bxf bx-folder-open"></i>
+        <p>Tidak ada data yang cocok. Coba kata kunci lain atau tambah data baru.</p>
+      </div>
+    </div>
+
+    {# ---- Panel Add New ---- #}
+    <div class="body" data-panel="add-new">
+      <div class="tv-form-wrapper">
+        <span class="tv-form-wrapper__title">Tambah Data Design</span>
+        <form id="tvForm">
+          <input type="text" id="tvTitle" placeholder="Judul / Nama Model" required />
+          <input type="text" id="tvSerialNumber" placeholder="Serial Number" required />
+          <input type="text" id="tvProduction" placeholder="Produksi (mis. Line A, Batch 12)" />
+          <input type="text" id="tvOrigin" placeholder="Asal (mis. Vendor / Negara)" />
+          <textarea id="tvNotes" placeholder="Catatan tambahan (opsional)"></textarea>
+          <input
+            type="file"
+            id="tvFiles"
+            accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            multiple
+          />
+          <span class="field-hint">Boleh lebih dari satu file: gambar, PDF, Word, Excel, atau PowerPoint.</span>
+          <input type="submit" value="Simpan Data" id="tvSubmitBtn" />
+          <span id="tvFormMessage"></span>
+        </form>
+      </div>
+    </div>
   </div>
 {% endblock %}
 
 {% block script %}
   {{ super() }}
-  <script type="module" src=""></script>
+  <script src="{{ url_for('static', filename='javascript/workspace/tv-design.js') }}"></script>
 {% endblock %}

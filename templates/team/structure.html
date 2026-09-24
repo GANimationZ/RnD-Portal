@@ -1,0 +1,204 @@
+{% extends "partials/top-sidebar.html" %}
+
+{% block title %}<title>Team KPI Dashboard - RnD Portal</title>{% endblock %}
+
+{% block styles %}
+  {{ super() }}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/team/structure/style.css') }}"
+  />
+{% endblock %}
+
+{% block content %}
+  <div class="nav__bar">
+    <span class="flex-1 active" data-tab="structure">Structure</span>
+  </div>
+
+  <div class="main-body-content">
+    {# ---- Panel Organization ---- #}
+    <div class="body active" data-panel="structure">
+      <div class="main-container">
+        <div class="container__president">
+          <div class="profile-container">
+            <img src="" alt="" />
+          </div>
+          <div class="bio-container">
+            <div class="name-container">
+              <span class="text__name">1</span>
+            </div>
+            <div class="text__underline"></div>
+            <div class="desgination-container">
+              <span class="text__designation">President</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow-vertical"></div>
+        <div class="container__PV-shil">
+          <div class="profile-container">
+            <img src="" alt="" />
+          </div>
+          <div class="bio-container">
+            <div class="name-container">
+              <span class="text__name">2</span>
+            </div>
+            <div class="text__underline"></div>
+            <div class="desgination-container">
+              <span class="text__designation">Field Service Engineer</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow-vertical"></div>
+        <div class="container__pve-leader">
+          <div class="profile-container">
+            <img src="" alt="" />
+          </div>
+          <div class="bio-container">
+            <div class="name-container">
+              <span class="text__name">3</span>
+            </div>
+            <div class="text__underline"></div>
+            <div class="desgination-container">
+              <span class="text__designation">PV. Team Leader</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow-vertical"></div>
+        <div class="container__part-leader">
+          <div class="profile-container">
+            <img src="" alt="" />
+          </div>
+          <div class="bio-container">
+            <div class="name-container">
+              <span class="text__name">4</span>
+            </div>
+            <div class="text__underline"></div>
+            <div class="desgination-container">
+              <span class="text__designation">PV. Part Leader</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow-vertical"></div>
+        <div class="container__grid">
+          <div class="grid-item">
+            <div class="profile-container">
+              <img src="" alt="" />
+            </div>
+            <div class="bio-container">
+              <div class="name-container">
+                <span class="text__name">5</span>
+              </div>
+              <div class="text__underline"></div>
+              <div class="desgination-container">
+                <span class="text__designation"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="profile-container">
+              <img src="" alt="" />
+            </div>
+            <div class="bio-container">
+              <div class="name-container">
+                <span class="text__name">6</span>
+              </div>
+              <div class="text__underline"></div>
+              <div class="desgination-container">
+                <span class="text__designation"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="profile-container">
+              <img src="" alt="" />
+            </div>
+            <div class="bio-container">
+              <div class="name-container">
+                <span class="text__name">7</span>
+              </div>
+              <div class="text__underline"></div>
+              <div class="desgination-container">
+                <span class="text__designation"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="profile-container">
+              <img src="" alt="" />
+            </div>
+            <div class="bio-container">
+              <div class="name-container">
+                <span class="text__name">8</span>
+              </div>
+              <div class="text__underline"></div>
+              <div class="desgination-container">
+                <span class="text__designation"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="profile-container">
+              <img src="" alt="" />
+            </div>
+            <div class="bio-container">
+              <div class="name-container">
+                <span class="text__name">9</span>
+              </div>
+              <div class="text__underline"></div>
+              <div class="desgination-container">
+                <span class="text__designation"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="profile-container">
+              <img src="" alt="" />
+            </div>
+            <div class="bio-container">
+              <div class="name-container">
+                <span class="text__name">10</span>
+              </div>
+              <div class="text__underline"></div>
+              <div class="desgination-container">
+                <span class="text__designation"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="profile-container">
+              <img src="" alt="" />
+            </div>
+            <div class="bio-container">
+              <div class="name-container">
+                <span class="text__name">11</span>
+              </div>
+              <div class="text__underline"></div>
+              <div class="desgination-container">
+                <span class="text__designation"></span>
+              </div>
+            </div>
+          </div>
+          <div class="grid-item">
+            <div class="profile-container">
+              <img src="" alt="" />
+            </div>
+            <div class="bio-container">
+              <div class="name-container">
+                <span class="text__name">12</span>
+              </div>
+              <div class="text__underline"></div>
+              <div class="desgination-container">
+                <span class="text__designation"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block script %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='javascript/workspace/issue-monitor.js')}}"></script>
+{% endblock %}

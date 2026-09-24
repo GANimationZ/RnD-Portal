@@ -1,13 +1,10 @@
-"""
-Blueprint `main` -- route umum yang tidak spesifik ke satu workspace:
-autentikasi (onboard/register/login/logout), render halaman workspace
-yang belum punya blueprint sendiri (KPI Dashboard, TV Design, Tools),
-dan halaman Team.
+"""Blueprint `main`: general routes not tied to one workspace --
+auth (onboard/register/login/logout), pages without their own blueprint
+yet (KPI Dashboard, Tools), and Team pages.
 
-Tidak dikasih url_prefix supaya path URL-nya persis sama seperti
-sebelumnya (mis. tetap "/", "/login", "/workspace/tools", dst) -- yang
-berubah cuma endpoint name-nya jadi diawali "main." (lihat url_for di
-library/auth.py & di dalam file ini).
+No url_prefix, so URL paths stay the same as before ("/", "/login",
+"/workspace/tools", etc) -- only the endpoint name gains a "main."
+prefix (see url_for usage in library/auth.py and this file).
 """
 
 from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
@@ -19,7 +16,7 @@ from library.models import User
 main_bp = Blueprint("main", __name__)
 
 
-# ==================== Autentikasi ====================
+# ==================== Auth ====================
 
 @main_bp.route("/", methods=["GET"])
 def onboard():
@@ -49,13 +46,13 @@ def register():
         if User.query.filter_by(username=username).first():
             return jsonify({"error": "Already taken."}), 409
 
-        new_user = User(username=username, email=email, role="Member")
+        new_user = User(username=username, email=email, role="Member", is_active=False)
         new_user.set_password(password)
 
         db.session.add(new_user)
         db.session.commit()
 
-        return jsonify({"message": f"User {username} successfully created."}), 201
+        return jsonify({"message": f"Akun {username} berhasil dibuat. Menunggu persetujuan Super Admin sebelum bisa login."}), 201
 
     return render_template("auth/auth.html")
 
@@ -76,7 +73,12 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid username or password."}), 401
     if not user.is_active:
-        return jsonify({"error": "Akun ini sudah dinonaktifkan. Hubungi Super Admin."}), 403
+        message = (
+            "Akun Anda menunggu persetujuan Super Admin sebelum bisa login."
+            if user.approved_at is None
+            else "Akun ini sudah dinonaktifkan. Hubungi Super Admin."
+        )
+        return jsonify({"error": message}), 403
 
     session["user_id"] = user.id
     session["username"] = user.username
@@ -91,25 +93,15 @@ def logout():
     return jsonify({"message": "Logged out."}), 200
 
 
-# ==================== Halaman Workspace ====================
+# ==================== Workspace pages ====================
 
 @main_bp.route("/workspace/kpi-dashboard", methods=["GET"])
 @login_required
-@roles_required("Super Admin", "Member")  # poin 1: QA (Admin) tidak boleh lihat KPI Dashboard
+@roles_required("Super Admin", "Member")  # QA (Admin) has no access to KPI Dashboard
 def kpi_dashboard():
     return render_template(
         "workspace/kpi_dashboard.html",
         active_nav="kpi-dashboard",
-        username=session.get("username"),
-    )
-
-
-@main_bp.route("/workspace/tv-design-concept", methods=["GET"])
-@login_required
-def tv_design_concept():
-    return render_template(
-        "workspace/tv_design_concept.html",
-        active_nav="analyse",
         username=session.get("username"),
     )
 
@@ -124,13 +116,13 @@ def tools():
     )
 
 
-# ==================== Halaman Team ====================
+# ==================== Team pages ====================
 
 @main_bp.route("/team/structure", methods=["GET"])
 @login_required
 def org_structure():
     return render_template(
-        "team/organization.html",
+        "team/structure.html",
         active_nav="structure",
         username=session.get("username"),
     )
