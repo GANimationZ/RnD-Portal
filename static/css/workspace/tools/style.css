@@ -97,8 +97,12 @@ select {
 .main-body-content .body .activity-filters .btns {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
 }
 .main-body-content .body .activity-filters .btns button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background-color: white;
   border: 1px solid #f0f0f0;
   border-radius: 6px;
@@ -114,6 +118,15 @@ select {
 }
 .main-body-content .body .activity-filters .btns button:hover {
   border: 1px solid #525252;
+}
+.main-body-content .body .activity-filters .btns button.btns__primary {
+  background-color: #a50034;
+  border-color: #a50034;
+  color: white;
+}
+.main-body-content .body .activity-filters .btns button.btns__primary:hover {
+  background-color: #700023;
+  border-color: #700023;
 }
 .main-body-content .body .main-container {
   background-color: white;
@@ -131,6 +144,10 @@ select {
   font-size: 16px;
   font-weight: 700;
   color: #6b6b6b;
+}
+.main-body-content .body .main-container__header .header .count {
+  font-weight: 400;
+  color: #8a8f98;
 }
 .main-body-content .body .main-container .switcher {
   display: flex;
@@ -165,6 +182,11 @@ select {
   gap: 12px;
 }
 .main-body-content .body .main-container .tool-card {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.main-body-content .body .main-container .tool-card__link {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -175,9 +197,12 @@ select {
   text-decoration: none;
   transition: all 0.2s ease;
 }
-.main-body-content .body .main-container .tool-card:hover {
+.main-body-content .body .main-container .tool-card__link:hover {
   border-color: #a50034;
   background: #700023;
+}
+.main-body-content .body .main-container .tool-card__link:hover .tool-card__go {
+  opacity: 1;
 }
 .main-body-content .body .main-container .tool-card__icon {
   display: flex;
@@ -205,15 +230,42 @@ select {
   font-weight: 700;
   color: #6b6b6b;
 }
-.main-body-content .body .main-container .tool-card__type {
+.main-body-content .body .main-container .tool-card__meta {
+  font-size: 11px;
+  color: #a50034;
+  font-weight: 600;
+}
+.main-body-content .body .main-container .tool-card__desc {
   font-size: 11px;
   color: #8a8f98;
+  margin-top: 2px;
 }
-.main-body-content .body .main-container .tool-card__owner {
-  font-size: 11px;
-  font-weight: 600;
-  color: #a50034;
-  white-space: nowrap;
+.main-body-content .body .main-container .tool-card__go {
+  font-size: 14px;
+  color: #8a8f98;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.main-body-content .body .main-container .tool-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #b3b7be;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.main-body-content .body .main-container .tool-delete:hover {
+  background: rgba(226, 75, 74, 0.1);
+  color: #e24b4a;
 }
 .main-body-content .body .main-container .menu-list__container {
   display: flex;
@@ -223,13 +275,8 @@ select {
   overflow: hidden;
 }
 .main-body-content .body .main-container .tool-list-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  text-decoration: none;
+  position: relative;
   border-bottom: 1px solid #e4e7ec;
-  transition: background 0.2s ease;
 }
 .main-body-content .body .main-container .tool-list-item:last-child {
   border-bottom: none;
@@ -239,6 +286,16 @@ select {
 }
 .main-body-content .body .main-container .tool-list-item:hover {
   background: #700023;
+}
+.main-body-content .body .main-container .tool-list-item:hover .tool-list-item__go {
+  opacity: 1;
+}
+.main-body-content .body .main-container .tool-list-item__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 40px 12px 14px;
+  text-decoration: none;
 }
 .main-body-content .body .main-container .tool-list-item__icon {
   display: flex;
@@ -264,15 +321,113 @@ select {
 .main-body-content .body .main-container .tool-list-item__type {
   font-size: 12px;
   color: #8a8f98;
-  width: 120px;
+  width: 90px;
 }
-.main-body-content .body .main-container .tool-list-item__owner {
+.main-body-content .body .main-container .tool-list-item__category {
   font-size: 12px;
   color: #a50034;
   font-weight: 600;
-  width: 120px;
+  width: 140px;
 }
-.main-body-content .body .main-container .tool-list-item__chevron {
+.main-body-content .body .main-container .tool-list-item__go {
   color: #8a8f98;
-  font-size: 16px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.main-body-content .body .main-container .menu-list__container .tool-delete {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.tool-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 15, 20, 0.55);
+}
+.tool-modal.is-hidden {
+  display: none;
+}
+.tool-modal__dialog {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.tool-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eceff3;
+}
+.tool-modal__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #6b6b6b;
+}
+.tool-modal__close {
+  border: none;
+  background: transparent;
+  color: #8a8f98;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+.tool-modal__close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+.tool-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+}
+.tool-modal__form input,
+.tool-modal__form select,
+.tool-modal__form textarea {
+  padding: 9px 12px;
+  border: 1px solid #bfbfbf;
+  border-radius: 6px;
+  font-size: 400;
+  font-family: "Poppins", system-ui, -apple-system, sans-serif;
+  color: #6b6b6b;
+  outline-color: #a50034;
+  transition: transform 0.2s ease;
+}
+.tool-modal__form input:focus,
+.tool-modal__form select:focus,
+.tool-modal__form textarea:focus {
+  transform: scale(1.02);
+}
+.tool-modal__form textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+.tool-modal__form input[type=submit] {
+  background-color: #a50034;
+  color: white;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.tool-modal__form input[type=submit]:hover {
+  background-color: #700023;
+  transform: scale(1.02);
+}
+.tool-modal__form input[type=submit]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }/*# sourceMappingURL=style.css.map */

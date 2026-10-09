@@ -22,10 +22,24 @@ from library.models import (
     UserCategoryScope,
     UserEventScope,
 )
+from library.naming import name_from_email, unique_display_name
 
 user_management_bp = Blueprint(
     "user_management", __name__, url_prefix="/admin/users"
 )
+
+
+def _derived_name(email, exclude_user_id=None):
+    """Display name derived from the email, made unique across users
+    (optionally ignoring one user, when re-deriving on email change)."""
+
+    def exists(candidate):
+        query = User.query.filter_by(username=candidate)
+        if exclude_user_id is not None:
+            query = query.filter(User.id != exclude_user_id)
+        return query.first() is not None
+
+    return unique_display_name(name_from_email(email), exists)
 
 
 def _apply_scope(user, categories, events):
@@ -77,21 +91,23 @@ def api_list_users():
 def api_create_user():
     data = request.get_json(silent=True) or {}
 
-    username = (data.get("username") or "").strip()
     email = (data.get("email") or "").strip()
     password = data.get("password") or ""
     role = data.get("role") or "Member"
     categories = data.get("categories") or []
     events = data.get("events") or []
 
-    if not username or not email or not password:
-        return jsonify({"message": "Username, email, dan password wajib diisi."}), 400
+    if not email or not password:
+        return jsonify({"message": "Email and password are required."}), 400
     if len(password) < 8:
-        return jsonify({"message": "Password minimal 8 karakter."}), 400
+        return jsonify({"message": "Password must be at least 8 characters."}), 400
     if role not in ROLE_CHOICES:
-        return jsonify({"message": "Role tidak valid."}), 400
-    if User.query.filter_by(username=username).first():
-        return jsonify({"message": "Username sudah dipakai."}), 409
+        return jsonify({"message": "Invalid role."}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({"message": "An account with this email already exists."}), 409
+
+    # Display name is derived from the email (see library/naming.py).
+    username = _derived_name(email)
 
     user = User(username=username, email=email, role=role)
     user.set_password(password)
@@ -106,7 +122,7 @@ def api_create_user():
     _apply_scope(user, categories, events)
     db.session.commit()
 
-    return jsonify({"message": f"User {username} berhasil dibuat.", "user": user.to_dict()}), 201
+    return jsonify({"message": f"User {username} created successfully.", "user": user.to_dict()}), 201
 
 
 @user_management_bp.route("/api/users/<int:user_id>", methods=["PATCH"])
@@ -118,18 +134,22 @@ def api_update_user(user_id):
 
     if "email" in data:
         email = (data.get("email") or "").strip()
-        if email:
+        if email and email != user.email:
+            if User.query.filter(User.email == email, User.id != user.id).first():
+                return jsonify({"message": "An account with this email already exists."}), 409
             user.email = email
+            # Keep the display name in sync with the new email.
+            user.username = _derived_name(email, exclude_user_id=user.id)
 
     if "role" in data:
         role = data.get("role")
         if role not in ROLE_CHOICES:
-            return jsonify({"message": "Role tidak valid."}), 400
+            return jsonify({"message": "Invalid role."}), 400
         # Never let the last Super Admin demote themselves away.
         if user.role == "Super Admin" and role != "Super Admin":
             remaining = User.query.filter(User.role == "Super Admin", User.id != user.id).count()
             if remaining == 0:
-                return jsonify({"message": "Minimal harus ada satu Super Admin."}), 400
+                return jsonify({"message": "There must be at least one Super Admin."}), 400
         user.role = role
 
     if "is_active" in data:
@@ -141,7 +161,7 @@ def api_update_user(user_id):
 
     if "password" in data and data.get("password"):
         if len(data["password"]) < 8:
-            return jsonify({"message": "Password minimal 8 karakter."}), 400
+            return jsonify({"message": "Password must be at least 8 characters."}), 400
         user.set_password(data["password"])
 
     if "categories" in data or "events" in data:
@@ -152,7 +172,7 @@ def api_update_user(user_id):
         )
 
     db.session.commit()
-    return jsonify({"message": "User berhasil diperbarui.", "user": user.to_dict()})
+    return jsonify({"message": "User updated successfully.", "user": user.to_dict()})
 
 
 @user_management_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
@@ -162,16 +182,16 @@ def api_delete_user(user_id):
     user = User.query.get_or_404(user_id)
 
     if user.id == session.get("user_id"):
-        return jsonify({"message": "Tidak bisa menghapus akun sendiri."}), 400
+        return jsonify({"message": "You can't delete your own account."}), 400
 
     if user.role == "Super Admin":
         remaining = User.query.filter(User.role == "Super Admin", User.id != user.id).count()
         if remaining == 0:
-            return jsonify({"message": "Minimal harus ada satu Super Admin."}), 400
+            return jsonify({"message": "There must be at least one Super Admin."}), 400
 
     db.session.delete(user)
     db.session.commit()
-    return jsonify({"message": f"User {user.username} berhasil dihapus."})
+    return jsonify({"message": f"User {user.username} deleted successfully."})
 
 
 # ==================== API: assignee combobox (Issue Register) ====================

@@ -17,9 +17,6 @@
     <span class="flex-1" data-tab="history">History</span>
   </div>
 
-  {# ---- Template rentang waktu (Recent/Last Week/Last Month/Last Year) ----
-     Dipakai ulang di panel Individual, Team, & kedua sub-panel History,
-     supaya keempat tempat itu tampil konsisten (poin 2 & 3 perombakan). #}
   {% macro range_tabs(scope) %}
     <div class="range-tabs" data-range-scope="{{ scope }}">
       <button type="button" class="range-tabs__btn active" data-range="recent">
@@ -37,9 +34,6 @@
     </div>
   {% endmacro %}
 
-  {# ---- Header judul, dipakai employee_panel & team_panel supaya kedua
-     title ("Employee Performance" & "Team Summary") sama persis gayanya:
-     selalu di LUAR kartu/tabel, bukan lagi ikut sempit di dalam .employees ---- #}
   {% macro panel_header(title, icon, scope, show_range) %}
     <div class="panel-header">
       <span class="panel-header__title"
@@ -78,8 +72,6 @@
       </div>
     </div>
 
-    {# ---- Insight beban ringan/berat + legenda, ditaruh paling bawah saja
-       supaya tidak lagi mengganggu tabel pemilih karyawan di atas ---- #}
     <div class="panel-footer">
       <div class="employees__insights" id="{{ insights_id }}"></div>
       <div class="employees__legend">
@@ -125,7 +117,7 @@
     <div class="body" data-panel="history">
       <div class="history-panel__header">
         <span class="history-panel__title"
-          ><i class="bxf bx-history"></i> Riwayat Bulanan</span
+          ><i class="bxf bx-history"></i> Monthly History</span
         >
         <div class="history-panel__actions">
           <button type="button" class="btn-export" id="importHistoryBtn">
@@ -157,7 +149,7 @@
 
       <div class="history-controls">
         <div class="history-controls__select">
-          <label for="historyMonthSelect">Bulan Arsip</label>
+          <label for="historyMonthSelect">Archive Month</label>
           <button
             type="button"
             class="history-nav-btn"
@@ -177,7 +169,7 @@
           </button>
           <a class="btn-export" id="historyDownloadBtn" href="#">
             <i class="bxf bx-arrow-to-bottom"></i>
-            Download File Ini
+            Download
           </a>
         </div>
 
@@ -195,13 +187,10 @@
         </div>
       </div>
 
-      {# ---- Sub-panel: Individual, layout & data sama seperti panel Individual di atas,
-         tapi TANPA range_tabs (show_range=false) karena sudah diwakili Bulan Arsip ---- #}
       <div class="history-subpanel active" data-subpanel="individual">
         {{ employee_panel("history-individual", "historyEmployeeTableBody", "historyEmployeeInsights", "historyEmpTrendChart", "historyEmpContent", show_range=false) }}
       </div>
 
-      {# ---- Sub-panel: Team, sama alasannya, TANPA range_tabs ---- #}
       <div class="history-subpanel" data-subpanel="team" style="display: none">
         {{ team_panel("history-team", "historyTeamSummary", "historyTeamComparisonChart", "historyTeamLeaderboard", show_range=false) }}
       </div>

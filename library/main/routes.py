@@ -13,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from library.auth import home_url, login_required, roles_required
 from library.extensions import db
 from library.models import User
+from library.naming import name_from_email, unique_display_name
 
 main_bp = Blueprint("main", __name__)
 
@@ -33,34 +34,42 @@ def register():
         if not data:
             return jsonify({"error": "Invalid request."}), 400
 
-        username = data.get("username")
+        email = (data.get("email") or "").strip()
         password = data.get("password")
-        email = data.get("email")
         retype = data.get("retype")
 
-        if not username or not password or not email:
+        if not email or not password:
             return jsonify({"error": "Please fill all the empty boxes."}), 400
         if len(password) < 8:
             return jsonify({"error": "Minimal 8 Characters long."}), 400
         if password != retype:
             return jsonify({"error": "Password does not match"}), 400
-        if User.query.filter_by(username=username).first():
-            return jsonify({"error": "Already taken."}), 409
+        if User.query.filter_by(email=email).first():
+            return jsonify({"error": "An account with this email already exists."}), 409
 
-        new_user = User(username=username, email=email, role="Member", is_active=False)
+        # No username field anymore -- the display name is derived from
+        # the email's local-part (see library/naming.py), e.g.
+        # "john.doe@test.com" -> "John Doe". Suffixed with " (2)", " (3)"
+        # etc on the rare case two different emails produce the same name.
+        display_name = unique_display_name(
+            name_from_email(email),
+            lambda candidate: User.query.filter_by(username=candidate).first() is not None,
+        )
+
+        new_user = User(username=display_name, email=email, role="Member", is_active=False)
         new_user.set_password(password)
 
         db.session.add(new_user)
         db.session.commit()
 
-        return jsonify({"message": f"Akun {username} berhasil dibuat. Menunggu persetujuan Super Admin sebelum bisa login."}), 201
+        return jsonify({"message": f"Account {display_name} created. Waiting for Super Admin approval before you can log in."}), 201
 
     return render_template("auth/auth.html")
 
 
 def _login_error(message, status, field=None):
-    """Balasan error login yang seragam. `field` ("username"/"password")
-    memberi tahu frontend kolom mana yang perlu di-highlight & difokuskan."""
+    """Uniform login error response. `field` ("email"/"password") tells
+    the frontend which input to highlight and focus."""
     payload = {"error": message}
     if field:
         payload["field"] = field
@@ -71,38 +80,38 @@ def _login_error(message, status, field=None):
 def login():
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        return _login_error("Permintaan login tidak valid. Muat ulang halaman lalu coba lagi.", 400)
+        return _login_error("Invalid login request. Reload the page and try again.", 400)
 
-    username = data.get("username")
+    email = data.get("email")
     password = data.get("password")
-    if not isinstance(username, str) or not isinstance(password, str):
-        return _login_error("Permintaan login tidak valid. Muat ulang halaman lalu coba lagi.", 400)
+    if not isinstance(email, str) or not isinstance(password, str):
+        return _login_error("Invalid login request. Reload the page and try again.", 400)
 
-    username = username.strip()
-    if not username:
-        return _login_error("Username wajib diisi.", 400, "username")
+    email = email.strip()
+    if not email:
+        return _login_error("Email is required.", 400, "email")
     if not password:
-        return _login_error("Password wajib diisi.", 400, "password")
+        return _login_error("Password is required.", 400, "password")
 
     try:
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(email=email).first()
     except SQLAlchemyError:
-        current_app.logger.exception("Login gagal: error database")
-        return _login_error("Terjadi kesalahan pada server. Silakan coba lagi beberapa saat lagi.", 500)
+        current_app.logger.exception("Login failed: database error")
+        return _login_error("A server error occurred. Please try again shortly.", 500)
 
-    # Pesan dibedakan (username tidak ada vs password salah) supaya user tahu
-    # persis apa yang harus dikoreksi. Status akun (menunggu persetujuan /
-    # nonaktif) baru diberitahukan SETELAH password benar, jadi orang yang
-    # tidak punya password tidak bisa mengintip status akun.
+    # Distinct messages (email not found vs wrong password) so the person
+    # knows exactly what to fix. Account status (pending/inactive) is only
+    # revealed AFTER the password checks out, so someone without the
+    # password can't probe an account's status.
     if user is None:
-        return _login_error("Username tidak ditemukan.", 401, "username")
+        return _login_error("Email not found.", 401, "email")
     if not user.check_password(password):
-        return _login_error("Password salah. Silakan coba lagi.", 401, "password")
+        return _login_error("Incorrect password. Please try again.", 401, "password")
     if not user.is_active:
         message = (
-            "Akun Anda menunggu persetujuan Super Admin sebelum bisa login."
+            "Your account is waiting for Super Admin approval before you can log in."
             if user.approved_at is None
-            else "Akun ini sudah dinonaktifkan. Hubungi Super Admin."
+            else "This account has been deactivated. Contact your Super Admin."
         )
         return _login_error(message, 403)
 
@@ -112,9 +121,10 @@ def login():
     session["role"] = user.role
 
     return jsonify({
-        "message": f"Login berhasil. Selamat datang, {user.username}!",
-        # Tujuan setelah login ditentukan backend (per role) supaya frontend
-        # tidak perlu tahu aturan akses -- lihat library/auth.py:home_url().
+        "message": f"Login successful. Welcome, {user.username}!",
+        # Post-login destination is decided server-side (per role) so the
+        # frontend doesn't need to know access rules -- see
+        # library/auth.py:home_url().
         "redirect": home_url(user.role),
     }), 200
 
@@ -134,16 +144,6 @@ def kpi_dashboard():
     return render_template(
         "workspace/kpi_dashboard.html",
         active_nav="kpi-dashboard",
-        username=session.get("username"),
-    )
-
-
-@main_bp.route("/workspace/tools", methods=["GET"])
-@login_required
-def tools():
-    return render_template(
-        "workspace/tools.html",
-        active_nav="tools",
         username=session.get("username"),
     )
 

@@ -31,8 +31,6 @@ const EVENT_META = {
   "Field": { color: "#8a8f98" },
 };
 
-// Attachment icon per file type (see issue_monitor routes.py -> get_file_type())
-// -- restricted to boxicons class names that actually exist in vendor/boxicons.
 const ATTACHMENT_ICON = {
   image: "bx-image",
   pdf: "bx-file",
@@ -996,7 +994,7 @@ function renderGanttHeader(rangeStart, rangeEnd) {
   if (!header) return;
 
   const { quarterIndex, year } = currentQuarterRange();
-  if (label) label.textContent = `Q${quarterIndex + 1} ${year} (${rangeStart.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} - ${rangeEnd.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})`;
+  if (label) label.textContent = `Q${quarterIndex + 1} ${year} (${rangeStart.toLocaleDateString("en-EN", { day: "2-digit", month: "short" })} - ${rangeEnd.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})`;
 
   // One tick per week so the header doesn't get too crowded.
   const ticks = [];
@@ -1009,7 +1007,7 @@ function renderGanttHeader(rangeStart, rangeEnd) {
   header.innerHTML = ticks
     .map((tick) => {
       const pct = datePercent(tick, rangeStart, rangeEnd);
-      const label = tick.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+      const label = tick.toLocaleDateString("en-EN", { day: "2-digit", month: "short" });
       return `<span class="gantt__tick" style="left:${pct}%">${label}</span>`;
     })
     .join("");

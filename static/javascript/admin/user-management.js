@@ -18,9 +18,9 @@ const STATUS_BADGE_CLASS = {
   Inactive: "badge-grey",
 };
 const STATUS_LABEL_ID = {
-  Active: "Aktif",
-  Pending: "Menunggu Verifikasi",
-  Inactive: "Nonaktif",
+  Active: "Active",
+  Pending: "Pending Verification",
+  Inactive: "Inactive",
 };
 
 let usersData = [];
@@ -38,7 +38,7 @@ async function fetchUsers() {
     renderTable();
   } catch (err) {
     console.error(err);
-    showToast("Gagal memuat daftar user.", "error");
+    showToast("Failed to load the user list.", "error");
   }
 }
 
@@ -86,10 +86,10 @@ function renderTable() {
       <td class="center">
         <div class="um-action-buttons">
           <button type="button" data-action="edit" data-id="${user.id}" title="Edit"><i class="bxf bx-edit"></i></button>
-          <button type="button" data-action="toggle" data-id="${user.id}" title="${user.is_active ? "Nonaktifkan" : "Aktifkan"}">
+          <button type="button" data-action="toggle" data-id="${user.id}" title="${user.is_active ? "Deactivate" : "Activate"}">
             <i class="bxf ${user.is_active ? "bx-toggle-right" : "bx-toggle-left"}"></i>
           </button>
-          <button type="button" class="um-danger" data-action="delete" data-id="${user.id}" title="Hapus"><i class="bxf bx-trash"></i></button>
+          <button type="button" class="um-danger" data-action="delete" data-id="${user.id}" title="Delete"><i class="bxf bx-trash"></i></button>
         </div>
       </td>
     `;
@@ -105,32 +105,25 @@ function resetForm() {
   document.getElementById("umEditingId").value = "";
   document.getElementById("userForm").reset();
 
-  const usernameEl = document.getElementById("umUsername");
-  usernameEl.disabled = false;
-
   document.getElementById("umPassword").required = true;
   document.getElementById("umPasswordHint").textContent =
-    "Wajib diisi untuk user baru. Saat mengedit, kosongkan kalau tidak ingin mengganti password.";
+    "Required for a new user. When editing, leave blank to keep the current password.";
 
-  document.getElementById("umFormTitle").textContent = "Tambah User Baru";
-  document.getElementById("umSubmitBtn").value = "Simpan User";
+  document.getElementById("umFormTitle").textContent = "Add New User";
+  document.getElementById("umSubmitBtn").value = "Save User";
   document.getElementById("umCancelEdit").classList.add("is-hidden");
-  document.getElementById("formTabLabel").innerHTML = `<i class="bxf bx-plus"></i> Tambah User`;
+  document.getElementById("formTabLabel").innerHTML = `<i class="bxf bx-plus"></i> Add User`;
 }
 
 function fillFormForEdit(user) {
   editingId = user.id;
   document.getElementById("umEditingId").value = user.id;
 
-  const usernameEl = document.getElementById("umUsername");
-  usernameEl.value = user.username;
-  usernameEl.disabled = true; // username can't be changed here
-
   document.getElementById("umEmail").value = user.email;
   document.getElementById("umPassword").value = "";
   document.getElementById("umPassword").required = false;
   document.getElementById("umPasswordHint").textContent =
-    "Kosongkan kalau tidak ingin mengganti password user ini.";
+    "Leave blank to keep this user's current password.";
 
   document.getElementById("umRole").value = user.role;
 
@@ -178,7 +171,7 @@ function initTableActions() {
         });
         const data = await res.json();
         if (!res.ok) {
-          showToast(data.message || "Gagal mengubah status user.", "error");
+          showToast(data.message || "Failed to update user status.", "error");
           return;
         }
         await fetchUsers();
@@ -190,17 +183,17 @@ function initTableActions() {
     }
 
     if (btn.dataset.action === "delete") {
-      const confirmed = await showConfirm(`Hapus user "${user.username}"? Tindakan ini tidak bisa dibatalkan.`);
+      const confirmed = await showConfirm(`Delete user "${user.username}"? This action cannot be undone.`);
       if (!confirmed) return;
       try {
         const res = await fetch(`${UM_API_BASE}/users/${id}`, { method: "DELETE" });
         const data = await res.json();
         if (!res.ok) {
-          showToast(data.message || "Gagal menghapus user.", "error");
+          showToast(data.message || "Failed to delete user.", "error");
           return;
         }
         await fetchUsers();
-        showToast(data.message || "User berhasil dihapus.", "success");
+        showToast(data.message || "User deleted successfully.", "success");
       } catch (err) {
         console.error(err);
         showToast("Terjadi kesalahan saat menghubungi server.", "error");
@@ -224,7 +217,6 @@ function initForm() {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const username = document.getElementById("umUsername").value.trim();
     const email = document.getElementById("umEmail").value.trim();
     const password = document.getElementById("umPassword").value;
     const role = document.getElementById("umRole").value;
@@ -238,7 +230,7 @@ function initForm() {
     const submitBtn = document.getElementById("umSubmitBtn");
     const originalValue = submitBtn.value;
     submitBtn.disabled = true;
-    submitBtn.value = "Menyimpan...";
+    submitBtn.value = "Saving...";
 
     try {
       let res, data;
@@ -256,21 +248,21 @@ function initForm() {
         res = await fetch(`${UM_API_BASE}/users`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, email, password, role, categories, events }),
+          body: JSON.stringify({ email, password, role, categories, events }),
         });
       }
 
       data = await res.json();
 
       if (!res.ok) {
-        showToast(data.message || "Gagal menyimpan user.", "error");
+        showToast(data.message || "Failed to save user.", "error");
         return;
       }
 
       resetForm();
       await fetchUsers();
       document.querySelector('.nav-item__left[data-tab="user-list"]')?.click();
-      showToast(data.message || "User berhasil disimpan.", "success");
+      showToast(data.message || "User saved successfully.", "success");
     } catch (err) {
       console.error(err);
       showToast("Terjadi kesalahan saat menghubungi server.", "error");

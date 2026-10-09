@@ -335,6 +335,12 @@ body {
   color: #f0f0f0;
   font-weight: 600;
   font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.profile__avatar:hover {
+  background: rgb(175.7, 175.7, 175.7);
 }
 
 .profile__info {

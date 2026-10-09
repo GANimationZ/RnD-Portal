@@ -1,313 +1,219 @@
-// ---- Navbar for panel switching ---- //
-const navBar = document.querySelector(".nav__bar");
-const panels = document.querySelectorAll(".main-body-content .body");
+// Integrated Tools -- searchable list of Tools and Material that link out
+// to pages built by other teams. Data comes from /workspace/tools/api/items.
 
-navBar.addEventListener("click", (e) => {
-  const item = e.target.closest(".flex-1");
-  if (!item) return;
+const TOOLS_API = "/workspace/tools/api/items";
 
-  navBar
-    .querySelectorAll(".flex-1")
-    .forEach((el) => el.classList.remove("active"));
-  item.classList.add("active");
+const KIND_ICON = { Tool: "bx-cog", Material: "bx-package" };
 
-  const target = item.dataset.tab;
-  let matched = false;
+let toolItems = [];
+let toolCategories = [];
+let toolView = "card";
 
-  panels.forEach((panel) => {
-    const isMatch = panel.dataset.panel === target;
-    panel.classList.toggle("active", isMatch);
-    if (isMatch) matched = true;
-  });
+const el = (id) => document.getElementById(id);
 
-  if (!matched) {
-    console.warn(`Belum ada panel untuk tab "${target}"`);
-  }
-});
-
-// ==================== DATA (Dummy) ====================
-
-const toolsData = [
-  {
-    id: "t1",
-    name: "Multimeter Fluke 117",
-    type: "Measurement",
-    owner: "Rani Freya",
-    icon: "bx-analyse",
-    href: "https://www.google.com",
-  },
-  {
-    id: "t2",
-    name: "Soldering Station Hakko FX-888D",
-    type: "Soldering",
-    owner: "Dimas Pratama",
-    icon: "bx-wrench",
-    href: "#",
-  },
-  {
-    id: "t3",
-    name: "Oscilloscope Rigol DS1054Z",
-    type: "Measurement",
-    owner: "Sinta Wijaya",
-    icon: "bx-pulse",
-    href: "#",
-  },
-  {
-    id: "t4",
-    name: "Hot Air Rework Station",
-    type: "Soldering",
-    owner: "Rani Freya",
-    icon: "bx-wind",
-    href: "#",
-  },
-  {
-    id: "t5",
-    name: "Bench Power Supply",
-    type: "Power",
-    owner: "Dimas Pratama",
-    icon: "bx-bolt-circle",
-    href: "#",
-  },
-];
-
-const equipmentsData = [
-  {
-    id: "e1",
-    name: "Reflow Oven RO-450",
-    type: "SMT Machine",
-    owner: "Rani Freya",
-    icon: "bx-server",
-    href: "#",
-  },
-  {
-    id: "e2",
-    name: "Pick and Place Machine YSM40",
-    type: "SMT Machine",
-    owner: "Dimas Pratama",
-    icon: "bx-chip",
-    href: "#",
-  },
-  {
-    id: "e3",
-    name: "Wave Soldering Machine WS-350",
-    type: "Assembly Line",
-    owner: "Dimas Pratama",
-    icon: "bx-git-merge",
-    href: "#",
-  },
-  {
-    id: "e4",
-    name: "AOI Inspection System AX-8",
-    type: "QA Equipment",
-    owner: "Sinta Wijaya",
-    icon: "bx-search-alt",
-    href: "#",
-  },
-  {
-    id: "e5",
-    name: "ICT Tester Bed-of-Nails",
-    type: "QA Equipment",
-    owner: "Sinta Wijaya",
-    icon: "bx-test-tube",
-    href: "#",
-  },
-];
-
-// ==================== FACTORY: BROWSER CARD/LIST ====================
-
-function createItemBrowser({
-  data,
-  searchId,
-  typeSelectId,
-  ownerSelectId,
-  resetId,
-  switcherId,
-  cardListId,
-  menuListId,
-  cardContainerId,
-  menuContainerId,
-}) {
-  let currentView = "card";
-
-  function populateTypeFilter() {
-    const typeSelect = document.getElementById(typeSelectId);
-    if (!typeSelect) return;
-
-    const uniqueTypes = [...new Set(data.map((item) => item.type))];
-    uniqueTypes.forEach((type) => {
-      const option = document.createElement("option");
-      option.value = type;
-      option.textContent = type;
-      typeSelect.appendChild(option);
-    });
-  }
-
-  function populateOwnerFilter() {
-    const ownerSelect = document.getElementById(ownerSelectId);
-    if (!ownerSelect) return;
-
-    const uniqueOwners = [...new Set(data.map((item) => item.owner))];
-    uniqueOwners.forEach((owner) => {
-      const option = document.createElement("option");
-      option.value = owner;
-      option.textContent = owner;
-      ownerSelect.appendChild(option);
-    });
-  }
-
-  function getFilteredItems() {
-    const search = (document.getElementById(searchId)?.value || "")
-      .trim()
-      .toLowerCase();
-    const typeSelect = document.getElementById(typeSelectId);
-    const ownerSelect = document.getElementById(ownerSelectId);
-
-    const selectedType = typeSelect?.value || "All Types";
-    const selectedOwner = ownerSelect?.value || "All Owners";
-
-    return data.filter((item) => {
-      const matchesSearch = !search || item.name.toLowerCase().includes(search);
-      const matchesType =
-        selectedType === "All Types" || item.type === selectedType;
-      const matchesOwner =
-        selectedOwner === "All Owners" || item.owner === selectedOwner;
-      return matchesSearch && matchesType && matchesOwner;
-    });
-  }
-
-  function renderCardView(items) {
-    const container = document.getElementById(cardContainerId);
-    if (!container) return;
-
-    if (items.length === 0) {
-      container.innerHTML =
-        '<div class="empty-state">Tidak ada data yang cocok dengan filter.</div>';
-      return;
-    }
-
-    container.innerHTML = items
-      .map(
-        (item) => `
-      <a class="tool-card" href="${item.href}">
-        <span class="tool-card__icon"><i class="bxf ${item.icon}"></i></span>
-        <div class="tool-card__body">
-          <span class="tool-card__name">${item.name}</span>
-          <span class="tool-card__type">${item.type}</span>
-        </div>
-        <span class="tool-card__owner">${item.owner}</span>
-      </a>
-    `,
-      )
-      .join("");
-  }
-
-  function renderListView(items) {
-    const container = document.getElementById(menuContainerId);
-    if (!container) return;
-
-    if (items.length === 0) {
-      container.innerHTML =
-        '<div class="empty-state">Tidak ada data yang cocok dengan filter.</div>';
-      return;
-    }
-
-    container.innerHTML = items
-      .map(
-        (item) => `
-      <a class="tool-list-item" href="${item.href}">
-        <span class="tool-list-item__icon"><i class="bxf ${item.icon}"></i></span>
-        <span class="tool-list-item__name">${item.name}</span>
-        <span class="tool-list-item__type">${item.type}</span>
-        <span class="tool-list-item__owner">${item.owner}</span>
-        <i class="bxf bx-chevron-right tool-list-item__chevron"></i>
-      </a>
-    `,
-      )
-      .join("");
-  }
-
-  function renderItems() {
-    const items = getFilteredItems();
-    renderCardView(items);
-    renderListView(items);
-  }
-
-  function setView(view) {
-    currentView = view;
-    const cardView = document.getElementById(cardListId);
-    const listView = document.getElementById(menuListId);
-    const switcherIcon = document.querySelector(`#${switcherId} i`);
-    if (!cardView || !listView) return;
-
-    if (view === "card") {
-      cardView.style.display = "";
-      listView.style.display = "none";
-      if (switcherIcon) switcherIcon.className = "bxf bx-list-ul";
-    } else {
-      cardView.style.display = "none";
-      listView.style.display = "";
-      if (switcherIcon) switcherIcon.className = "bxf bx-grid-alt";
-    }
-  }
-
-  function init() {
-    populateTypeFilter();
-    populateOwnerFilter();
-    renderItems();
-    setView("card");
-
-    document.getElementById(searchId)?.addEventListener("input", renderItems);
-    document
-      .getElementById(typeSelectId)
-      ?.addEventListener("change", renderItems);
-    document
-      .getElementById(ownerSelectId)
-      ?.addEventListener("change", renderItems);
-
-    document.getElementById(resetId)?.addEventListener("click", () => {
-      const searchInput = document.getElementById(searchId);
-      const typeSelect = document.getElementById(typeSelectId);
-      const ownerSelect = document.getElementById(ownerSelectId);
-      if (searchInput) searchInput.value = "";
-      if (typeSelect) typeSelect.value = "All Types";
-      if (ownerSelect) ownerSelect.value = "All Owners";
-      renderItems();
-    });
-
-    document.getElementById(switcherId)?.addEventListener("click", () => {
-      setView(currentView === "card" ? "list" : "card");
-    });
-  }
-
-  return { init };
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = value == null ? "" : String(value);
+  return div.innerHTML;
 }
 
-// ==================== INIT ====================
+async function loadItems() {
+  try {
+    const res = await fetch(TOOLS_API);
+    const data = await res.json();
+    toolItems = data.items || [];
+    toolCategories = data.categories || [];
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to load tools.", "error");
+  }
+  populateCategories();
+  render();
+}
+
+function populateCategories() {
+  const filter = el("toolCategoryFilter");
+  const previous = filter.value;
+  filter.innerHTML =
+    '<option value="All">All Categories</option>' +
+    toolCategories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  filter.value = toolCategories.includes(previous) ? previous : "All";
+
+  el("toolCategoryOptions").innerHTML = toolCategories
+    .map((c) => `<option value="${escapeHtml(c)}"></option>`)
+    .join("");
+}
+
+function filteredItems() {
+  const search = el("toolSearch").value.trim().toLowerCase();
+  const kind = el("toolKindFilter").value;
+  const category = el("toolCategoryFilter").value;
+
+  return toolItems.filter((item) => {
+    const haystack = `${item.name} ${item.category} ${item.description || ""}`.toLowerCase();
+    return (
+      (!search || haystack.includes(search)) &&
+      (kind === "All" || item.kind === kind) &&
+      (category === "All" || item.category === category)
+    );
+  });
+}
+
+function deleteButton(item) {
+  return item.can_delete
+    ? `<button type="button" class="tool-delete" data-delete-id="${item.id}" title="Delete"><i class="bxf bx-trash"></i></button>`
+    : "";
+}
+
+function renderCards(items) {
+  const container = el("toolCardContainer");
+  container.innerHTML = items
+    .map(
+      (item) => `
+    <div class="tool-card">
+      <a class="tool-card__link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
+        <span class="tool-card__icon"><i class="bxf ${KIND_ICON[item.kind] || "bx-link"}"></i></span>
+        <div class="tool-card__body">
+          <span class="tool-card__name">${escapeHtml(item.name)}</span>
+          <span class="tool-card__meta">${escapeHtml(item.kind)} &middot; ${escapeHtml(item.category)}</span>
+          ${item.description ? `<span class="tool-card__desc">${escapeHtml(item.description)}</span>` : ""}
+        </div>
+        <i class="bxf bx-link-alt tool-card__go"></i>
+      </a>
+      ${deleteButton(item)}
+    </div>`,
+    )
+    .join("");
+}
+
+function renderList(items) {
+  const container = el("toolListContainer");
+  container.innerHTML = items
+    .map(
+      (item) => `
+    <div class="tool-list-item">
+      <a class="tool-list-item__link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
+        <span class="tool-list-item__icon"><i class="bxf ${KIND_ICON[item.kind] || "bx-link"}"></i></span>
+        <span class="tool-list-item__name">${escapeHtml(item.name)}</span>
+        <span class="tool-list-item__type">${escapeHtml(item.kind)}</span>
+        <span class="tool-list-item__category">${escapeHtml(item.category)}</span>
+        <i class="bxf bx-link-alt tool-list-item__go"></i>
+      </a>
+      ${deleteButton(item)}
+    </div>`,
+    )
+    .join("");
+}
+
+function render() {
+  const items = filteredItems();
+  el("toolCount").textContent = `(${items.length})`;
+
+  const emptyMarkup = '<div class="empty-state">No tools or material match the current filter.</div>';
+  if (items.length === 0) {
+    el("toolCardContainer").innerHTML = emptyMarkup;
+    el("toolListContainer").innerHTML = emptyMarkup;
+    return;
+  }
+  renderCards(items);
+  renderList(items);
+}
+
+function setView(view) {
+  toolView = view;
+  el("toolCardView").style.display = view === "card" ? "" : "none";
+  el("toolListView").style.display = view === "list" ? "" : "none";
+  document.querySelector("#toolViewSwitcher i").className =
+    view === "card" ? "bxf bx-list-ul" : "bxf bx-grid";
+}
+
+function openModal() {
+  el("toolModal").classList.remove("is-hidden");
+  el("toolFormName").focus();
+}
+
+function closeModal() {
+  el("toolModal").classList.add("is-hidden");
+  el("toolForm").reset();
+}
+
+async function submitForm(e) {
+  e.preventDefault();
+  const submitBtn = el("toolFormSubmit");
+  submitBtn.disabled = true;
+
+  try {
+    const res = await fetch(TOOLS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: el("toolFormKind").value,
+        name: el("toolFormName").value,
+        category: el("toolFormCategory").value,
+        url: el("toolFormUrl").value,
+        description: el("toolFormDescription").value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to save.");
+
+    closeModal();
+    showToast(data.message, "success");
+    await loadItems();
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function handleDelete(id) {
+  const confirmed = await showConfirm("Delete this entry?");
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`${TOOLS_API}/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to delete.");
+    showToast(data.message, "success");
+    await loadItems();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-  createItemBrowser({
-    data: toolsData,
-    searchId: "toolSearch",
-    typeSelectId: "toolTypeFilter",
-    ownerSelectId: "toolOwnerFilter",
-    resetId: "reset",
-    switcherId: "viewSwitcher",
-    cardListId: "cardListView",
-    menuListId: "menuListView",
-    cardContainerId: "cardContainer",
-    menuContainerId: "menuListContainer",
-  }).init();
+  ["toolSearch"].forEach((id) => el(id).addEventListener("input", render));
+  ["toolKindFilter", "toolCategoryFilter"].forEach((id) =>
+    el(id).addEventListener("change", render),
+  );
 
-  createItemBrowser({
-    data: equipmentsData,
-    searchId: "equipmentSearch",
-    typeSelectId: "equipmentTypeFilter",
-    ownerSelectId: "equipmentOwnerFilter",
-    resetId: "resetEquipment",
-    switcherId: "equipmentViewSwitcher",
-    cardListId: "equipmentCardListView",
-    menuListId: "equipmentMenuListView",
-    cardContainerId: "equipmentCardContainer",
-    menuContainerId: "equipmentMenuListContainer",
-  }).init();
+  el("toolReset").addEventListener("click", () => {
+    el("toolSearch").value = "";
+    el("toolKindFilter").value = "All";
+    el("toolCategoryFilter").value = "All";
+    render();
+  });
+
+  el("toolViewSwitcher").addEventListener("click", () =>
+    setView(toolView === "card" ? "list" : "card"),
+  );
+
+  el("toolAddBtn").addEventListener("click", openModal);
+  el("toolModalClose").addEventListener("click", closeModal);
+  el("toolModal").addEventListener("click", (e) => {
+    if (e.target === el("toolModal")) closeModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !el("toolModal").classList.contains("is-hidden")) closeModal();
+  });
+  el("toolForm").addEventListener("submit", submitForm);
+
+  document.querySelector(".main-body-content").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-delete-id]");
+    if (btn) handleDelete(btn.dataset.deleteId);
+  });
+
+  setView("card");
+  loadItems();
 });

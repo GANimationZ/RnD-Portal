@@ -33,7 +33,7 @@
     </div>
 
     <form class="settings-card" id="profileForm">
-      <span class="settings-card__title">Informasi Profil</span>
+      <span class="settings-card__title">Profile Information</span>
 
       <label class="settings-field">
         <span>Email</span>
@@ -45,11 +45,11 @@
         <input type="text" name="job_title" value="{{ user.job_title or '' }}" placeholder="mis. PCBA Engineer" />
       </label>
 
-      <button type="submit" class="btn-primary">Simpan Perubahan</button>
+      <button type="submit" class="btn-primary">Save Changes</button>
     </form>
 
     <form class="settings-card" id="passwordForm">
-      <span class="settings-card__title">Ubah Password</span>
+      <span class="settings-card__title">Change Password</span>
 
       <label class="settings-field">
         <span>Password Saat Ini</span>
@@ -66,7 +66,7 @@
         <input type="password" name="confirm_password" required minlength="8" autocomplete="new-password" />
       </label>
 
-      <button type="submit" class="btn-primary">Ubah Password</button>
+      <button type="submit" class="btn-primary">Change Password</button>
     </form>
   </div>
 {% endblock %}

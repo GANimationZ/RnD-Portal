@@ -64,7 +64,7 @@ function createEmployeePanelController(ids, rangeScope) {
 
     if (employees.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="3" class="center">Tidak ada data.</td></tr>';
+        '<tr><td colspan="3" class="center">No recorded User data to display</td></tr>';
       return;
     }
 

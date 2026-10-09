@@ -54,7 +54,7 @@ const NAV_GROUPS = [
       },
       {
         id: "tools",
-        label: "Integrated Tab Tools",
+        label: "Integrated Tools",
         icon: "tool",
         href: "/workspace/tools",
       },

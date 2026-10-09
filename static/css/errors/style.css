@@ -54,7 +54,8 @@ body {
 .error-card__brand img {
   width: 32px;
   height: 32px;
-  object-fit: contain;
+  -o-object-fit: contain;
+     object-fit: contain;
 }
 .error-card__icon {
   display: flex;
@@ -164,6 +165,4 @@ body {
   .error-card {
     animation: none;
   }
-}
-
-/*# sourceMappingURL=style.css.map */
+}/*# sourceMappingURL=style.css.map */

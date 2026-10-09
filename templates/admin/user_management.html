@@ -12,16 +12,16 @@
 {% block content %}
   <div class="nav__bar">
     <span class="nav-item__left flex-1 active" data-tab="user-list"
-      >Daftar User</span
+      >User List</span
     >
     <span class="nav-item__left flex-1" data-tab="user-form" id="formTabLabel">
       <i class="bxf bx-plus"></i>
-      Tambah User</span
+      Add User</span
     >
   </div>
 
   <div class="main-body-content">
-    {# ---- Panel Daftar User ---- #}
+    {# ---- User List panel ---- #}
     <div class="body active" data-panel="user-list">
       <div class="um-summary">
         <div class="um-summary__card">
@@ -41,7 +41,7 @@
           <span class="um-summary__value" id="umTotalMember">0</span>
         </div>
         <div class="um-summary__card um-summary__card--pending">
-          <span class="um-summary__label">Menunggu Verifikasi</span>
+          <span class="um-summary__label">Pending Verification</span>
           <span class="um-summary__value" id="umTotalPending">0</span>
         </div>
       </div>
@@ -67,19 +67,13 @@
       </div>
     </div>
 
-    {# ---- Panel Tambah / Edit User ---- #}
+    {# ---- Add/Edit User panel ---- #}
     <div class="body" data-panel="user-form">
       <div class="register-issue um-form-wrapper">
-        <span class="register-issue__title" id="umFormTitle">Tambah User Baru</span>
+        <span class="register-issue__title" id="umFormTitle">Add New User</span>
         <form class="register-issue__form um-form" id="userForm">
           <input type="hidden" id="umEditingId" value="" />
 
-          <input
-            id="umUsername"
-            type="text"
-            placeholder="Username"
-            required
-          />
           <input
             id="umEmail"
             type="email"
@@ -89,7 +83,7 @@
           <input
             id="umPassword"
             type="password"
-            placeholder="Password (minimal 8 karakter)"
+            placeholder="Password (minimum 8 characters)"
           />
           <p class="um-form__hint" id="umPasswordHint">
             Wajib diisi untuk user baru. Saat mengedit, kosongkan kalau tidak ingin mengganti password.
@@ -103,7 +97,7 @@
 
           <div class="um-form__scope">
             <div class="um-form__scope-group">
-              <span class="um-form__scope-title">Category (boleh lebih dari satu)</span>
+              <span class="um-form__scope-title">Category (multiple allowed)</span>
               <div class="um-form__checkbox-grid" id="umCategoryGrid">
                 {% for category in category_choices %}
                   <label class="um-checkbox">
@@ -115,7 +109,7 @@
             </div>
 
             <div class="um-form__scope-group">
-              <span class="um-form__scope-title">Event (boleh lebih dari satu)</span>
+              <span class="um-form__scope-title">Event (multiple allowed)</span>
               <div class="um-form__checkbox-grid" id="umEventGrid">
                 {% for event in event_choices %}
                   <label class="um-checkbox">
@@ -133,9 +127,9 @@
 
           <div class="um-form__actions">
             <button type="button" id="umCancelEdit" class="um-btn-secondary is-hidden">
-              Batal Edit
+              Cancel Edit
             </button>
-            <input type="submit" value="Simpan User" id="umSubmitBtn" />
+            <input type="submit" value="Save User" id="umSubmitBtn" />
           </div>
         </form>
       </div>

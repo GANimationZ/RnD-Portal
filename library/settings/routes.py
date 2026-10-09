@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify, render_template, request, session
 from library.auth import login_required
 from library.extensions import db
 from library.models import User
+from library.naming import name_from_email, unique_display_name
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
 
@@ -42,14 +43,27 @@ def update_profile():
     job_title = (data.get("job_title") or "").strip()
 
     if not email:
-        return jsonify({"error": "Email tidak boleh kosong."}), 400
+        return jsonify({"error": "Email can't be empty."}), 400
 
     user = _current_user()
-    user.email = email
+
+    if email != user.email:
+        if User.query.filter(User.email == email, User.id != user.id).first():
+            return jsonify({"error": "An account with this email already exists."}), 409
+        user.email = email
+        # Name follows the email -- see library/naming.py.
+        user.username = unique_display_name(
+            name_from_email(email),
+            lambda candidate: User.query.filter(
+                User.username == candidate, User.id != user.id
+            ).first() is not None,
+        )
+        session["username"] = user.username
+
     user.job_title = job_title or None
     db.session.commit()
 
-    return jsonify({"message": "Profil berhasil diperbarui."}), 200
+    return jsonify({"message": "Profile updated successfully.", "username": user.username}), 200
 
 
 @settings_bp.route("/password", methods=["POST"])
@@ -66,13 +80,13 @@ def update_password():
     user = _current_user()
 
     if not user.check_password(current_password):
-        return jsonify({"error": "Password saat ini salah."}), 400
+        return jsonify({"error": "Current password is incorrect."}), 400
     if len(new_password) < 8:
-        return jsonify({"error": "Password baru minimal 8 karakter."}), 400
+        return jsonify({"error": "New password must be at least 8 characters."}), 400
     if new_password != confirm_password:
-        return jsonify({"error": "Konfirmasi password tidak cocok."}), 400
+        return jsonify({"error": "Password confirmation doesn't match."}), 400
 
     user.set_password(new_password)
     db.session.commit()
 
-    return jsonify({"message": "Password berhasil diubah. Silakan login ulang kalau diminta."}), 200
+    return jsonify({"message": "Password changed successfully. Please log in again if prompted."}), 200

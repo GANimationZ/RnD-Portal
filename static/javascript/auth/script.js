@@ -14,15 +14,14 @@ toLogin.addEventListener("click", (e) => {
   authContainer.classList.remove("right-panel-active");
 });
 
-// ---- Main Function ---- //
+// ---- Register ---- //
 document
   .getElementById("register")
   .addEventListener("submit", async function (e) {
     e.preventDefault();
 
-    const username = document.getElementById("username").value;
     const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value
+    const password = document.getElementById("password").value;
     const retype = document.getElementById("retype").value;
     const messageEl = document.getElementById("registermessage");
     const submitBtn = this.querySelector(".btn");
@@ -34,12 +33,12 @@ document
       const response = await fetch("/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password, retype }),
+        body: JSON.stringify({ email, password, retype }),
       });
 
       const result = await response.json();
       messageEl.innerText = result.message || result.error;
-      messageEl.style.display = "block"; // tampilkan pesan
+      messageEl.style.display = "block";
 
       if (response.ok) {
         messageEl.style.color = "green";
@@ -47,7 +46,7 @@ document
           authContainer.classList.remove("right-panel-active");
           document.getElementById("register").reset();
           messageEl.innerText = "";
-          messageEl.style.display = "none"; // sembunyikan lagi
+          messageEl.style.display = "none";
           submitBtn.disabled = false;
           submitBtn.value = "Register";
         }, 1500);
@@ -58,7 +57,7 @@ document
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      messageEl.innerText = "Terjadi kesalahan koneksi.";
+      messageEl.innerText = "A connection error occurred.";
       messageEl.style.color = "red";
       messageEl.style.display = "block";
       submitBtn.disabled = false;
@@ -68,17 +67,16 @@ document
 
 // ---- Login ---- //
 const loginForm = document.getElementById("login");
-const loginUsernameInput = document.getElementById("loginUsername");
+const loginEmailInput = document.getElementById("loginEmail");
 const loginPasswordInput = document.getElementById("loginPassword");
 const loginMessageEl = document.getElementById("loginmessage");
 const loginFields = {
-  username: loginUsernameInput,
+  email: loginEmailInput,
   password: loginPasswordInput,
 };
 
-// Tampilkan pesan di bawah form. #loginmessage default-nya display:none di
-// CSS, jadi HARUS di-set "block" di sini -- kalau tidak pesan tidak akan
-// pernah terlihat.
+// Show a message under the form. #loginmessage defaults to display:none
+// in CSS, so it MUST be set to "block" here or it never becomes visible.
 function showLoginMessage(text, type = "error") {
   loginMessageEl.innerText = text;
   loginMessageEl.style.color = type === "success" ? "green" : "red";
@@ -94,8 +92,8 @@ function clearLoginFeedback() {
   });
 }
 
-// Tandai kolom yang bermasalah (border merah) dan fokuskan supaya user
-// langsung bisa memperbaikinya.
+// Mark the offending field (red border) and focus it so the user can fix
+// it right away.
 function markLoginFieldInvalid(field) {
   const input = loginFields[field];
   if (!input) return;
@@ -105,7 +103,7 @@ function markLoginFieldInvalid(field) {
   if (field === "password") input.select();
 }
 
-// Begitu user mulai mengetik ulang, hilangkan status error kolom itu.
+// As soon as the user starts typing again, clear that field's error state.
 Object.values(loginFields).forEach((input) => {
   input.addEventListener("input", clearLoginFeedback);
 });
@@ -113,21 +111,21 @@ Object.values(loginFields).forEach((input) => {
 loginForm.addEventListener("submit", async function (e) {
   e.preventDefault();
 
-  const username = loginUsernameInput.value.trim();
+  const email = loginEmailInput.value.trim();
   const password = loginPasswordInput.value;
   const submitBtn = this.querySelector(".btn");
 
   clearLoginFeedback();
 
-  // Validasi cepat di sisi client (atribut `required` tidak menangkap input
-  // yang hanya berisi spasi). Backend tetap memvalidasi ulang.
-  if (!username) {
-    showLoginMessage("Username wajib diisi.");
-    markLoginFieldInvalid("username");
+  // Quick client-side validation (`required` doesn't catch whitespace-only
+  // input). The backend re-validates anyway.
+  if (!email) {
+    showLoginMessage("Email is required.");
+    markLoginFieldInvalid("email");
     return;
   }
   if (!password) {
-    showLoginMessage("Password wajib diisi.");
+    showLoginMessage("Password is required.");
     markLoginFieldInvalid("password");
     return;
   }
@@ -139,11 +137,11 @@ loginForm.addEventListener("submit", async function (e) {
     const response = await fetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
     });
 
-    // Server error kadang membalas HTML (bukan JSON) -- jangan sampai
-    // parse gagal dilaporkan sebagai "masalah koneksi".
+    // Server errors sometimes reply with HTML (not JSON) -- don't let a
+    // parse failure get reported as a "connection problem".
     let result = {};
     try {
       result = await response.json();
@@ -152,24 +150,24 @@ loginForm.addEventListener("submit", async function (e) {
     }
 
     if (response.ok) {
-      showLoginMessage(result.message || "Login berhasil.", "success");
-      // Tombol sengaja dibiarkan disabled selama proses pindah halaman.
-      // Tujuan ditentukan backend berdasarkan role (Admin/QA tidak boleh
-      // masuk KPI Dashboard).
+      showLoginMessage(result.message || "Login successful.", "success");
+      // Button is intentionally left disabled while navigating away.
+      // The destination is decided by the backend based on role (Admin/QA
+      // can't enter the KPI Dashboard).
       window.location.href = result.redirect || "/";
       return;
     }
 
     const fallback =
       response.status >= 500
-        ? "Terjadi kesalahan pada server. Silakan coba lagi beberapa saat lagi."
-        : "Login gagal. Silakan coba lagi.";
+        ? "A server error occurred. Please try again shortly."
+        : "Login failed. Please try again.";
     showLoginMessage(result.error || result.message || fallback);
     markLoginFieldInvalid(result.field);
   } catch (err) {
     console.error("Fetch error:", err);
     showLoginMessage(
-      "Tidak dapat terhubung ke server. Periksa koneksi Anda lalu coba lagi.",
+      "Unable to reach the server. Check your connection and try again.",
     );
   }
 

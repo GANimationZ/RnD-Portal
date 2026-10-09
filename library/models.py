@@ -29,8 +29,12 @@ class User(db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
+    # No separate username is collected anymore -- this is auto-derived
+    # from the email's local-part at creation time (see library/naming.py),
+    # e.g. "john.doe@test.com" -> "John Doe". Still the column shown
+    # everywhere as the person's name.
     username = db.Column(db.String(255), nullable=False, unique=True)
-    email = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="Member")
     job_title = db.Column(db.String(120), nullable=True)  # cosmetic label for KPI Dashboard
@@ -310,3 +314,38 @@ class TvDesignAttachment(db.Model):
             "type": self.file_type,
             "url": url_for("static", filename=f"assets/uploads/tv-design/{self.filename}"),
         }
+
+
+class ToolLink(db.Model):
+    """A link-out entry in Integrated Tools. The actual web tools /
+    material pages are built by other teams, so this only stores where to
+    send the user (url) plus how to find it (kind, category, name)."""
+
+    __tablename__ = "tool_links"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False, index=True)
+    kind = db.Column(db.String(20), nullable=False, default="Tool")  # "Tool" | "Material"
+    category = db.Column(db.String(80), nullable=False, index=True)
+    url = db.Column(db.String(1000), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "kind": self.kind,
+            "category": self.category,
+            "url": self.url,
+            "description": self.description,
+            "created_by": self.created_by.username if self.created_by else None,
+            "created_by_id": self.created_by_id,
+            "created_at": self.created_at.strftime("%d-%m-%Y") if self.created_at else None,
+        }
+
+    def __repr__(self):
+        return f"<ToolLink {self.kind}: {self.name}>"

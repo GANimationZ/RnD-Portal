@@ -1,5 +1,5 @@
-// Konsisten dengan halaman lain: pakai window.showToast() (lihat
-// static/javascript/shared/notify.js), bukan alert() bawaan browser.
+// Consistent with other pages: uses window.showToast() (see
+// static/javascript/shared/notify.js) instead of the browser's alert().
 
 const profileForm = document.getElementById("profileForm");
 if (profileForm) {
@@ -18,10 +18,21 @@ if (profileForm) {
     const data = await res.json();
 
     if (!res.ok) {
-      showToast(data.error || "Gagal menyimpan profil.", "error");
+      showToast(data.error || "Failed to save profile.", "error");
       return;
     }
+
     showToast(data.message, "success");
+
+    // The display name follows the email, so it may have just changed --
+    // refresh the avatar initials/name shown on this page without a
+    // full reload.
+    if (data.username) {
+      const nameEl = document.querySelector(".settings-card__username");
+      const avatarEl = document.querySelector(".settings-card__avatar");
+      if (nameEl) nameEl.textContent = data.username;
+      if (avatarEl) avatarEl.textContent = data.username.slice(0, 2).toUpperCase();
+    }
   });
 }
 
@@ -43,7 +54,7 @@ if (passwordForm) {
     const data = await res.json();
 
     if (!res.ok) {
-      showToast(data.error || "Gagal mengubah password.", "error");
+      showToast(data.error || "Failed to change password.", "error");
       return;
     }
     showToast(data.message, "success");

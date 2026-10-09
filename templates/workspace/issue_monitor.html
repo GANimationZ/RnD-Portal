@@ -333,31 +333,24 @@
           <span class="priority-matrix__title">
             <i class="bxf bx-crosshair"></i> Priority Matrix
           </span>
-          <p class="priority-matrix__desc">
-            Issue aktif (belum Closed) digambar sebagai batang waktu dari
-            tanggal dibuat sampai deadline, dalam rentang satu quarter.
-            Issue yang <strong>sudah melewati deadline</strong> batangnya
-            terus memanjang sampai hari ini &amp; berwarna merah, dan
-            otomatis pindah ke baris paling atas.
-          </p>
         </div>
         <div class="priority-matrix__legend">
-          <span><span class="legend-dot" style="background:#e24b4a"></span>Overdue (lewat deadline)</span>
-          <span><span class="legend-dot" style="background:#f2a623"></span>Deadline &le; 7 hari</span>
-          <span><span class="legend-dot" style="background:#3ddc97"></span>Masih longgar</span>
+          <span><span class="legend-dot" style="background:#e24b4a"></span>Overdue</span>
+          <span><span class="legend-dot" style="background:#f2a623"></span>Deadline &le; 7 Day</span>
+          <span><span class="legend-dot" style="background:#3ddc97"></span>Active</span>
         </div>
       </div>
 
       <div class="gantt" id="ganttChart">
         <div class="gantt__toolbar">
           <span class="gantt__quarter-label" id="ganttQuarterLabel">-</span>
-          <span class="gantt__today-note"><span class="gantt__today-dot"></span>Hari ini</span>
+          <span class="gantt__today-note"><span class="gantt__today-dot"></span>Today</span>
         </div>
         <div class="gantt__scroll">
           <div class="gantt__header" id="ganttHeader"></div>
           <div class="gantt__body" id="ganttBody"></div>
         </div>
-        <div class="gantt__empty is-hidden" id="ganttEmpty">Tidak ada issue aktif untuk ditampilkan.</div>
+        <div class="gantt__empty is-hidden" id="ganttEmpty">No Active Issue to display.</div>
       </div>
     </div>
   </div>
