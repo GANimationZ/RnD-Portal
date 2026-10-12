@@ -16,7 +16,7 @@
 {% block content %}
   <div class="issue-detail">
     <a class="issue-detail__back" href="{{ url_for('issue_monitor.index') }}">
-      <i class="bxf bx-arrow-back"></i> Kembali ke Issue Monitor
+      <i class="bxf bx-arrow-back"></i> Back to Issue Monitor
     </a>
 
     <div class="issue-detail__card">
@@ -24,10 +24,10 @@
         {% if issue.image_filename %}
           <img
             src="{{ url_for('static', filename='assets/upload/' ~ issue.image_filename) }}"
-            alt="Lampiran issue #{{ issue.id }}"
+            alt="Issue #{{ issue.id }} attachment"
           />
         {% else %}
-          <div class="issue-detail__no-image">Tidak ada gambar dilampirkan</div>
+          <div class="issue-detail__no-image">No image attached</div>
         {% endif %}
       </div>
 
@@ -95,8 +95,8 @@
 {% block script %}
   {{ super() }}
   <script>
-    // Aksi cepat di halaman detail: toggle Hold / tandai Closed lewat API
-    // yang sama dipakai panel List Issue (PATCH /api/issues/<id>/status).
+    // Quick actions on the detail page: toggle Hold / mark Closed via the API
+    // that the List Issue panel also uses (PATCH /api/issues/<id>/status).
     (function () {
       const statusBadge = document.getElementById("statusBadge");
       const holdBtn = document.getElementById("toggleHoldBtn");
@@ -115,14 +115,14 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status }),
           });
-          if (!res.ok) throw new Error("Gagal update status");
+          if (!res.ok) throw new Error("Failed to update status");
           const data = await res.json();
 
           statusBadge.textContent = data.issue.status;
           statusBadge.className = `badge ${STATUS_BADGE_CLASS[data.issue.status] || ""}`;
           holdBtn.textContent = data.issue.status === "On Hold" ? "Lepas Hold" : "Hold Issue";
         } catch (err) {
-          showToast("Gagal memperbarui status issue.", "error");
+          showToast("Failed to update issue status.", "error");
         }
       }
 

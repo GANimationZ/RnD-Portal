@@ -1,17 +1,5 @@
 // ====================================================================
 // KPI Dashboard -- frontend controller
-//
-// All data & calculations (workload bar, completion rate, leaderboard,
-// Recent/Last Week/Last Month/Last Year aggregation, trend chart) come
-// pre-computed from the backend (see library/workspace/kpi_dashboard/
-// metrics.py & routes.py). This file only:
-//   1. fetches data from /workspace/kpi-dashboard/api/*
-//   2. renders it to the DOM
-//   3. drives Chart.js (the one thing that must run client-side)
-//
-// createEmployeePanelController() & createTeamPanelController() are each
-// used TWICE: once for the live panel (Individual/Team), once for the
-// History sub-panel -- so both stay visually identical.
 // ====================================================================
 
 const API_BASE = "/workspace/kpi-dashboard";
@@ -64,7 +52,7 @@ function createEmployeePanelController(ids, rangeScope) {
 
     if (employees.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="3" class="center">No recorded User data to display</td></tr>';
+        '<tr><td colspan="3" class="center">No data.</td></tr>';
       return;
     }
 
@@ -104,14 +92,14 @@ function createEmployeePanelController(ids, rangeScope) {
       <div class="insight">
         <span class="insight__dot" style="background:${insights.lightest.color}"></span>
         <div>
-          <span class="insight__label">Beban Paling Ringan</span>
+          <span class="insight__label">Lightest Workload</span>
           <span class="insight__value">${insights.lightest.name} &middot; ${insights.lightest.hours.toFixed(1)}h</span>
         </div>
       </div>
       <div class="insight insight--danger">
         <span class="insight__dot" style="background:${insights.heaviest.color}"></span>
         <div>
-          <span class="insight__label">Perlu Perhatian</span>
+          <span class="insight__label">Needs Attention</span>
           <span class="insight__value">${insights.heaviest.name} &middot; ${insights.heaviest.hours.toFixed(1)}h</span>
         </div>
       </div>
@@ -185,7 +173,7 @@ function createEmployeePanelController(ids, rangeScope) {
         <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${detail.pending}</span></div>
         <div class="emp-stat ${detail.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${detail.overdue}</span></div>
         <div class="emp-stat"><span class="emp-stat__label">Completion Rate</span><span class="emp-stat__value">${detail.completionRate}%</span></div>
-        <div class="emp-stat"><span class="emp-stat__label">Avg. Resolution</span><span class="emp-stat__value">${detail.avgResolutionDays} hari</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Avg. Resolution</span><span class="emp-stat__value">${detail.avgResolutionDays} days</span></div>
       </div>
       <div class="emp-notes">
         <span class="emp-notes__title">Best Practice Notes &middot; ${detail.rangeLabel}</span>
@@ -340,10 +328,6 @@ function createTeamPanelController(ids, rangeScope) {
 }
 
 // ==================== Controller instances ====================
-// Live Individual & Team panels, plus the History Individual/Team
-// sub-panels, share the exact same controllers & endpoints so all four
-// stay consistent.
-
 const individualPanel = createEmployeePanelController(
   {
     tableBody: "employeeTableBody",
@@ -383,16 +367,8 @@ const historyTeamPanel = createTeamPanelController(
 );
 
 // ==================== Monthly Excel archive (Import/Export/Download) ====================
-// Unrelated to the Recent/Last Week/Last Month/Last Year filters -- just
-// manages previously-exported monthly .xlsx archive files (legacy
-// feature, kept as-is).
-
 let historySnapshots = [];
 let historyMonthsLoaded = false;
-
-// Archive month picker: grouped by year (optgroup), flags the current
-// month, and can be navigated with Prev/Next without opening the
-// dropdown.
 
 function currentMonthFilename() {
   const now = new Date();
@@ -404,7 +380,7 @@ function renderHistoryMonthOptions() {
   if (!select) return;
 
   if (historySnapshots.length === 0) {
-    select.innerHTML = '<option value="">Belum ada arsip</option>';
+    select.innerHTML = '<option value="">No archive yet</option>';
     return;
   }
 
@@ -422,7 +398,7 @@ function renderHistoryMonthOptions() {
         .map((snap) => {
           const label =
             snap.filename === thisMonth
-              ? `${snap.label} (Bulan ini)`
+              ? `${snap.label} (This month)`
               : snap.label;
           return `<option value="${snap.filename}">${label}</option>`;
         })
@@ -449,7 +425,6 @@ function updateHistoryNavButtons() {
   if (!select || !prevBtn || !nextBtn) return;
 
   const index = historySnapshots.findIndex((s) => s.filename === select.value);
-  // historySnapshots is sorted newest -> oldest, so "previous" = index+1.
   prevBtn.disabled = index === -1 || index >= historySnapshots.length - 1;
   nextBtn.disabled = index <= 0;
 }
@@ -470,7 +445,7 @@ async function loadHistoryMonths() {
     updateHistoryNavButtons();
   } catch (err) {
     console.error(err);
-    select.innerHTML = '<option value="">Gagal memuat arsip</option>';
+    select.innerHTML = '<option value="">Failed to load archive</option>';
   }
 }
 
@@ -491,17 +466,17 @@ async function handleHistoryImport(event) {
       throw new Error(result.message || `HTTP ${response.status}`);
 
     showToast(
-      `Import selesai: ${result.updated} data diperbarui, ${result.created} data baru ditambahkan.`,
+      `Import complete: ${result.updated} records updated, ${result.created} new records added.`,
       "success",
     );
   } catch (err) {
     console.error(err);
     showToast(
-      "Gagal import file Excel. Pastikan formatnya sesuai hasil Export Excel.",
+      "Failed to import the Excel file. Make sure its format matches an exported file.",
       "error",
     );
   } finally {
-    event.target.value = ""; // reset so the same file can be picked again
+    event.target.value = "";
   }
 }
 
@@ -597,7 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const index = historySnapshots.findIndex(
         (s) => s.filename === el("historyMonthSelect").value,
       );
-      if (index !== -1) selectHistoryMonthByIndex(index + 1); // +1 = bulan lebih lama
+      if (index !== -1) selectHistoryMonthByIndex(index + 1);
     });
   }
   if (nextBtn) {
@@ -605,7 +580,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const index = historySnapshots.findIndex(
         (s) => s.filename === el("historyMonthSelect").value,
       );
-      if (index !== -1) selectHistoryMonthByIndex(index - 1); // -1 = bulan lebih baru
+      if (index !== -1) selectHistoryMonthByIndex(index - 1);
     });
   }
 

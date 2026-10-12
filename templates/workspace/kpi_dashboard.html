@@ -17,6 +17,9 @@
     <span class="flex-1" data-tab="history">History</span>
   </div>
 
+  {# ---- Time-range tabs (Recent/Last Week/Last Month/Last Year) ----
+     Reused in the Individual, Team, & both History sub-panels,
+     so all four places look consistent. #}
   {% macro range_tabs(scope) %}
     <div class="range-tabs" data-range-scope="{{ scope }}">
       <button type="button" class="range-tabs__btn active" data-range="recent">
@@ -34,6 +37,9 @@
     </div>
   {% endmacro %}
 
+  {# ---- Header title, shared by employee_panel & team_panel so both
+     titles ("Employee Performance" & "Team Summary") are identical in style:
+     always OUTSIDE the card/table, not squeezed inside .employees ---- #}
   {% macro panel_header(title, icon, scope, show_range) %}
     <div class="panel-header">
       <span class="panel-header__title"
@@ -51,8 +57,8 @@
         <table>
           <thead>
             <tr>
-              <th>Nama</th>
-              <th>Beban</th>
+              <th>Name</th>
+              <th>Workload</th>
             </tr>
           </thead>
           <tbody id="{{ table_id }}"></tbody>
@@ -72,12 +78,14 @@
       </div>
     </div>
 
+    {# ---- Light/heavy workload insights + legend, kept at the bottom so
+       they no longer crowd the employee picker table above ---- #}
     <div class="panel-footer">
       <div class="employees__insights" id="{{ insights_id }}"></div>
       <div class="employees__legend">
-        <span class="legend-dot" style="background:#1e7e33"></span>Cepat
-        <span class="legend-dot" style="background:#f2a623"></span>Sedang
-        <span class="legend-dot" style="background:#e24b4a"></span>Lama
+        <span class="legend-dot" style="background:#1e7e33"></span>Fast
+        <span class="legend-dot" style="background:#f2a623"></span>Medium
+        <span class="legend-dot" style="background:#e24b4a"></span>Slow
       </div>
     </div>
   {% endmacro %}
@@ -96,7 +104,7 @@
 
     <div class="team-leaderboard">
       <span class="team-leaderboard__title"
-        ><i class="bxf bx-trophy"></i> Peringkat Completion Rate</span
+        ><i class="bxf bx-trophy"></i> Completion Rate Leaderboard</span
       >
       <div id="{{ leaderboard_id }}"></div>
     </div>
@@ -154,7 +162,7 @@
             type="button"
             class="history-nav-btn"
             id="historyPrevBtn"
-            title="Bulan sebelumnya"
+            title="Previous month"
           >
             <i class="bxf bx-chevron-left"></i>
           </button>
@@ -163,13 +171,13 @@
             type="button"
             class="history-nav-btn"
             id="historyNextBtn"
-            title="Bulan berikutnya"
+            title="Next month"
           >
             <i class="bxf bx-chevron-right"></i>
           </button>
           <a class="btn-export" id="historyDownloadBtn" href="#">
             <i class="bxf bx-arrow-to-bottom"></i>
-            Download
+            Download This File
           </a>
         </div>
 
@@ -187,10 +195,14 @@
         </div>
       </div>
 
+      {# ---- Sub-panel: Individual, same layout & data as the panel above,
+         but WITHOUT range_tabs (show_range=false) since Archive Month
+         already covers that ---- #}
       <div class="history-subpanel active" data-subpanel="individual">
         {{ employee_panel("history-individual", "historyEmployeeTableBody", "historyEmployeeInsights", "historyEmpTrendChart", "historyEmpContent", show_range=false) }}
       </div>
 
+      {# ---- Sub-panel: Team, sama alasannya, TANPA range_tabs ---- #}
       <div class="history-subpanel" data-subpanel="team" style="display: none">
         {{ team_panel("history-team", "historyTeamSummary", "historyTeamComparisonChart", "historyTeamLeaderboard", show_range=false) }}
       </div>

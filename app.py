@@ -1,11 +1,10 @@
-"""
-Entry point WSGI. Logic perakitan aplikasi (config, db, blueprint) ada di
-library/__init__.py (create_app()) -- lihat docstring di sana untuk alasan
-kenapa dipisah begini.
+"""WSGI entry point. App assembly (config, db, blueprints) lives in
+library/__init__.py (create_app()) -- see the docstring there for why it's
+split out.
 
-Menjalankan app:
+Run the app:
     python app.py
-Atau (kalau nanti pakai Gunicorn/dsb di production):
+Or (if you later use Gunicorn etc. in production):
     gunicorn "app:app"
 """
 

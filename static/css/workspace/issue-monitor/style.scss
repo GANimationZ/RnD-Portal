@@ -565,7 +565,7 @@
 }
 
 .priority-matrix__legend {
-  display: flex;
+  flex-direction: column;
   gap: 6px;
   font-size: 11px;
   color: #6b6b6b;
@@ -787,20 +787,6 @@
   font-size: 13px;
   font-weight: 700;
   color: $secondary-color;
-}
-.gantt__today-note {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #8a8f98;
-}
-.gantt__today-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #4f8cff;
-  display: inline-block;
 }
 
 .gantt__scroll {

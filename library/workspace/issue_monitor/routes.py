@@ -72,12 +72,12 @@ def api_create_issue():
     files = request.files.getlist("attachments") or ([request.files["image"]] if request.files.get("image") else [])
 
     if not all([title, category, event, description, deadline_raw]):
-        return jsonify({"message": "Semua field wajib diisi."}), 400
+        return jsonify({"message": "All fields are required."}), 400
 
     try:
         deadline = datetime.strptime(deadline_raw, "%Y-%m-%d").date()
     except ValueError:
-        return jsonify({"message": "Format deadline tidak valid."}), 400
+        return jsonify({"message": "Invalid deadline format."}), 400
 
     # assignee_id is optional (open to anyone whose scope matches).
     # If given, must be a Member whose scope actually covers this
@@ -86,14 +86,14 @@ def api_create_issue():
     if assignee_id_raw:
         candidate = User.query.get(assignee_id_raw)
         if not candidate or candidate.role != "Member" or not candidate.covers(category, event):
-            return jsonify({"message": "Assignee tidak valid untuk category/event ini."}), 400
+            return jsonify({"message": "Invalid assignee for this category/event."}), 400
         assignee_id = candidate.id
 
     for file in files:
         if file and file.filename and not is_allowed(file.filename):
             return jsonify({
-                "message": f'Format file "{file.filename}" tidak didukung. '
-                           "Gunakan gambar, PDF, Word, Excel, atau PowerPoint."
+                "message": f'File "{file.filename}" has an unsupported format. '
+                           "Use an image, PDF, Word, Excel, or PowerPoint file."
             }), 400
 
     issue = Issue(
@@ -128,7 +128,7 @@ def api_create_issue():
 
     db.session.commit()
 
-    return jsonify({"message": "Issue berhasil didaftarkan.", "issue": issue.to_dict()}), 201
+    return jsonify({"message": "Issue registered successfully.", "issue": issue.to_dict()}), 201
 
 
 @issue_monitor_bp.route("/api/issues/<int:issue_id>/status", methods=["PATCH"])
@@ -141,7 +141,7 @@ def api_update_status(issue_id):
     assignee_id_raw = data.get("assignee_id")  # optional: assign executor at close time
 
     if status not in VALID_STATUS:
-        return jsonify({"message": "Status tidak valid."}), 400
+        return jsonify({"message": "Invalid status."}), 400
 
     was_assigned_before = issue.assignee_id is not None
 
@@ -151,7 +151,7 @@ def api_update_status(issue_id):
     if assignee_id_raw and not issue.assignee_id:
         candidate = User.query.get(assignee_id_raw)
         if not candidate or candidate.role != "Member" or not candidate.covers(issue.category, issue.event):
-            return jsonify({"message": "Assignee tidak valid untuk category/event issue ini."}), 400
+            return jsonify({"message": "Invalid assignee for this issue's category/event."}), 400
         issue.assignee_id = candidate.id
 
     issue.status = status
@@ -163,4 +163,4 @@ def api_update_status(issue_id):
 
     db.session.commit()
 
-    return jsonify({"message": "Status diperbarui.", "issue": issue.to_dict()})
+    return jsonify({"message": "Status updated.", "issue": issue.to_dict()})

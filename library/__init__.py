@@ -70,4 +70,18 @@ def _register_context_processors(app):
             "current_role": role,
             "is_super_admin": role == "Super Admin",
             "is_admin_or_above": role in ("Super Admin", "Admin"),
+            "current_user_avatar": _current_user_avatar_url(),
         }
+
+
+def _current_user_avatar_url():
+    """Profile picture URL of the logged-in user (None if not set)."""
+    from flask import session
+
+    from library.models import User
+
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    user = User.query.get(user_id)
+    return user.profile_picture_url if user else None

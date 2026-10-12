@@ -1,9 +1,5 @@
 // ====================================================================
 // Notifikasi custom (toast + confirm dialog) -- pengganti alert()/
-// confirm() bawaan browser yang tampilannya beda-beda tiap browser &
-// tidak bisa di-style. Dimuat global lewat templates/partials/
-// top-sidebar.html, jadi tersedia di semua halaman workspace/admin
-// sebagai window.showToast() & window.showConfirm().
 // ====================================================================
 
 (function () {
@@ -35,7 +31,7 @@
     toast.innerHTML = `
       <i class="bxf ${ICONS[type] || ICONS.info}"></i>
       <span class="toast__message"></span>
-      <button type="button" class="toast__close" aria-label="Tutup"><i class="bxf bx-x"></i></button>
+      <button type="button" class="toast__close" aria-label="Close"><i class="bxf bx-x"></i></button>
     `;
     toast.querySelector(".toast__message").textContent = message;
 
@@ -49,12 +45,7 @@
     setTimeout(remove, 4000);
   };
 
-  /**
-   * showConfirm(message) -- dialog konfirmasi custom, mengembalikan
-   * Promise<boolean> supaya bisa dipakai dengan `await` menggantikan
-   * `if (confirm(...))`.
-   */
-  window.showConfirm = function showConfirm(message, { confirmText = "Ya, lanjutkan", cancelText = "Batal" } = {}) {
+  window.showConfirm = function showConfirm(message, { confirmText = "Confirm", cancelText = "Cancel" } = {}) {
     return new Promise((resolve) => {
       const overlay = document.createElement("div");
       overlay.className = "confirm-overlay";

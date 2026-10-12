@@ -1,15 +1,5 @@
 // ====================================================================
-// Shared file preview modal -- window.openFilePreview({name, type, url}).
-// Loaded globally via templates/partials/top-sidebar.html, used by both
-// Issue Monitor attachments and TV Design Concept assets.
-//
-// Preview support by type:
-//   image -> <img>
-//   pdf   -> <iframe> (native browser PDF viewer)
-//   excel -> parsed client-side with SheetJS (CDN, needs internet) and
-//            rendered as an HTML table
-//   word / ppt / other -> no reliable client-only renderer exists, so we
-//            show a "preview not available" state with a download button
+// Shared file preview modal
 // ====================================================================
 
 (function () {
@@ -23,7 +13,7 @@
       const script = document.createElement("script");
       script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
       script.onload = resolve;
-      script.onerror = () => reject(new Error("SheetJS gagal dimuat (butuh koneksi internet)."));
+      script.onerror = () => reject(new Error("Failed to load SheetJS (requires internet access)."));
       document.head.appendChild(script);
     });
     return sheetJsLoadPromise;
@@ -40,13 +30,13 @@
             <a class="file-preview-dialog__download" target="_blank" rel="noopener">
               <i class="bxf bx-download"></i> Download
             </a>
-            <button type="button" class="file-preview-dialog__close" aria-label="Tutup">
+            <button type="button" class="file-preview-dialog__close" aria-label="Close">
               <i class="bxf bx-x"></i>
             </button>
           </div>
         </div>
         <div class="file-preview-dialog__body">
-          <div class="file-preview-loading">Memuat preview...</div>
+          <div class="file-preview-loading">Loading preview...</div>
         </div>
       </div>
     `;
@@ -76,15 +66,14 @@
       } catch (err) {
         console.error(err);
         body.innerHTML = unsupportedPreviewMarkup(
-          "Preview Excel butuh koneksi internet (memuat SheetJS). Silakan download file-nya.",
+          "Excel preview requires internet access (to load SheetJS). Please download the file instead.",
         );
       }
       return;
     }
 
-    // Word / PowerPoint / other: no client-only renderer available.
     body.innerHTML = unsupportedPreviewMarkup(
-      `Preview belum didukung untuk tipe file ini (${file.type.toUpperCase()}). Silakan download untuk membukanya.`,
+      `Preview isn't supported for this file type (${file.type.toUpperCase()}). Please download it to open.`,
     );
   }
 

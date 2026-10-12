@@ -42,7 +42,9 @@
       <nav class="nav" id="nav"></nav>
       <div class="sidebar__footer" id="footer"></div>
       <div class="profile">
-        <a class="profile__avatar" href="/settings" title="Pengaturan Akun">{{ (username or "?")[:2] | upper }}</a>
+        <a class="profile__avatar" href="/settings" title="Account Settings">
+          {% if current_user_avatar %}<img src="{{ current_user_avatar }}" alt="{{ username }}" />{% else %}{{ (username or "?")[:2] | upper }}{% endif %}
+        </a>
         <div class="profile__info">
           <div class="profile__name">{{ username }}</div>
         </div>

@@ -16,7 +16,7 @@
 
   .flex-1 {
     box-sizing: border-box;
-    display: flex; // wajib biar justify-content di bawah efektif (span default bukan flex)
+    display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
@@ -27,11 +27,10 @@
     margin: 0 5px;
     font-size: 12px;
     font-weight: 300;
-    height: 32px; // tinggi tetap, bukan max-height, biar tidak menyusut ke tinggi teks
+    height: 32px;
     line-height: 1;
     cursor: pointer;
-    // border transparan direserve dari awal supaya tinggi kotak SAMA
-    // antara state normal & active/hover (yang cuma beda warna border)
+
     border-bottom: 3px solid transparent;
     transition: all 0.3s ease;
 
@@ -48,8 +47,6 @@
 }
 
 // ---- Range tabs: Recent / Last Week / Last Month / Last Year ----
-// Dipakai bareng di panel Individual, Team, & kedua sub-panel History,
-// styling sengaja disamakan dengan .history-subnav biar konsisten satu look.
 .range-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -82,14 +79,12 @@
   }
 }
 
-// Kalau range-tabs ditaruh di atas grafik (bukan sebelah judul), kasih jarak
-// dikit ke box grafik di bawahnya.
 .second-container > .range-tabs {
   margin-bottom: 4px;
   align-self: flex-start;
 }
 
-// ---- Tombol export/import (dipakai di panel Individual & Team) ----
+// ---- Tombol export/import ----
 .btn-export {
   display: flex;
   align-items: center;
@@ -144,11 +139,11 @@
         flex: 0 0 320px;
         display: flex;
         flex-direction: column;
-        overflow: hidden; // cegah tabel meluber ke second-container
+        overflow: hidden;
 
         table {
           width: 100%;
-          table-layout: fixed; // lebar kolom dikunci, tidak ikut melebar sesuai isi
+          table-layout: fixed;
           border-collapse: collapse;
 
           th {
@@ -279,8 +274,6 @@
     }
 
     // ---- Header judul bersama (Employee Performance & Team Summary) ----
-    // Sengaja SELALU di luar kartu/tabel, biar kedua judul persis sama
-    // gayanya di mana pun dipakai (live maupun sub-panel History).
     .panel-header {
       display: flex;
       align-items: center;
@@ -304,8 +297,8 @@
       }
     }
 
-    // ---- Insight beban ringan/berat + legenda, sekarang full-width di
-    // paling bawah panel (bukan lagi disempilkan di dalam .employees) ----
+    // ---- Insight beban ringan/berat + legend ----
+
     .panel-footer {
       display: flex;
       align-items: center;
@@ -373,7 +366,7 @@
       }
     }
 
-    // ---- Leaderboard completion rate (biar panel Team tidak kosong) ----
+    // ---- Leaderboard completion rate ----
     .team-leaderboard {
       margin: 15px 0;
       background: white;
@@ -469,9 +462,6 @@
 }
 
 // ==================== Elemen bersama (avatar, profile, stat card, notes, insight) ====================
-// Dipakai di renderEmpContent() & renderTeamSummary() (panel Individual/Team)
-// dan renderEmployeeInsights() / renderTeamLeaderboard().
-
 .emp-profile {
   display: flex;
   align-items: center;
@@ -679,8 +669,6 @@
   }
 }
 
-// Tombol panah kiri/kanan di samping select bulan arsip, biar bisa
-// gonta-ganti bulan tanpa buka dropdown (bagian "lebih advance").
 .history-nav-btn {
   display: flex;
   align-items: center;

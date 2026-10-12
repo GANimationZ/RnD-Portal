@@ -24,7 +24,7 @@
           <input
             type="text"
             id="tvSearchInput"
-            placeholder="Cari Serial Number, Produksi, atau Asal..."
+            placeholder="Search Serial Number, Production, or Origin..."
           />
         </div>
         <span class="tv-search__count" id="tvResultCount">0 data</span>
@@ -33,28 +33,28 @@
       <div class="tv-grid" id="tvGrid"></div>
       <div class="tv-empty is-hidden" id="tvEmpty">
         <i class="bxf bx-folder-open"></i>
-        <p>Tidak ada data yang cocok. Coba kata kunci lain atau tambah data baru.</p>
+        <p>No matching entries. Try a different keyword or add a new one.</p>
       </div>
     </div>
 
     {# ---- Panel Add New ---- #}
     <div class="body" data-panel="add-new">
       <div class="tv-form-wrapper">
-        <span class="tv-form-wrapper__title">Tambah Data Design</span>
+        <span class="tv-form-wrapper__title">Add Design Entry</span>
         <form id="tvForm">
-          <input type="text" id="tvTitle" placeholder="Judul / Nama Model" required />
+          <input type="text" id="tvTitle" placeholder="Title / Model Name" required />
           <input type="text" id="tvSerialNumber" placeholder="Serial Number" required />
-          <input type="text" id="tvProduction" placeholder="Produksi (mis. Line A, Batch 12)" />
-          <input type="text" id="tvOrigin" placeholder="Asal (mis. Vendor / Negara)" />
-          <textarea id="tvNotes" placeholder="Catatan tambahan (opsional)"></textarea>
+          <input type="text" id="tvProduction" placeholder="Production (e.g. Line A, Batch 12)" />
+          <input type="text" id="tvOrigin" placeholder="Origin (e.g. Vendor / Country)" />
+          <textarea id="tvNotes" placeholder="Additional notes (optional)"></textarea>
           <input
             type="file"
             id="tvFiles"
             accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
             multiple
           />
-          <span class="field-hint">Boleh lebih dari satu file: gambar, PDF, Word, Excel, atau PowerPoint.</span>
-          <input type="submit" value="Simpan Data" id="tvSubmitBtn" />
+          <span class="field-hint">You can attach more than one file: image, PDF, Word, Excel, or PowerPoint.</span>
+          <input type="submit" value="Save Entry" id="tvSubmitBtn" />
           <span id="tvFormMessage"></span>
         </form>
       </div>

@@ -51,7 +51,7 @@ def _restrict_kpi_dashboard():
     from flask import abort, session
 
     if session.get("role") == "Admin":
-        abort(403, description="QA (Admin) tidak memiliki akses ke KPI Dashboard.")
+        abort(403, description="QA (Admin) has no access to KPI Dashboard.")
 
 MONTH_LABELS_ID = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -159,19 +159,19 @@ def api_add_best_practice(employee_id):
     employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
 
     if session.get("role") == "Member" and session.get("user_id") != employee.id:
-        return jsonify({"message": "Member cuma bisa menambah catatan untuk dirinya sendiri."}), 403
+        return jsonify({"message": "Members can only add notes for themselves."}), 403
     if session.get("role") not in ("Super Admin", "Member"):
-        return jsonify({"message": "Akses ditolak."}), 403
+        return jsonify({"message": "Access denied."}), 403
 
     note = (request.get_json(silent=True) or {}).get("note", "").strip()
     if not note:
-        return jsonify({"message": "Catatan tidak boleh kosong."}), 400
+        return jsonify({"message": "Note cannot be empty."}), 400
 
     order = BestPractice.query.filter_by(user_id=employee.id).count()
     db.session.add(BestPractice(user_id=employee.id, note=note, sort_order=order))
     db.session.commit()
 
-    return jsonify({"message": "Catatan ditambahkan.", "note": note}), 201
+    return jsonify({"message": "Note added.", "note": note}), 201
 
 
 # ==================== Export / Import / History (.xlsx archive) ====================
@@ -206,12 +206,12 @@ def export_team():
 def import_employees():
     file = request.files.get("file")
     if not file:
-        return jsonify({"message": "File tidak ditemukan."}), 400
+        return jsonify({"message": "File not found."}), 400
 
     try:
         rows = parse_employee_workbook(file.stream)
     except Exception as exc:  # noqa: BLE001
-        return jsonify({"message": f"Gagal membaca file: {exc}"}), 400
+        return jsonify({"message": f"Failed to read file: {exc}"}), 400
 
     # TODO: upsert `rows` into User/KPIRecord by name if Excel import is
     # meant to overwrite DB data (not just preview). For now this only
@@ -260,11 +260,11 @@ def history_data(filename):
     panels."""
     filepath = os.path.join(_history_dir(), filename)
     if not os.path.exists(filepath):
-        return jsonify({"message": "Snapshot tidak ditemukan."}), 404
+        return jsonify({"message": "Snapshot not found."}), 404
 
     try:
         rows = parse_employee_workbook(filepath)
     except Exception as exc:  # noqa: BLE001
-        return jsonify({"message": f"Gagal membaca snapshot: {exc}"}), 400
+        return jsonify({"message": f"Failed to read snapshot: {exc}"}), 400
 
     return jsonify({"employees": rows})

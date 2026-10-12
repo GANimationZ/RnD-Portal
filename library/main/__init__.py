@@ -1,1 +1,1 @@
-"""Blueprint `main`: autentikasi & halaman umum. Lihat routes.py."""
+"""Blueprint `main`: auth and general pages. See routes.py."""

@@ -1,10 +1,5 @@
 @use '../base' as *;
 
-// Halaman error (403 / 404) -- berdiri sendiri, tanpa sidebar, supaya tetap
-// tampil benar untuk user yang belum login maupun yang sudah login.
-
-// base.css tidak me-reset margin bawaan browser (8px) -- tanpa ini halaman
-// punya tepi putih dan bisa di-scroll karena min-height: 100vh + margin.
 body {
   margin: 0;
 }

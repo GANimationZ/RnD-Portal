@@ -58,8 +58,8 @@ select {
   gap: 14px;
 }
 .settings-card__avatar {
-  width: 48px;
-  height: 48px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: #bfbfbf;
   color: #f0f0f0;
@@ -67,8 +67,27 @@ select {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 22px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.settings-card__avatar img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+  display: block;
+}
+.settings-card__photo-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.settings-card__photo-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #8a8f98;
 }
 .settings-card__username {
   font-size: 15px;
@@ -155,4 +174,32 @@ select {
 }
 .btn-primary:hover {
   background: #700023;
+}
+
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #a50034;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-link:hover {
+  color: #700023;
+  transform: translateY(-1px);
+}
+.btn-link--danger {
+  color: #e24b4a;
+}
+.btn-link--danger:hover {
+  color: #b93332;
+}
+.btn-link.is-hidden {
+  display: none;
 }/*# sourceMappingURL=style.css.map */

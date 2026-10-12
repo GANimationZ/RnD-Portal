@@ -1,6 +1,3 @@
-// Generic tab/panel switcher, shared by every workspace page.
-// Loaded once via the layout, not duplicated per page script.
-
 (function () {
   const navBar = document.querySelector(".nav__bar");
   const panels = document.querySelectorAll(".main-body-content .body");

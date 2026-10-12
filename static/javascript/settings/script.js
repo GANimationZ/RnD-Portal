@@ -1,6 +1,3 @@
-// Consistent with other pages: uses window.showToast() (see
-// static/javascript/shared/notify.js) instead of the browser's alert().
-
 const profileForm = document.getElementById("profileForm");
 if (profileForm) {
   profileForm.addEventListener("submit", async (e) => {
@@ -24,14 +21,14 @@ if (profileForm) {
 
     showToast(data.message, "success");
 
-    // The display name follows the email, so it may have just changed --
-    // refresh the avatar initials/name shown on this page without a
-    // full reload.
     if (data.username) {
       const nameEl = document.querySelector(".settings-card__username");
       const avatarEl = document.querySelector(".settings-card__avatar");
       if (nameEl) nameEl.textContent = data.username;
-      if (avatarEl) avatarEl.textContent = data.username.slice(0, 2).toUpperCase();
+      // Only swap initials when no photo is set (a photo must stay put).
+      if (avatarEl && !avatarEl.querySelector("img")) {
+        avatarEl.textContent = data.username.slice(0, 2).toUpperCase();
+      }
     }
   });
 }
@@ -59,5 +56,74 @@ if (passwordForm) {
     }
     showToast(data.message, "success");
     passwordForm.reset();
+  });
+}
+
+// ---- Profile picture: change / remove ----
+const pictureInput = document.getElementById("pictureInput");
+const pictureChangeBtn = document.getElementById("pictureChangeBtn");
+const pictureRemoveBtn = document.getElementById("pictureRemoveBtn");
+
+function applyAvatar(url) {
+  const initials = (document.querySelector(".settings-card__username")?.textContent || "?")
+    .slice(0, 2)
+    .toUpperCase();
+  const markup = url ? `<img src="${url}" alt="" />` : initials;
+
+  const settingsAvatar = document.getElementById("settingsAvatar");
+  if (settingsAvatar) settingsAvatar.innerHTML = markup;
+
+  const sidebarAvatar = document.querySelector(".profile__avatar");
+  if (sidebarAvatar) sidebarAvatar.innerHTML = markup;
+
+  if (pictureRemoveBtn) pictureRemoveBtn.classList.toggle("is-hidden", !url);
+}
+
+if (pictureChangeBtn && pictureInput) {
+  pictureChangeBtn.addEventListener("click", () => pictureInput.click());
+
+  pictureInput.addEventListener("change", async () => {
+    const file = pictureInput.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("picture", file);
+
+    try {
+      const res = await fetch("/settings/profile-picture", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || "Failed to upload the picture.", "error");
+        return;
+      }
+      applyAvatar(`${data.picture_url}?t=${Date.now()}`);
+      showToast(data.message, "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Unable to reach the server.", "error");
+    } finally {
+      pictureInput.value = "";
+    }
+  });
+}
+
+if (pictureRemoveBtn) {
+  pictureRemoveBtn.addEventListener("click", async () => {
+    const confirmed = await showConfirm("Remove your profile picture?");
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch("/settings/profile-picture", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || "Failed to remove the picture.", "error");
+        return;
+      }
+      applyAvatar(null);
+      showToast(data.message, "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Unable to reach the server.", "error");
+    }
   });
 }

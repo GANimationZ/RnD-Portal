@@ -103,8 +103,8 @@
         </div>
       </div>
     </div>
-    {# ---- Panel Issue Register (khusus Admin/QA & Super Admin -- Member
-       cuma bisa lihat, tidak bisa bikin issue) ---- #}
+    {# ---- Issue Register panel (Admin/QA & Super Admin only -- Member
+       can only view, not create issues) ---- #}
     {% if is_admin_or_above %}
     <div class="body" data-panel="issue-register">
       <div class="register-issue">
@@ -130,13 +130,13 @@
             <option value="mp">MP</option>
             <option value="field">Field</option>
           </select>
-          {# ---- Combobox assignee: diisi otomatis lewat JS begitu Category
-             & Event di atas sudah sama-sama kepilih (lihat issue-monitor.js
-             -> loadAssignableUsers()). Hanya menampilkan Member yang
-             scope category & event-nya cocok (diatur di halaman
-             /admin/users, khusus Super Admin). ---- #}
+          {# ---- Assignee combobox: auto-filled via JS once Category &
+             Event above are both selected (see issue-monitor.js ->
+             loadAssignableUsers()). Only shows Members whose scope
+             matches the category & event (set on the /admin/users page,
+             Super Admin only). ---- #}
           <select id="issueAssignee" disabled>
-            <option value="" selected>Pilih Category &amp; Event dahulu</option>
+            <option value="" selected>Select Category &amp; Event first</option>
           </select>
           <textarea
             id="issueDescription"
@@ -156,7 +156,7 @@
             accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
             multiple
           />
-          <span class="field-hint">Boleh lebih dari satu file: gambar, PDF, Word, Excel, atau PowerPoint.</span>
+          <span class="field-hint">You can attach more than one file: image, PDF, Word, Excel, or PowerPoint.</span>
           <input type="submit" value="Register Issue" id="sub_btn" />
         </form>
       </div>
@@ -205,7 +205,7 @@
             </select>
             <select class="owner" id="filterAssignee">
               <option value="All Assignees" selected>All Assignees</option>
-              <option value="__unassigned__">Belum ditugaskan</option>
+              <option value="__unassigned__">Unassigned</option>
               {% for user in users %}
                 {% if user.role == "Member" %}
                 <option value="{{ user.username }}">{{ user.username }}</option>
@@ -256,14 +256,13 @@
         </div>
       </div>
 
-      {# ---- Detail Overlay: dulu buka ke bawah tabel (inline), sekarang
-         modal overlay di tengah layar -- klik area gelap di luar dialog
-         atau tombol X untuk menutup. ---- #}
+      {# ---- Detail overlay: a centered modal -- click the dark area
+         outside the dialog or the X button to close it. ---- #}
       <div class="issue-inline-detail is-hidden" id="issueInlineDetail">
         <div class="issue-inline-detail__dialog" id="issueInlineDetailDialog">
         <div class="issue-inline-detail__head">
           <span class="issue-inline-detail__eyebrow" id="inlineDetailEyebrow">ISSUE #-</span>
-          <button type="button" class="issue-inline-detail__close" id="inlineDetailClose" title="Tutup">
+          <button type="button" class="issue-inline-detail__close" id="inlineDetailClose" title="Close">
             <i class="bxf bx-x"></i>
           </button>
         </div>
@@ -304,7 +303,7 @@
             </div>
 
             <div>
-              <div class="issue-inline-detail__section-title">Deskripsi</div>
+              <div class="issue-inline-detail__section-title">Description</div>
               <p class="issue-inline-detail__description" id="inlineDetailDescription">-</p>
             </div>
 
@@ -315,9 +314,9 @@
               <button type="button" id="inlineDetailHoldBtn">Hold Issue</button>
               <div class="issue-inline-detail__close-group" id="inlineDetailCloseGroup">
                 <select id="inlineDetailAssigneeSelect" class="is-hidden">
-                  <option value="">Pilih pelaksana...</option>
+                  <option value="">Select an assignee...</option>
                 </select>
-                <button type="button" id="inlineDetailCloseBtn">Tandai Closed</button>
+                <button type="button" id="inlineDetailCloseBtn">Mark Closed</button>
               </div>
             </div>
             {% endif %}
@@ -334,23 +333,24 @@
             <i class="bxf bx-crosshair"></i> Priority Matrix
           </span>
         </div>
-        <div class="priority-matrix__legend">
-          <span><span class="legend-dot" style="background:#e24b4a"></span>Overdue</span>
-          <span><span class="legend-dot" style="background:#f2a623"></span>Deadline &le; 7 Day</span>
-          <span><span class="legend-dot" style="background:#3ddc97"></span>Active</span>
-        </div>
+        
       </div>
 
       <div class="gantt" id="ganttChart">
         <div class="gantt__toolbar">
           <span class="gantt__quarter-label" id="ganttQuarterLabel">-</span>
-          <span class="gantt__today-note"><span class="gantt__today-dot"></span>Today</span>
+          <div class="priority-matrix__legend">
+            <span><span class="legend-dot" style="background:#e24b4a"></span>Overdue</span>
+            <span><span class="legend-dot" style="background:#f2a623"></span>Deadline &le; 7 days</span>
+            <span><span class="legend-dot" style="background:#3ddc97"></span>On track</span>
+            <span><span class="legend-dot" style="background:#4f8cff"></span>Today</span>
+          </div>
         </div>
         <div class="gantt__scroll">
           <div class="gantt__header" id="ganttHeader"></div>
           <div class="gantt__body" id="ganttBody"></div>
         </div>
-        <div class="gantt__empty is-hidden" id="ganttEmpty">No Active Issue to display.</div>
+        <div class="gantt__empty is-hidden" id="ganttEmpty">No active issues to display.</div>
       </div>
     </div>
   </div>

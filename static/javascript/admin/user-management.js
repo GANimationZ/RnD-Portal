@@ -1,7 +1,5 @@
 // ============================================================
 // RnD Portal - User Management (Super Admin only)
-// Tab switching (.nav-item__left clicks) is handled by panel-switcher.js,
-// loaded globally via the layout -- this file only handles data.
 // ============================================================
 
 const UM_API_BASE = "/admin/users/api";

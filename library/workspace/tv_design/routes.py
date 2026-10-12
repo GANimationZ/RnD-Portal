@@ -54,13 +54,13 @@ def api_create_asset():
     files = request.files.getlist("attachments")
 
     if not title or not serial_number:
-        return jsonify({"message": "Title dan Serial Number wajib diisi."}), 400
+        return jsonify({"message": "Title and Serial Number are required."}), 400
 
     for file in files:
         if file and file.filename and not is_allowed(file.filename):
             return jsonify({
-                "message": f'Format file "{file.filename}" tidak didukung. '
-                           "Gunakan gambar, PDF, Word, Excel, atau PowerPoint."
+                "message": f'File "{file.filename}" has an unsupported format. '
+                           "Use an image, PDF, Word, Excel, or PowerPoint file."
             }), 400
 
     asset = TvDesignAsset(
@@ -86,7 +86,7 @@ def api_create_asset():
         ))
 
     db.session.commit()
-    return jsonify({"message": "Data berhasil disimpan.", "asset": asset.to_dict()}), 201
+    return jsonify({"message": "Entry saved successfully.", "asset": asset.to_dict()}), 201
 
 
 @tv_design_bp.route("/api/assets/<int:asset_id>", methods=["DELETE"])
@@ -95,4 +95,4 @@ def api_delete_asset(asset_id):
     asset = TvDesignAsset.query.get_or_404(asset_id)
     db.session.delete(asset)
     db.session.commit()
-    return jsonify({"message": "Data berhasil dihapus."})
+    return jsonify({"message": "Entry deleted successfully."})

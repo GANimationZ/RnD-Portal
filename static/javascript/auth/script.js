@@ -75,8 +75,6 @@ const loginFields = {
   password: loginPasswordInput,
 };
 
-// Show a message under the form. #loginmessage defaults to display:none
-// in CSS, so it MUST be set to "block" here or it never becomes visible.
 function showLoginMessage(text, type = "error") {
   loginMessageEl.innerText = text;
   loginMessageEl.style.color = type === "success" ? "green" : "red";
@@ -92,8 +90,6 @@ function clearLoginFeedback() {
   });
 }
 
-// Mark the offending field (red border) and focus it so the user can fix
-// it right away.
 function markLoginFieldInvalid(field) {
   const input = loginFields[field];
   if (!input) return;
@@ -103,7 +99,6 @@ function markLoginFieldInvalid(field) {
   if (field === "password") input.select();
 }
 
-// As soon as the user starts typing again, clear that field's error state.
 Object.values(loginFields).forEach((input) => {
   input.addEventListener("input", clearLoginFeedback);
 });
@@ -117,8 +112,6 @@ loginForm.addEventListener("submit", async function (e) {
 
   clearLoginFeedback();
 
-  // Quick client-side validation (`required` doesn't catch whitespace-only
-  // input). The backend re-validates anyway.
   if (!email) {
     showLoginMessage("Email is required.");
     markLoginFieldInvalid("email");
@@ -140,8 +133,6 @@ loginForm.addEventListener("submit", async function (e) {
       body: JSON.stringify({ email, password }),
     });
 
-    // Server errors sometimes reply with HTML (not JSON) -- don't let a
-    // parse failure get reported as a "connection problem".
     let result = {};
     try {
       result = await response.json();
@@ -151,9 +142,6 @@ loginForm.addEventListener("submit", async function (e) {
 
     if (response.ok) {
       showLoginMessage(result.message || "Login successful.", "success");
-      // Button is intentionally left disabled while navigating away.
-      // The destination is decided by the backend based on role (Admin/QA
-      // can't enter the KPI Dashboard).
       window.location.href = result.redirect || "/";
       return;
     }

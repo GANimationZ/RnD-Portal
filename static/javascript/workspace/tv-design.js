@@ -1,6 +1,5 @@
 // ====================================================================
-// TV Design Concept -- search + upload library for board/product design
-// entries, keyed by Serial Number / Production / Origin.
+// TV Design Concept
 // ====================================================================
 
 const TV_API_BASE = "/workspace/tv-design-concept/api";
@@ -24,7 +23,7 @@ async function fetchTvAssets(query = "") {
     tvAssets = data.assets || [];
   } catch (err) {
     console.error(err);
-    showToast("Gagal memuat data TV Design Concept.", "error");
+    showToast("Failed to load TV Design Concept data.", "error");
   }
   renderTvGrid();
 }
@@ -35,7 +34,7 @@ function renderTvGrid() {
   const count = document.getElementById("tvResultCount");
   if (!grid) return;
 
-  if (count) count.textContent = `${tvAssets.length} data`;
+  if (count) count.textContent = `${tvAssets.length} entries`;
 
   if (tvAssets.length === 0) {
     grid.innerHTML = "";
@@ -50,7 +49,7 @@ function renderTvGrid() {
     <div class="tv-card" data-asset-id="${asset.id}">
       <div class="tv-card__head">
         <span class="tv-card__title">${asset.title}</span>
-        <button type="button" class="tv-card__delete" data-delete-id="${asset.id}" title="Hapus">
+        <button type="button" class="tv-card__delete" data-delete-id="${asset.id}" title="Delete">
           <i class="bxf bx-trash"></i>
         </button>
       </div>
@@ -85,13 +84,13 @@ function renderTvGrid() {
   grid.querySelectorAll("[data-delete-id]").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      const confirmed = await showConfirm("Hapus data ini beserta semua lampirannya?");
+      const confirmed = await showConfirm("Delete this entry along with all its attachments?");
       if (!confirmed) return;
 
       try {
         const res = await fetch(`${TV_API_BASE}/assets/${btn.dataset.deleteId}`, { method: "DELETE" });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Gagal menghapus data.");
+        if (!res.ok) throw new Error(data.message || "Failed to delete entry.");
         showToast(data.message, "success");
         await fetchTvAssets(document.getElementById("tvSearchInput")?.value.trim());
       } catch (err) {
@@ -130,12 +129,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       submitBtn.disabled = true;
-      submitBtn.value = "Menyimpan...";
+      submitBtn.value = "Saving...";
 
       try {
         const res = await fetch(`${TV_API_BASE}/assets`, { method: "POST", body: formData });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Gagal menyimpan data.");
+        if (!res.ok) throw new Error(data.message || "Failed to save entry.");
 
         form.reset();
         showToast(data.message, "success");
@@ -146,7 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
         showToast(err.message, "error");
       } finally {
         submitBtn.disabled = false;
-        submitBtn.value = "Simpan Data";
+        submitBtn.value = "Save Entry";
       }
     });
   }

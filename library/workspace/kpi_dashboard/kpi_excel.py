@@ -26,14 +26,14 @@ BORDER_ALL = Border(top=THIN, bottom=THIN, left=THIN, right=THIN)
 CENTER = Alignment(horizontal="center", vertical="center")
 CENTER_H_ONLY = Alignment(horizontal="center")
 
-# Urutan kolom persis seperti file referensi.
+# Column order matches the reference file exactly.
 COLUMNS = [
     "No", "Name", "Role", "Total Assigned", "Completed",
     "Pending", "Overdue", "Completion", "Avg Resolution", "Avg Resolution",
 ]
 SUB_HEADERS = {9: "(Days)", 10: "(Hours)"}  # columns I & J (1-indexed)
 
-# Lebar kolom persis seperti file referensi (kolom yang tidak disebut dibiarkan default Excel).
+# Column widths match the reference file (unlisted columns keep Excel's default).
 COLUMN_WIDTHS = {
     "B": 18.25, "C": 15.5, "D": 18.125, "E": 9.875,
     "H": 11.125, "I": 17.25, "J": 19.375,
@@ -103,8 +103,8 @@ def _employee_row(idx, emp):
 
 
 def build_individual_workbook(employees):
-    """employees: list of dict dengan key name, role, totalAssigned, completed,
-    pending, overdue, avgResolutionDays (persis field yang sudah dipakai di JS)."""
+    """employees: list of dicts with keys name, role, totalAssigned, completed,
+    pending, overdue, avgResolutionDays (the same fields the JS uses)."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Per Employee"
@@ -121,7 +121,7 @@ def build_individual_workbook(employees):
 
 
 def build_team_workbook(employees):
-    """2 sheet: 'Team Summary' (total tim) + 'Per Employee' (detail, style sama)."""
+    """2 sheets: 'Team Summary' (team totals) + 'Per Employee' (detail, same style)."""
     wb = Workbook()
 
     ws_summary = wb.active
@@ -187,8 +187,8 @@ def workbook_to_bytes(wb):
 
 
 def parse_employee_workbook(file_stream):
-    """Baca file hasil export (atau format sejenis) balik jadi list of dict.
-    Data dimulai di baris 5 (setelah judul + header 2 baris)."""
+    """Read an exported file (or similar format) back into a list of dicts.
+    Data starts at row 5 (after the title + 2 header rows)."""
     wb = load_workbook(file_stream, data_only=True)
     sheet_name = "Per Employee" if "Per Employee" in wb.sheetnames else wb.sheetnames[0]
     ws = wb[sheet_name]

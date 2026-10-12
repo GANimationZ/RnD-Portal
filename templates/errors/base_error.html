@@ -1,6 +1,6 @@
-{# ---- Layout dasar halaman error (dipakai 403.html & 404.html) ----
-   Sengaja berdiri sendiri (tanpa sidebar): bisa tampil untuk user yang
-   belum login, dan tidak bergantung pada session/JS sidebar. #}
+{# ---- Base layout for error pages (used by 403.html & 404.html) ----
+   Intentionally standalone (no sidebar): can be shown to users who aren't
+   logged in, and doesn't depend on the session/sidebar JS. #}
 {% extends "base.html" %}
 {% block title %}<title>{% block error_title %}{% endblock %} - RnD Portal</title>{% endblock %}
 {% block styles %}
@@ -34,18 +34,18 @@
       <div class="error-card__actions">
         <a class="error-btn error-btn--primary" href="{{ home_url }}">
           <i class="bxf bx-home"></i>
-          {{ "Ke Halaman Utama" if logged_in else "Ke Halaman Login" }}
+          {{ "Back to Home" if logged_in else "Go to Login" }}
         </a>
         <button type="button" class="error-btn error-btn--ghost" id="errorBackBtn">
           <i class="bxf bx-arrow-left"></i>
-          Kembali
+          Go Back
         </button>
       </div>
     </section>
   </main>
 {% endblock %}
 
-{# Menimpa script bawaan base.html (sidebar/panel-switcher tidak ada di sini) #}
+{# Overrides base.html's default script block (no sidebar/panel-switcher here) #}
 {% block script %}
   <script>
     document.getElementById("errorBackBtn").addEventListener("click", () => {

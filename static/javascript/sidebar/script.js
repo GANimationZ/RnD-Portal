@@ -19,17 +19,10 @@ function iconTag(name) {
 }
 
 // ---- Menu structure ----
-// The "Administration" group is only added for role "Super Admin"
-// (window.CURRENT_ROLE, injected via templates/partials/top-sidebar.html)
-// -- Admin & Member never see this menu at all (not rendered, not just
-// hidden with CSS).
 const NAV_GROUPS = [
   {
     label: "Workspace",
     items: [
-      // QA (Admin) has no access to KPI Dashboard -- only render this
-      // item for Super Admin & Member (backend also enforces this via
-      // roles_required; this just keeps Admin from seeing a dead link).
       ...(window.CURRENT_ROLE === "Admin"
         ? []
         : [
@@ -69,7 +62,6 @@ const NAV_GROUPS = [
         icon: "team",
         href: "/team/structure",
       },
-      { id: "others", label: "Others", icon: "folder", href: "/team/others" },
     ],
   },
 ];

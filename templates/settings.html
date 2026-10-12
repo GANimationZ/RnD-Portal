@@ -12,10 +12,26 @@
 
     <div class="settings-card">
       <div class="settings-card__identity">
-        <span class="settings-card__avatar">{{ (user.username or "?")[:2] | upper }}</span>
+        <span class="settings-card__avatar" id="settingsAvatar">
+          {% if user.profile_picture_url %}<img src="{{ user.profile_picture_url }}" alt="{{ user.username }}" />{% else %}{{ (user.username or "?")[:2] | upper }}{% endif %}
+        </span>
         <div>
           <div class="settings-card__username">{{ user.username }}</div>
           <span class="settings-card__role-badge">{{ user.role }}</span>
+          <div class="settings-card__photo-actions">
+            <input type="file" id="pictureInput" accept=".png,.jpg,.jpeg,.gif,.webp" hidden />
+            <button type="button" class="btn-link" id="pictureChangeBtn">
+              <i class="bxf bx-image"></i> Change photo
+            </button>
+            <button
+              type="button"
+              class="btn-link btn-link--danger{% if not user.profile_picture_url %} is-hidden{% endif %}"
+              id="pictureRemoveBtn"
+            >
+              <i class="bxf bx-trash"></i> Remove
+            </button>
+          </div>
+          <small class="settings-card__photo-hint">PNG, JPG, GIF, or WEBP. Max 2 MB.</small>
         </div>
       </div>
 
@@ -26,7 +42,7 @@
           <span class="settings-card__scope-label">Event</span>
           {% for e in user.events %}<span class="chip">{{ e }}</span>{% else %}<span class="chip chip--muted">-</span>{% endfor %}
           <p class="settings-card__scope-note">
-            Role, category, dan event cuma bisa diubah Super Admin lewat User Management.
+            Role, category, and event can only be changed by a Super Admin via User Management.
           </p>
         </div>
       {% endif %}
@@ -41,8 +57,8 @@
       </label>
 
       <label class="settings-field">
-        <span>Job Title <small>(label kosmetik, tampil di KPI Dashboard)</small></span>
-        <input type="text" name="job_title" value="{{ user.job_title or '' }}" placeholder="mis. PCBA Engineer" />
+        <span>Job Title <small>(cosmetic label, shown on the KPI Dashboard)</small></span>
+        <input type="text" name="job_title" value="{{ user.job_title or '' }}" placeholder="e.g. PCBA Engineer" />
       </label>
 
       <button type="submit" class="btn-primary">Save Changes</button>
@@ -52,17 +68,17 @@
       <span class="settings-card__title">Change Password</span>
 
       <label class="settings-field">
-        <span>Password Saat Ini</span>
+        <span>Current Password</span>
         <input type="password" name="current_password" required autocomplete="current-password" />
       </label>
 
       <label class="settings-field">
-        <span>Password Baru <small>(minimal 8 karakter)</small></span>
+        <span>New Password <small>(minimum 8 characters)</small></span>
         <input type="password" name="new_password" required minlength="8" autocomplete="new-password" />
       </label>
 
       <label class="settings-field">
-        <span>Konfirmasi Password Baru</span>
+        <span>Confirm New Password</span>
         <input type="password" name="confirm_password" required minlength="8" autocomplete="new-password" />
       </label>
 

@@ -31,6 +31,8 @@ const EVENT_META = {
   "Field": { color: "#8a8f98" },
 };
 
+// Attachment icon per file type (see issue_monitor routes.py -> get_file_type())
+// -- restricted to boxicons class names that actually exist in vendor/boxicons.
 const ATTACHMENT_ICON = {
   image: "bx-image",
   pdf: "bx-file",
@@ -97,9 +99,9 @@ function daysUntil(deadline) {
 
 function urgencyMeta(daysLeft) {
   let label;
-  if (daysLeft < 0) label = `Lewat ${Math.abs(daysLeft)} hari`;
-  else if (daysLeft === 0) label = "Deadline hari ini";
-  else label = `${daysLeft} hari lagi`;
+  if (daysLeft < 0) label = `${Math.abs(daysLeft)} days overdue`;
+  else if (daysLeft === 0) label = "Due today";
+  else label = `${daysLeft} days left`;
 
   const color = daysLeft <= 3 ? "#e24b4a" : daysLeft <= 7 ? "#f2a623" : "#8a8f98";
   return { label, color };
@@ -127,7 +129,7 @@ function setText(id, value) {
 async function fetchIssues() {
   try {
     const res = await fetch(`${API_BASE}/issues`);
-    if (!res.ok) throw new Error("Gagal memuat data issue.");
+    if (!res.ok) throw new Error("Failed to load issue data.");
     const data = await res.json();
     issueData = data.issues || [];
   } catch (err) {
@@ -410,7 +412,7 @@ async function loadAssignableUsers() {
 
   if (!categoryEl.value || !eventEl.value) {
     assigneeEl.disabled = true;
-    assigneeEl.innerHTML = `<option value="" selected>Pilih Category & Event dahulu</option>`;
+    assigneeEl.innerHTML = `<option value="" selected>Select Category & Event first</option>`;
     return;
   }
 
@@ -424,18 +426,18 @@ async function loadAssignableUsers() {
     const users = data.users || [];
 
     if (users.length === 0) {
-      assigneeEl.innerHTML = `<option value="" selected>Belum ada Member untuk kombinasi ini</option>`;
+      assigneeEl.innerHTML = `<option value="" selected>No Member matches this combination</option>`;
       assigneeEl.disabled = true;
       return;
     }
 
     assigneeEl.innerHTML =
-      `<option value="" selected>Tidak ditugaskan (opsional)</option>` +
+      `<option value="" selected>Unassigned (optional)</option>` +
       users.map((u) => `<option value="${u.id}">${u.username}</option>`).join("");
     assigneeEl.disabled = false;
   } catch (err) {
     console.error(err);
-    assigneeEl.innerHTML = `<option value="" selected>Gagal memuat daftar Member</option>`;
+    assigneeEl.innerHTML = `<option value="" selected>Failed to load Member list</option>`;
     assigneeEl.disabled = true;
   }
 }
@@ -476,7 +478,7 @@ function initIssueRegister() {
     const deadlineRaw = dateEl.value; // format Y-m-d from flatpickr
 
     if (!title || !categoryVal || !eventVal || !description || !deadlineRaw) {
-      showToast("Mohon lengkapi semua field sebelum submit.", "error");
+      showToast("Please fill in all fields before submitting.", "error");
       return;
     }
 
@@ -504,23 +506,23 @@ function initIssueRegister() {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.message || "Gagal menyimpan issue.", "error");
+        showToast(data.message || "Failed to save the issue.", "error");
         return;
       }
 
       form.reset();
       if (assigneeEl) {
         assigneeEl.disabled = true;
-        assigneeEl.innerHTML = `<option value="" selected>Pilih Category & Event dahulu</option>`;
+        assigneeEl.innerHTML = `<option value="" selected>Select Category & Event first</option>`;
       }
       await fetchIssues();
       renderAll();
 
       document.querySelector('.nav-item__left[data-tab="list-issue"]')?.click();
-      showToast(`Issue "${data.issue.title}" berhasil didaftarkan.`, "success");
+      showToast(`Issue "${data.issue.title}" registered successfully.`, "success");
     } catch (err) {
       console.error(err);
-      showToast("Terjadi kesalahan saat menghubungi server.", "error");
+      showToast("An error occurred while contacting the server.", "error");
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -561,7 +563,7 @@ function renderTable() {
           ${window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin" ? `
           <button type="button" class="action-btn" data-action="hold" title="Hold"><i class="bxf bx-lock"></i></button>
           ` : ""}
-          <button type="button" class="action-btn" data-action="info" title="Lihat Detail"><i class="bxf bx-info-circle"></i></button>
+          <button type="button" class="action-btn" data-action="info" title="View Detail"><i class="bxf bx-info-circle"></i></button>
           ${window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin" ? `
           <button type="button" class="action-btn" data-action="hand" title="Close Issue"><i class="bxf bx-hand"></i></button>
           ` : ""}
@@ -624,14 +626,14 @@ async function updateIssueStatus(issueId, status, assigneeId) {
       body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || "Gagal update status");
+    if (!res.ok) throw new Error(data.message || "Failed to update status");
     await fetchIssues();
     renderAll();
     showToast(data.message || "Status diperbarui.", "success");
     return true;
   } catch (err) {
     console.error(err);
-    showToast(err.message || "Gagal memperbarui status issue.", "error");
+    showToast(err.message || "Failed to update issue status.", "error");
     return false;
   }
 }
@@ -730,7 +732,7 @@ function showInlineDetail(issueId) {
   setText("inlineDetailEvent", issue.event);
   setText("inlineDetailDeadline", issue.deadline);
   setText("inlineDetailOwner", issue.owner);
-  setText("inlineDetailAssignee", issue.assignee_name || "Belum ditugaskan");
+  setText("inlineDetailAssignee", issue.assignee_name || "Unassigned");
   setText("inlineDetailDescription", issue.description || "-");
 
   const priorityBadge = document.getElementById("inlineDetailPriorityBadge");
@@ -776,7 +778,7 @@ function showInlineDetail(issueId) {
   // Action buttons inside the inline detail
   const holdBtn = document.getElementById("inlineDetailHoldBtn");
   if (holdBtn) {
-    holdBtn.textContent = issue.status === "On Hold" ? "Lepas Hold" : "Hold Issue";
+    holdBtn.textContent = issue.status === "On Hold" ? "Release Hold" : "Hold Issue";
     holdBtn.onclick = () => toggleHold(issue.id, issue.status);
   }
 
@@ -792,24 +794,24 @@ function showInlineDetail(issueId) {
       assigneeSelect.innerHTML = "";
     } else {
       assigneeSelect.classList.remove("is-hidden");
-      assigneeSelect.innerHTML = '<option value="">Memuat pelaksana...</option>';
+      assigneeSelect.innerHTML = '<option value="">Loading assignees...</option>';
       fetch(`/admin/users/api/assignable?category=${encodeURIComponent(issue.category)}&event=${encodeURIComponent(issue.event)}`)
         .then((r) => r.json())
         .then((data) => {
           const options = (data.users || [])
             .map((u) => `<option value="${u.id}">${u.username}</option>`)
             .join("");
-          assigneeSelect.innerHTML = `<option value="">Tanpa pelaksana</option>${options}`;
+          assigneeSelect.innerHTML = `<option value="">No assignee</option>${options}`;
         })
         .catch(() => {
-          assigneeSelect.innerHTML = '<option value="">Gagal memuat</option>';
+          assigneeSelect.innerHTML = '<option value="">Failed to load</option>';
         });
     }
   }
 
   if (closeBtn) {
     closeBtn.onclick = async () => {
-      const confirmed = await showConfirm(`Tandai issue "${issue.title}" sebagai Closed?`);
+      const confirmed = await showConfirm(`Mark issue "${issue.title}" as Closed?`);
       if (!confirmed) return;
 
       const chosenAssignee = assigneeSelect && !assigneeSelect.classList.contains("is-hidden")
@@ -920,11 +922,11 @@ function initListIssue() {
         // assignee yet, redirect to the detail modal (it has a combobox
         // for picking the executor so it's credited on the KPI Dashboard).
         if (!issue.assignee_id) {
-          showToast("Issue ini belum ada pelaksana -- tentukan pelaksana dulu di halaman detail.", "info");
+          showToast("This issue has no assignee yet -- pick one on the detail page first.", "info");
           showInlineDetail(issue.id);
           return;
         }
-        const confirmed = await showConfirm(`Tandai issue "${issue.title}" sebagai Closed?`);
+        const confirmed = await showConfirm(`Mark issue "${issue.title}" as Closed?`);
         if (confirmed) {
           updateIssueStatus(issue.id, "Closed");
         }
@@ -978,7 +980,7 @@ function ganttBarMeta(issue, rangeStart, rangeEnd) {
 
   const left = datePercent(barStart, rangeStart, rangeEnd);
   const right = datePercent(barEnd, rangeStart, rangeEnd);
-  const width = Math.max(1.2, right - left); // biar batang 1-hari tetap kelihatan
+  const width = Math.max(1.2, right - left); // keep a 1-day bar visible
 
   const daysLeft = daysUntil(issue.deadline);
   let color = "#3ddc97"; // longgar
@@ -994,9 +996,8 @@ function renderGanttHeader(rangeStart, rangeEnd) {
   if (!header) return;
 
   const { quarterIndex, year } = currentQuarterRange();
-  if (label) label.textContent = `Q${quarterIndex + 1} ${year} (${rangeStart.toLocaleDateString("en-EN", { day: "2-digit", month: "short" })} - ${rangeEnd.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})`;
+  if (label) label.textContent = `Q${quarterIndex + 1} ${year} (${rangeStart.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} - ${rangeEnd.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})`;
 
-  // One tick per week so the header doesn't get too crowded.
   const ticks = [];
   const cursor = new Date(rangeStart);
   while (cursor <= rangeEnd) {
@@ -1007,7 +1008,7 @@ function renderGanttHeader(rangeStart, rangeEnd) {
   header.innerHTML = ticks
     .map((tick) => {
       const pct = datePercent(tick, rangeStart, rangeEnd);
-      const label = tick.toLocaleDateString("en-EN", { day: "2-digit", month: "short" });
+      const label = tick.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
       return `<span class="gantt__tick" style="left:${pct}%">${label}</span>`;
     })
     .join("");
@@ -1030,8 +1031,6 @@ function renderPriorityMatrix() {
   }
   if (emptyState) emptyState.classList.add("is-hidden");
 
-  // Overdue rows first (most overdue on top), then the rest sorted by
-  // nearest deadline.
   const rows = activeIssues
     .map((issue) => ({ issue, meta: ganttBarMeta(issue, rangeStart, rangeEnd) }))
     .sort((a, b) => {
@@ -1051,7 +1050,7 @@ function renderPriorityMatrix() {
         </div>
         <div class="gantt__track">
           <span class="gantt__today-line" style="left:${todayPercent}%"></span>
-          <div class="gantt__bar" style="left:${meta.left}%; width:${meta.width}%; background:${meta.color};" title="${issue.title} — ${meta.isOverdue ? `lewat ${Math.abs(meta.daysLeft)} hari` : `${meta.daysLeft} hari lagi`}">
+          <div class="gantt__bar" style="left:${meta.left}%; width:${meta.width}%; background:${meta.color};" title="${issue.title} — ${meta.isOverdue ? `${Math.abs(meta.daysLeft)} days overdue` : `${meta.daysLeft} days left`}">
             ${meta.isOverdue ? '<i class="bxf bx-error"></i>' : ""}
           </div>
         </div>
@@ -1059,7 +1058,6 @@ function renderPriorityMatrix() {
     `)
     .join("");
 
-  // Clicking a Gantt row -> switch to List Issue tab and open the detail overlay
   body.querySelectorAll(".gantt__row").forEach((row) => {
     row.addEventListener("click", () => {
       document.querySelector('.nav-item__left[data-tab="list-issue"]')?.click();
@@ -1077,7 +1075,7 @@ function renderAll() {
   renderEventChart();
   renderStatusChart();
   renderMatrixTable();
-  applyFilters(); // ini juga memanggil renderTable()
+  applyFilters();
   renderPriorityMatrix();
 }
 

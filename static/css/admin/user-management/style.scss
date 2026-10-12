@@ -1,11 +1,6 @@
 @use "../../base" as *;
 
-// Halaman ini punya stylesheet sendiri (tidak numpang ke
-// css/workspace/issue-monitor/style.scss), jadi class .list/.register-issue
-// di sini didefinisikan ulang dari nol -- sengaja disamakan token warna &
-// pola visualnya (badge, tabel, form) supaya konsisten dengan halaman lain.
-
-// ---- Navbar tab (sama seperti pola workspace lain) ----
+// ---- Navbar tab ----
 .nav__bar {
   display: flex;
   background-color: white;

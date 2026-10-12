@@ -37,7 +37,8 @@ class User(db.Model):
     email = db.Column(db.String(255), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="Member")
-    job_title = db.Column(db.String(120), nullable=True)  # cosmetic label for KPI Dashboard
+    job_title = db.Column(db.String(120), nullable=True)
+    profile_picture = db.Column(db.String(255), nullable=True)  # cosmetic label for KPI Dashboard
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     approved_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -66,6 +67,13 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     @property
+    def profile_picture_url(self):
+        if not self.profile_picture:
+            return None
+        from flask import url_for
+        return url_for("static", filename=f"assets/uploads/profiles/{self.profile_picture}")
+
+    @property
     def categories(self):
         return sorted(s.category for s in self.category_scopes)
 
@@ -92,6 +100,7 @@ class User(db.Model):
             "role": self.role,
             "is_active": self.is_active,
             "status_label": self.status_label,
+            "profile_picture_url": self.profile_picture_url,
             "categories": self.categories,
             "events": self.events,
             "created_at": self.created_at.strftime("%d-%m-%Y") if self.created_at else None,

@@ -1,15 +1,14 @@
-"""Halaman error kustom (403 Forbidden & 404 Not Found).
+"""Custom error pages (403 Forbidden & 404 Not Found).
 
-Satu tempat untuk semua penanganan error HTTP, supaya bentuk balasannya
-konsisten:
+One place for all HTTP error handling, so responses stay consistent:
 
-- Navigasi browser biasa  -> halaman HTML (templates/errors/403.html, 404.html)
-- API / fetch()           -> JSON {"message": ...} dengan status yang sama
-- Request file /static/*  -> teks polos (tidak perlu render satu halaman
-                             penuh hanya untuk gambar/CSS/JS yang hilang)
+- Normal browser navigation -> HTML page (templates/errors/403.html, 404.html)
+- API / fetch()             -> JSON {"message": ...} with the same status
+- /static/* file requests   -> plain text (no need to render a full page
+                               for a missing image/CSS/JS)
 
-Untuk memicu 403 dengan pesan sendiri di route mana pun:
-    abort(403, description="Pesan untuk user")
+To trigger a 403 with a custom message from any route:
+    abort(403, description="Message for the user")
 """
 
 from flask import Response, jsonify, render_template, request, session, url_for
@@ -18,12 +17,12 @@ from werkzeug.exceptions import Forbidden, NotFound
 from library.auth import home_url, wants_json
 
 DEFAULT_JSON_MESSAGES = {
-    403: "Akses ditolak: hak akses tidak mencukupi.",
-    404: "Data atau halaman yang diminta tidak ditemukan.",
+    403: "Access denied: insufficient permissions.",
+    404: "The requested data or page was not found.",
 }
 
-# Deskripsi bawaan Werkzeug (bahasa Inggris) tidak ditampilkan ke user --
-# hanya deskripsi kustom dari abort(..., description=...) yang dipakai.
+# Werkzeug's built-in descriptions are not shown to the user -- only custom
+# descriptions passed via abort(..., description=...) are used.
 _WERKZEUG_DEFAULTS = {403: Forbidden.description, 404: NotFound.description}
 
 

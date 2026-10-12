@@ -1,6 +1,3 @@
-// Integrated Tools -- searchable list of Tools and Material that link out
-// to pages built by other teams. Data comes from /workspace/tools/api/items.
-
 const TOOLS_API = "/workspace/tools/api/items";
 
 const KIND_ICON = { Tool: "bx-cog", Material: "bx-package" };
