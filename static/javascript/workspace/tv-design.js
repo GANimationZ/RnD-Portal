@@ -48,23 +48,23 @@ function renderTvGrid() {
       (asset) => `
     <div class="tv-card" data-asset-id="${asset.id}">
       <div class="tv-card__head">
-        <span class="tv-card__title">${asset.title}</span>
+        <span class="tv-card__title">${escapeHtml(asset.title)}</span>
         <button type="button" class="tv-card__delete" data-delete-id="${asset.id}" title="Delete">
           <i class="bxf bx-trash"></i>
         </button>
       </div>
       <div class="tv-card__meta">
-        <span><i class="bxf bx-barcode"></i> ${asset.serial_number}</span>
-        ${asset.production ? `<span><i class="bxf bx-factory"></i> ${asset.production}</span>` : ""}
-        ${asset.origin ? `<span><i class="bxf bx-map"></i> ${asset.origin}</span>` : ""}
+        <span><i class="bxf bx-barcode"></i> ${escapeHtml(asset.serial_number)}</span>
+        ${asset.production ? `<span><i class="bxf bx-factory"></i> ${escapeHtml(asset.production)}</span>` : ""}
+        ${asset.origin ? `<span><i class="bxf bx-map"></i> ${escapeHtml(asset.origin)}</span>` : ""}
       </div>
-      ${asset.notes ? `<p class="tv-card__notes">${asset.notes}</p>` : ""}
+      ${asset.notes ? `<p class="tv-card__notes">${escapeHtml(asset.notes)}</p>` : ""}
       <div class="tv-card__attachments">
         ${asset.attachments
           .map(
             (att, idx) => `
           <button type="button" class="attachment-chip" data-asset-id="${asset.id}" data-attachment-index="${idx}">
-            <i class="bxf ${TV_ATTACHMENT_ICON[att.type] || "bx-file"}"></i> ${att.name}
+            <i class="bxf ${TV_ATTACHMENT_ICON[att.type] || "bx-file"}"></i> ${escapeHtml(att.name)}
           </button>`,
           )
           .join("")}

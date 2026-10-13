@@ -7,7 +7,6 @@ const EMPLOYEES_ENDPOINT = `${API_BASE}/api/employees`;
 const EMPLOYEE_DETAIL_ENDPOINT = `${API_BASE}/api/employees`;
 const TEAM_ENDPOINT = `${API_BASE}/api/team`;
 const HISTORY_LIST_ENDPOINT = `${API_BASE}/history`;
-const IMPORT_ENDPOINT = `${API_BASE}/import`;
 
 function el(id) {
   return document.getElementById(id);
@@ -60,7 +59,7 @@ function createEmployeePanelController(ids, rangeScope) {
       .map(
         (emp) => `
       <tr data-id="${emp.id}" class="${emp.id === activeId ? "is-active" : ""}">
-        <td title="${emp.name}">${emp.name}</td>
+        <td title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}</td>
         <td>
           <div class="hours-bar-track">
             <div class="hours-bar-fill" style="width:${emp.workload.widthPct}%; background:${emp.workload.color};"></div>
@@ -93,14 +92,14 @@ function createEmployeePanelController(ids, rangeScope) {
         <span class="insight__dot" style="background:${insights.lightest.color}"></span>
         <div>
           <span class="insight__label">Lightest Workload</span>
-          <span class="insight__value">${insights.lightest.name} &middot; ${insights.lightest.hours.toFixed(1)}h</span>
+          <span class="insight__value">${escapeHtml(insights.lightest.name)} &middot; ${insights.lightest.hours.toFixed(1)}h</span>
         </div>
       </div>
       <div class="insight insight--danger">
         <span class="insight__dot" style="background:${insights.heaviest.color}"></span>
         <div>
           <span class="insight__label">Needs Attention</span>
-          <span class="insight__value">${insights.heaviest.name} &middot; ${insights.heaviest.hours.toFixed(1)}h</span>
+          <span class="insight__value">${escapeHtml(insights.heaviest.name)} &middot; ${insights.heaviest.hours.toFixed(1)}h</span>
         </div>
       </div>
     `;
@@ -161,10 +160,10 @@ function createEmployeePanelController(ids, rangeScope) {
 
     container.innerHTML = `
       <div class="emp-profile">
-        <span class="emp-avatar emp-avatar--lg" style="background:${detail.completionRateColor}22; color:${detail.completionRateColor}">${detail.initials}</span>
+        <span class="emp-avatar emp-avatar--lg" style="background:${detail.completionRateColor}22; color:${detail.completionRateColor}">${escapeHtml(detail.initials)}</span>
         <div>
-          <div class="emp-profile__name">${detail.name}</div>
-          <div class="emp-profile__role">${detail.role} &middot; ${detail.team}</div>
+          <div class="emp-profile__name">${escapeHtml(detail.name)}</div>
+          <div class="emp-profile__role">${escapeHtml(detail.role)} &middot; ${escapeHtml(detail.team)}</div>
         </div>
       </div>
       <div class="emp-stats">
@@ -173,11 +172,11 @@ function createEmployeePanelController(ids, rangeScope) {
         <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${detail.pending}</span></div>
         <div class="emp-stat ${detail.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${detail.overdue}</span></div>
         <div class="emp-stat"><span class="emp-stat__label">Completion Rate</span><span class="emp-stat__value">${detail.completionRate}%</span></div>
-        <div class="emp-stat"><span class="emp-stat__label">Avg. Resolution</span><span class="emp-stat__value">${detail.avgResolutionDays} days</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Avg. Resolution</span><span class="emp-stat__value">${detail.avgResolutionHours} hours</span></div>
       </div>
       <div class="emp-notes">
-        <span class="emp-notes__title">Best Practice Notes &middot; ${detail.rangeLabel}</span>
-        <ul>${detail.bestPractices.map((note) => `<li>${note}</li>`).join("")}</ul>
+        <span class="emp-notes__title">Best Practice Notes &middot; ${escapeHtml(detail.rangeLabel)}</span>
+        <ul>${detail.bestPractices.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul>
       </div>
     `;
   }
@@ -291,10 +290,10 @@ function createTeamPanelController(ids, rangeScope) {
         (emp) => `
       <div class="team-leaderboard__row">
         <span class="team-leaderboard__rank">#${emp.rank}</span>
-        <span class="emp-avatar" style="background:${emp.completionRateColor}22; color:${emp.completionRateColor}">${emp.initials}</span>
+        <span class="emp-avatar" style="background:${emp.completionRateColor}22; color:${emp.completionRateColor}">${escapeHtml(emp.initials)}</span>
         <div class="team-leaderboard__info">
-          <span class="team-leaderboard__name">${emp.name}</span>
-          <span class="team-leaderboard__team">${emp.role}</span>
+          <span class="team-leaderboard__name">${escapeHtml(emp.name)}</span>
+          <span class="team-leaderboard__team">${escapeHtml(emp.role)}</span>
         </div>
         <div class="team-leaderboard__bar-wrap">
           <div class="hours-bar-track">
@@ -366,7 +365,7 @@ const historyTeamPanel = createTeamPanelController(
   "history-team",
 );
 
-// ==================== Monthly Excel archive (Import/Export/Download) ====================
+// ==================== Monthly Excel archive (Export per selected month) ====================
 let historySnapshots = [];
 let historyMonthsLoaded = false;
 
@@ -400,21 +399,36 @@ function renderHistoryMonthOptions() {
             snap.filename === thisMonth
               ? `${snap.label} (This month)`
               : snap.label;
-          return `<option value="${snap.filename}">${label}</option>`;
+          return `<option value="${escapeHtml(snap.filename)}">${escapeHtml(label)}</option>`;
         })
         .join("");
-      return `<optgroup label="${year}">${options}</optgroup>`;
+      return `<optgroup label="${escapeHtml(year)}">${options}</optgroup>`;
     })
     .join("");
 }
 
+// Export Individual / Export Team always export the month currently
+// chosen in the Archive Month dropdown ("YYYY-MM" sent as ?month=).
+function updateExportLinks() {
+  const select = el("historyMonthSelect");
+  const monthKey = select && select.value ? select.value.replace(".xlsx", "") : "";
+
+  ["exportIndividualBtn", "exportTeamBtn"].forEach((id) => {
+    const link = el(id);
+    if (!link) return;
+    if (!link.dataset.baseHref) link.dataset.baseHref = link.getAttribute("href");
+    link.href = monthKey
+      ? `${link.dataset.baseHref}?month=${encodeURIComponent(monthKey)}`
+      : link.dataset.baseHref;
+  });
+}
+
 function selectHistoryMonthByIndex(index) {
   const select = el("historyMonthSelect");
-  const downloadBtn = el("historyDownloadBtn");
   if (!select || historySnapshots[index] == null) return;
 
   select.value = historySnapshots[index].filename;
-  if (downloadBtn) downloadBtn.href = historySnapshots[index].downloadUrl;
+  updateExportLinks();
   updateHistoryNavButtons();
 }
 
@@ -431,7 +445,6 @@ function updateHistoryNavButtons() {
 
 async function loadHistoryMonths() {
   const select = el("historyMonthSelect");
-  const downloadBtn = el("historyDownloadBtn");
   if (!select) return;
 
   try {
@@ -441,42 +454,11 @@ async function loadHistoryMonths() {
     renderHistoryMonthOptions();
     if (historySnapshots.length === 0) return;
 
-    if (downloadBtn) downloadBtn.href = historySnapshots[0].downloadUrl;
+    updateExportLinks();
     updateHistoryNavButtons();
   } catch (err) {
     console.error(err);
     select.innerHTML = '<option value="">Failed to load archive</option>';
-  }
-}
-
-async function handleHistoryImport(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  try {
-    const response = await fetch(IMPORT_ENDPOINT, {
-      method: "POST",
-      body: formData,
-    });
-    const result = await response.json();
-    if (!response.ok)
-      throw new Error(result.message || `HTTP ${response.status}`);
-
-    showToast(
-      `Import complete: ${result.updated} records updated, ${result.created} new records added.`,
-      "success",
-    );
-  } catch (err) {
-    console.error(err);
-    showToast(
-      "Failed to import the Excel file. Make sure its format matches an exported file.",
-      "error",
-    );
-  } finally {
-    event.target.value = "";
   }
 }
 
@@ -546,21 +528,10 @@ document.addEventListener("panel:show", (e) => {
 document.addEventListener("DOMContentLoaded", () => {
   loadKpiOverview();
 
-  const importHistoryBtn = el("importHistoryBtn");
-  const importHistoryInput = el("importHistoryInput");
-  if (importHistoryBtn && importHistoryInput) {
-    importHistoryBtn.addEventListener("click", () =>
-      importHistoryInput.click(),
-    );
-    importHistoryInput.addEventListener("change", handleHistoryImport);
-  }
-
   const monthSelect = el("historyMonthSelect");
   if (monthSelect) {
     monthSelect.addEventListener("change", (e) => {
-      const snap = historySnapshots.find((s) => s.filename === e.target.value);
-      const downloadBtn = el("historyDownloadBtn");
-      if (snap && downloadBtn) downloadBtn.href = snap.downloadUrl;
+      updateExportLinks();
       updateHistoryNavButtons();
     });
   }

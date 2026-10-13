@@ -337,7 +337,7 @@ function renderMatrixTable() {
 
     const rowHeader = document.createElement("th");
     rowHeader.classList.add("category-badge-cell");
-    rowHeader.innerHTML = `<span class="category-badge" style="background:${CATEGORY_META[cat].color}22; color:${CATEGORY_META[cat].color}">${cat}</span>`;
+    rowHeader.innerHTML = `<span class="category-badge" style="background:${CATEGORY_META[cat].color}22; color:${CATEGORY_META[cat].color}">${escapeHtml(cat)}</span>`;
     row.appendChild(rowHeader);
 
     let rowSum = 0;
@@ -433,7 +433,7 @@ async function loadAssignableUsers() {
 
     assigneeEl.innerHTML =
       `<option value="" selected>Unassigned (optional)</option>` +
-      users.map((u) => `<option value="${u.id}">${u.username}</option>`).join("");
+      users.map((u) => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join("");
     assigneeEl.disabled = false;
   } catch (err) {
     console.error(err);
@@ -551,13 +551,13 @@ function renderTable() {
     row.dataset.issueId = issue.id;
     row.innerHTML = `
       <td>${start + i + 1}</td>
-      <td>${issue.title}</td>
-      <td class="center"><span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${issue.priority}</span></td>
-      <td class="center">${issue.category}</td>
-      <td class="center">${issue.event}</td>
-      <td class="center">${issue.deadline}</td>
-      <td>${issue.assignee_name || "-"}</td>
-      <td class="center"><span class="badge ${STATUS_CLASS[issue.status] || ""}">${issue.status}</span></td>
+      <td>${escapeHtml(issue.title)}</td>
+      <td class="center"><span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${escapeHtml(issue.priority)}</span></td>
+      <td class="center">${escapeHtml(issue.category)}</td>
+      <td class="center">${escapeHtml(issue.event)}</td>
+      <td class="center">${escapeHtml(issue.deadline)}</td>
+      <td>${escapeHtml(issue.assignee_name || "-")}</td>
+      <td class="center"><span class="badge ${STATUS_CLASS[issue.status] || ""}">${escapeHtml(issue.status)}</span></td>
       <td class="center">
         <div class="action-buttons">
           ${window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin" ? `
@@ -693,6 +693,15 @@ function applyFilters() {
   renderTable();
 }
 
+// CSV/Excel formula injection: a cell that starts with = + - @ (or a tab/CR)
+// is run as a formula when the file is opened in Excel. Prefix such text
+// cells with an apostrophe so they stay plain text.
+function sanitizeCell(value) {
+  if (typeof value !== "string") return value;
+  if (value !== "-" && /^[=+\-@\t\r]/.test(value)) return `'${value}`;
+  return value;
+}
+
 function exportData(type) {
   const rows = [["No", "Title", "Priority", "Category", "Event", "Deadline", "Assignee", "Status"]];
   filteredData.forEach((issue, i) => {
@@ -700,7 +709,7 @@ function exportData(type) {
   });
 
   const content = rows
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .map((r) => r.map((c) => `"${String(sanitizeCell(c)).replace(/"/g, '""')}"`).join(","))
     .join("\r\n");
 
   const mime = type === "csv" ? "text/csv" : "application/vnd.ms-excel";
@@ -751,7 +760,7 @@ function showInlineDetail(issueId) {
   const imgWrapper = document.getElementById("inlineDetailImageWrapper");
   if (imgWrapper) {
     imgWrapper.innerHTML = issue.image_url
-      ? `<img src="${issue.image_url}" alt="${issue.title}" />`
+      ? `<img src="${escapeHtml(issue.image_url)}" alt="${escapeHtml(issue.title)}" />`
       : "";
   }
 
@@ -764,7 +773,7 @@ function showInlineDetail(issueId) {
       .map(
         (att, idx) => `
         <button type="button" class="attachment-chip" data-attachment-index="${idx}">
-          <i class="bxf ${ATTACHMENT_ICON[att.type] || "bx-file"}"></i> ${att.name}
+          <i class="bxf ${ATTACHMENT_ICON[att.type] || "bx-file"}"></i> ${escapeHtml(att.name)}
         </button>`,
       )
       .join("");
@@ -799,7 +808,7 @@ function showInlineDetail(issueId) {
         .then((r) => r.json())
         .then((data) => {
           const options = (data.users || [])
-            .map((u) => `<option value="${u.id}">${u.username}</option>`)
+            .map((u) => `<option value="${u.id}">${escapeHtml(u.username)}</option>`)
             .join("");
           assigneeSelect.innerHTML = `<option value="">No assignee</option>${options}`;
         })
@@ -1045,12 +1054,12 @@ function renderPriorityMatrix() {
     .map(({ issue, meta }) => `
       <div class="gantt__row ${meta.isOverdue ? "gantt__row--overdue" : ""}" data-issue-id="${issue.id}">
         <div class="gantt__row-label">
-          <span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${issue.priority}</span>
-          <span class="gantt__row-title" title="${issue.title}">${issue.title}</span>
+          <span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${escapeHtml(issue.priority)}</span>
+          <span class="gantt__row-title" title="${escapeHtml(issue.title)}">${escapeHtml(issue.title)}</span>
         </div>
         <div class="gantt__track">
           <span class="gantt__today-line" style="left:${todayPercent}%"></span>
-          <div class="gantt__bar" style="left:${meta.left}%; width:${meta.width}%; background:${meta.color};" title="${issue.title} — ${meta.isOverdue ? `${Math.abs(meta.daysLeft)} days overdue` : `${meta.daysLeft} days left`}">
+          <div class="gantt__bar" style="left:${meta.left}%; width:${meta.width}%; background:${meta.color};" title="${escapeHtml(issue.title)} — ${meta.isOverdue ? `${Math.abs(meta.daysLeft)} days overdue` : `${meta.daysLeft} days left`}">
             ${meta.isOverdue ? '<i class="bxf bx-error"></i>' : ""}
           </div>
         </div>

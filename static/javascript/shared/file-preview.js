@@ -11,9 +11,9 @@
 
     sheetJsLoadPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      script.src = "/static/vendor/sheetjs/xlsx.full.min.js";
       script.onload = resolve;
-      script.onerror = () => reject(new Error("Failed to load SheetJS (requires internet access)."));
+      script.onerror = () => reject(new Error("Failed to load SheetJS."));
       document.head.appendChild(script);
     });
     return sheetJsLoadPromise;
@@ -45,12 +45,12 @@
 
   async function renderBody(body, file) {
     if (file.type === "image") {
-      body.innerHTML = `<img src="${file.url}" alt="${file.name}" class="file-preview-image" />`;
+      body.innerHTML = `<img src="${escapeHtml(file.url)}" alt="${escapeHtml(file.name)}" class="file-preview-image" />`;
       return;
     }
 
     if (file.type === "pdf") {
-      body.innerHTML = `<iframe src="${file.url}" class="file-preview-frame"></iframe>`;
+      body.innerHTML = `<iframe src="${escapeHtml(file.url)}" class="file-preview-frame"></iframe>`;
       return;
     }
 
@@ -66,14 +66,14 @@
       } catch (err) {
         console.error(err);
         body.innerHTML = unsupportedPreviewMarkup(
-          "Excel preview requires internet access (to load SheetJS). Please download the file instead.",
+          "Excel preview failed to load. Please download the file instead.",
         );
       }
       return;
     }
 
     body.innerHTML = unsupportedPreviewMarkup(
-      `Preview isn't supported for this file type (${file.type.toUpperCase()}). Please download it to open.`,
+      `Preview isn't supported for this file type (${escapeHtml(file.type.toUpperCase())}). Please download it to open.`,
     );
   }
 

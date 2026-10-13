@@ -2,6 +2,18 @@
 // Notifikasi custom (toast + confirm dialog) -- pengganti alert()/
 // ====================================================================
 
+// Escape teks yang berasal dari data (nama user, judul issue, dll.) sebelum
+// disisipkan ke template string yang dipakai untuk innerHTML.
+window.escapeHtml = function escapeHtml(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[ch]);
+};
+
 (function () {
   function ensureContainer() {
     let container = document.getElementById("toastContainer");

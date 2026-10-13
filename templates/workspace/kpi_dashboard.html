@@ -128,18 +128,9 @@
           ><i class="bxf bx-history"></i> Monthly History</span
         >
         <div class="history-panel__actions">
-          <button type="button" class="btn-export" id="importHistoryBtn">
-            <i class="bxf bx-arrow-to-top"></i>
-            Import Excel
-          </button>
-          <input
-            type="file"
-            id="importHistoryInput"
-            accept=".xlsx,.xls"
-            hidden
-          />
           <a
             class="btn-export"
+            id="exportIndividualBtn"
             href="{{ url_for('kpi_dashboard.export_individual') }}"
           >
             <i class="bxf bx-arrow-to-bottom"></i>
@@ -147,6 +138,7 @@
           </a>
           <a
             class="btn-export"
+            id="exportTeamBtn"
             href="{{ url_for('kpi_dashboard.export_team') }}"
           >
             <i class="bxf bx-arrow-to-bottom"></i>
@@ -175,10 +167,6 @@
           >
             <i class="bxf bx-chevron-right"></i>
           </button>
-          <a class="btn-export" id="historyDownloadBtn" href="#">
-            <i class="bxf bx-arrow-to-bottom"></i>
-            Download This File
-          </a>
         </div>
 
         <div class="history-subnav">

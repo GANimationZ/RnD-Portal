@@ -63,7 +63,7 @@ function scopeBadges(list, badgeClass) {
   if (!list || list.length === 0) {
     return `<span class="um-empty-scope">-</span>`;
   }
-  return list.map((v) => `<span class="badge ${badgeClass}">${v}</span>`).join("");
+  return list.map((v) => `<span class="badge ${badgeClass}">${escapeHtml(v)}</span>`).join("");
 }
 
 function renderTable() {
@@ -75,12 +75,12 @@ function renderTable() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${i + 1}</td>
-      <td>${user.username}</td>
-      <td>${user.email}</td>
-      <td><span class="badge ${ROLE_BADGE_CLASS[user.role] || "badge-grey"}">${user.role}</span></td>
+      <td>${escapeHtml(user.username)}</td>
+      <td>${escapeHtml(user.email)}</td>
+      <td><span class="badge ${ROLE_BADGE_CLASS[user.role] || "badge-grey"}">${escapeHtml(user.role)}</span></td>
       <td><div class="um-scope-cell">${scopeBadges(user.categories, "badge-blue")}</div></td>
       <td><div class="um-scope-cell">${scopeBadges(user.events, "badge-green")}</div></td>
-      <td><span class="badge ${STATUS_BADGE_CLASS[user.status_label] || "badge-grey"}">${STATUS_LABEL_ID[user.status_label] || user.status_label}</span></td>
+      <td><span class="badge ${STATUS_BADGE_CLASS[user.status_label] || "badge-grey"}">${escapeHtml(STATUS_LABEL_ID[user.status_label] || user.status_label)}</span></td>
       <td class="center">
         <div class="um-action-buttons">
           <button type="button" data-action="edit" data-id="${user.id}" title="Edit"><i class="bxf bx-edit"></i></button>

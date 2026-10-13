@@ -68,7 +68,7 @@ function applyAvatar(url) {
   const initials = (document.querySelector(".settings-card__username")?.textContent || "?")
     .slice(0, 2)
     .toUpperCase();
-  const markup = url ? `<img src="${url}" alt="" />` : initials;
+  const markup = url ? `<img src="${escapeHtml(url)}" alt="" />` : escapeHtml(initials);
 
   const settingsAvatar = document.getElementById("settingsAvatar");
   if (settingsAvatar) settingsAvatar.innerHTML = markup;

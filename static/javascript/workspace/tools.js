@@ -8,11 +8,7 @@ let toolView = "card";
 
 const el = (id) => document.getElementById(id);
 
-function escapeHtml(value) {
-  const div = document.createElement("div");
-  div.textContent = value == null ? "" : String(value);
-  return div.innerHTML;
-}
+// escapeHtml() comes from shared/notify.js (also escapes quotes for attributes).
 
 async function loadItems() {
   try {

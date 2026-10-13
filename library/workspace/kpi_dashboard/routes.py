@@ -7,14 +7,15 @@
   call metrics.py, returning ready-to-render JSON.
 - /api/* is shared by the Individual/Team panels (live) and the History
   sub-panels, so Recent/Last Week/Last Month/Last Year stay consistent
-  everywhere. Export/import/.xlsx snapshot history is a separate,
-  archival-only feature.
+  everywhere. Export (per selected month) and the .xlsx snapshot history
+  are a separate, archival-only feature.
 """
 
 import os
+import re
 from datetime import datetime
 
-from flask import Blueprint, current_app, jsonify, request, send_file, send_from_directory
+from flask import Blueprint, current_app, jsonify, request, send_file
 
 from library.auth import login_required
 from library.extensions import db
@@ -53,10 +54,12 @@ def _restrict_kpi_dashboard():
     if session.get("role") == "Admin":
         abort(403, description="QA (Admin) has no access to KPI Dashboard.")
 
-MONTH_LABELS_ID = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+MONTH_LABELS_EN = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
 ]
+
+MONTH_KEY_PATTERN = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
 
 VALID_RANGES = set(RANGE_LABELS.keys())
 EXPORT_RANGE = "month"  # a monthly snapshot represents the last 30 days
@@ -95,12 +98,29 @@ def _history_dir():
     return path
 
 
+SNAPSHOT_NAME_PATTERN = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])\.xlsx$")
+
+
+def _snapshot_path(filename):
+    """Absolute path of an archived snapshot, or None if `filename` is not
+    a plain "YYYY-MM.xlsx" name that resolves inside the archive folder.
+    Every read of a user-supplied snapshot name goes through here so it can
+    never point outside kpi_history (path traversal)."""
+    if not isinstance(filename, str) or not SNAPSHOT_NAME_PATTERN.match(filename):
+        return None
+    base = os.path.realpath(_history_dir())
+    path = os.path.realpath(os.path.join(base, filename))
+    if os.path.dirname(path) != base:
+        return None
+    return path
+
+
 def _ensure_current_month_snapshot():
     """Auto-generate this month's snapshot if it doesn't exist yet, in
     case nobody exported manually."""
     now = datetime.now()
     filename = f"{now.year}-{now.month:02d}.xlsx"
-    filepath = os.path.join(_history_dir(), filename)
+    filepath = _snapshot_path(filename)
 
     if not os.path.exists(filepath):
         wb = build_individual_workbook(get_employees_for_export())
@@ -174,52 +194,71 @@ def api_add_best_practice(employee_id):
     return jsonify({"message": "Note added.", "note": note}), 201
 
 
-# ==================== Export / Import / History (.xlsx archive) ====================
+# ==================== Export (per selected month) / History (.xlsx archive) ====================
 
-@kpi_dashboard_bp.route("/export/individual")
-def export_individual():
-    wb = build_individual_workbook(get_employees_for_export())
-    buffer = workbook_to_bytes(wb)
-    filename = f"kpi-individual-{datetime.now():%Y-%m-%d}.xlsx"
+XLSX_MIMETYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def _current_month_key():
+    now = datetime.now()
+    return f"{now.year}-{now.month:02d}"
+
+
+def _month_param():
+    """Validated "YYYY-MM" from ?month= (defaults to the current month).
+    Returns None when the value is malformed, which also keeps arbitrary
+    strings out of the archive file path."""
+    value = (request.args.get("month") or _current_month_key()).strip()
+    if value.endswith(".xlsx"):  # tolerate a snapshot filename
+        value = value[: -len(".xlsx")]
+    return value if MONTH_KEY_PATTERN.match(value) else None
+
+
+def _employees_for_month(month_key):
+    """Rows to export for one month.
+
+    - Current month: live data from the DB, so the export is never stale.
+    - Past months: the archived monthly snapshot (.xlsx) for that month.
+    Returns None if there is no archive for that month."""
+    if month_key == _current_month_key():
+        return get_employees_for_export()
+
+    filepath = _snapshot_path(f"{month_key}.xlsx")
+    if filepath is None or not os.path.exists(filepath):
+        return None
+    return parse_employee_workbook(filepath)
+
+
+def _export_month(builder, prefix):
+    month_key = _month_param()
+    if month_key is None:
+        return jsonify({"message": "Invalid month. Use the format YYYY-MM."}), 400
+
+    try:
+        employees = _employees_for_month(month_key)
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"message": f"Failed to read the archive: {exc}"}), 400
+
+    if employees is None:
+        return jsonify({"message": "No archive found for the selected month."}), 404
+
+    buffer = workbook_to_bytes(builder(employees))
     return send_file(
         buffer,
         as_attachment=True,
-        download_name=filename,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        download_name=f"{prefix}-{month_key}.xlsx",
+        mimetype=XLSX_MIMETYPE,
     )
+
+
+@kpi_dashboard_bp.route("/export/individual")
+def export_individual():
+    return _export_month(build_individual_workbook, "kpi-individual")
 
 
 @kpi_dashboard_bp.route("/export/team")
 def export_team():
-    wb = build_team_workbook(get_employees_for_export())
-    buffer = workbook_to_bytes(wb)
-    filename = f"kpi-team-{datetime.now():%Y-%m-%d}.xlsx"
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=filename,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
-
-
-@kpi_dashboard_bp.route("/import", methods=["POST"])
-def import_employees():
-    file = request.files.get("file")
-    if not file:
-        return jsonify({"message": "File not found."}), 400
-
-    try:
-        rows = parse_employee_workbook(file.stream)
-    except Exception as exc:  # noqa: BLE001
-        return jsonify({"message": f"Failed to read file: {exc}"}), 400
-
-    # TODO: upsert `rows` into User/KPIRecord by name if Excel import is
-    # meant to overwrite DB data (not just preview). For now this only
-    # counts rows so the frontend can show a notification, as before.
-    updated = len(rows)
-    created = 0
-
-    return jsonify({"updated": updated, "created": created, "rows": rows})
+    return _export_month(build_team_workbook, "kpi-team")
 
 
 @kpi_dashboard_bp.route("/history")
@@ -228,38 +267,32 @@ def history():
 
     snapshots = []
     for filename in sorted(os.listdir(_history_dir()), reverse=True):
-        if not filename.endswith(".xlsx"):
-            continue
-        year, month = filename.replace(".xlsx", "").split("-")
-        filepath = os.path.join(_history_dir(), filename)
-        stat = os.stat(filepath)
+        match = SNAPSHOT_NAME_PATTERN.match(filename)
+        if not match:
+            continue  # ignore any stray file in the archive folder
+        year, month = match.groups()
+        stat = os.stat(_snapshot_path(filename))
 
         snapshots.append(
             {
                 "filename": filename,
-                "label": f"{MONTH_LABELS_ID[int(month) - 1]} {year}",
+                "label": f"{MONTH_LABELS_EN[int(month) - 1]} {year}",
                 "createdAt": datetime.fromtimestamp(stat.st_mtime).strftime("%d %b %Y"),
                 "sizeBytes": stat.st_size,
-                "downloadUrl": f"/workspace/kpi-dashboard/history/download/{filename}",
             }
         )
 
     return jsonify({"snapshots": snapshots})
 
 
-@kpi_dashboard_bp.route("/history/download/<path:filename>")
-def download_history(filename):
-    return send_from_directory(_history_dir(), filename, as_attachment=True)
-
-
-@kpi_dashboard_bp.route("/history/data/<path:filename>")
+@kpi_dashboard_bp.route("/history/data/<string:filename>")
 def history_data(filename):
     """Read one archived monthly .xlsx snapshot back as JSON. Kept for
     audit/preview of old archives; the live History Individual/Team view
     now uses /api/* (direct DB data) to stay consistent with the live
     panels."""
-    filepath = os.path.join(_history_dir(), filename)
-    if not os.path.exists(filepath):
+    filepath = _snapshot_path(filename)
+    if filepath is None or not os.path.exists(filepath):
         return jsonify({"message": "Snapshot not found."}), 404
 
     try:
