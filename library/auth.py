@@ -2,7 +2,10 @@
 
 from functools import wraps
 
-from flask import abort, redirect, request, session, url_for
+from flask import abort, g, redirect, request, session, url_for
+
+from library.extensions import db
+from library.models import User
 
 # Landing page after login (and the "Back to Home" button on error pages)
 # per role. Roles not listed here use DEFAULT_HOME_ENDPOINT.
@@ -39,11 +42,43 @@ def wants_json():
     return best == "application/json" and accepts[best] > accepts["text/html"]
 
 
+def _load_live_session_user():
+    """Re-check the session against the DB on every request (not just at
+    login): the session is a ticket the user holds, and without this check
+    a Super Admin deactivating, demoting, or deleting someone only changes
+    the DB -- the held ticket keeps working until the browser session
+    naturally expires or the user happens to log out.
+
+    Cached on flask.g so stacking @login_required with @roles_required (the
+    pattern used throughout the app) only hits the DB once per request.
+
+    Returns the live User row, and keeps session["role"] in sync with the
+    DB so roles_required() below always sees the current role, or returns
+    None (after clearing the session) when the account is gone/deactivated."""
+    if "_live_session_user" in g:
+        return g._live_session_user
+
+    user = db.session.get(User, session["user_id"])
+
+    if user is None or not user.is_active:
+        session.clear()
+        g._live_session_user = None
+        return None
+
+    session["role"] = user.role  # pick up role changes without a re-login
+    g._live_session_user = user
+    return user
+
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("main.onboard"))
+
+        if _load_live_session_user() is None:
+            return redirect(url_for("main.onboard"))
+
         return f(*args, **kwargs)
 
     return decorated_function
@@ -63,6 +98,9 @@ def roles_required(*roles):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if "user_id" not in session:
+                return redirect(url_for("main.onboard"))
+
+            if _load_live_session_user() is None:
                 return redirect(url_for("main.onboard"))
 
             if session.get("role") not in roles:

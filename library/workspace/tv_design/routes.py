@@ -6,7 +6,9 @@ from flask import Blueprint, jsonify, render_template, request, session
 
 from library.auth import login_required
 from library.extensions import db
-from library.files import is_allowed, save_upload, get_file_type
+import os
+
+from library.files import get_upload_dir, is_allowed, save_upload, get_file_type
 from library.models import TvDesignAsset, TvDesignAttachment
 
 tv_design_bp = Blueprint("tv_design", __name__, url_prefix="/workspace/tv-design-concept")
@@ -93,6 +95,17 @@ def api_create_asset():
 @login_required
 def api_delete_asset(asset_id):
     asset = TvDesignAsset.query.get_or_404(asset_id)
+
+    # Attachment rows cascade-delete with the asset, but the uploaded files
+    # themselves live on disk and are not tracked by the DB foreign key, so
+    # they have to be removed explicitly or they become orphaned "sampah"
+    # in static/assets/uploads/tv-design/.
+    upload_dir = get_upload_dir("tv-design")
+    for attachment in asset.attachments:
+        filepath = os.path.join(upload_dir, attachment.filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
     db.session.delete(asset)
     db.session.commit()
     return jsonify({"message": "Entry deleted successfully."})

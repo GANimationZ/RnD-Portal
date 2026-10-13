@@ -12,18 +12,23 @@ To trigger a 403 with a custom message from any route:
 """
 
 from flask import Response, jsonify, render_template, request, session, url_for
-from werkzeug.exceptions import Forbidden, NotFound
+from werkzeug.exceptions import Forbidden, NotFound, RequestEntityTooLarge
 
 from library.auth import home_url, wants_json
 
 DEFAULT_JSON_MESSAGES = {
     403: "Access denied: insufficient permissions.",
     404: "The requested data or page was not found.",
+    413: "Ukuran file maksimal 10 MB.",
 }
 
 # Werkzeug's built-in descriptions are not shown to the user -- only custom
 # descriptions passed via abort(..., description=...) are used.
-_WERKZEUG_DEFAULTS = {403: Forbidden.description, 404: NotFound.description}
+_WERKZEUG_DEFAULTS = {
+    403: Forbidden.description,
+    404: NotFound.description,
+    413: RequestEntityTooLarge.description,
+}
 
 
 def _custom_description(status, error):
@@ -37,7 +42,8 @@ def _respond(status, error):
     detail = _custom_description(status, error)
 
     if request.path.startswith("/static/"):
-        return Response("Not Found" if status == 404 else "Forbidden", status=status, mimetype="text/plain")
+        plain = {404: "Not Found", 403: "Forbidden"}.get(status, "Error")
+        return Response(plain, status=status, mimetype="text/plain")
 
     if wants_json():
         return jsonify({"message": detail or DEFAULT_JSON_MESSAGES[status]}), status
@@ -62,3 +68,11 @@ def register_error_handlers(app):
     @app.errorhandler(404)
     def not_found(error):
         return _respond(404, error)
+
+    @app.errorhandler(413)
+    def too_large(error):
+        # Triggered automatically by Flask/Werkzeug once a request body goes
+        # past app.config["MAX_CONTENT_LENGTH"] -- the view function for the
+        # upload never even runs, so this is the only place the message
+        # needs to be set.
+        return _respond(413, error)

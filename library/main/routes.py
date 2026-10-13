@@ -158,13 +158,3 @@ def org_structure():
         active_nav="structure",
         username=session.get("username"),
     )
-
-
-@main_bp.route("/team/others", methods=["GET"])
-@login_required
-def team_others():
-    return render_template(
-        "team/others.html",
-        active_nav="others",
-        username=session.get("username"),
-    )

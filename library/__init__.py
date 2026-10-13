@@ -28,8 +28,17 @@ def create_app():
     return app
 
 
+# Hard cap on any single upload (Issue Monitor attachments, TV Design
+# attachments), enforced by Werkzeug before the request body is even fully
+# read into memory -- without it nothing stops someone uploading a 5 GB
+# file and filling up the server's disk. 10 MB matches what the UI tells
+# the user ("Ukuran file maksimal 10 MB.").
+MAX_UPLOAD_SIZE_MB = 10
+
+
 def _configure(app):
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+    app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
     # To migrate SQLite -> PostgreSQL, just set DATABASE_URL (see MIGRATION.md).
     database_url = os.environ.get("DATABASE_URL", "sqlite:///database.db")
