@@ -560,11 +560,11 @@ function renderTable() {
       <td class="center"><span class="badge ${STATUS_CLASS[issue.status] || ""}">${escapeHtml(issue.status)}</span></td>
       <td class="center">
         <div class="action-buttons">
-          ${window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin" ? `
+          ${(window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin") && issue.status !== "Closed" ? `
           <button type="button" class="action-btn" data-action="hold" title="Hold"><i class="bxf bx-lock"></i></button>
           ` : ""}
           <button type="button" class="action-btn" data-action="info" title="View Detail"><i class="bxf bx-info-circle"></i></button>
-          ${window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin" ? `
+          ${(window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin") && issue.status !== "Closed" ? `
           <button type="button" class="action-btn" data-action="hand" title="Close Issue"><i class="bxf bx-hand"></i></button>
           ` : ""}
         </div>
@@ -784,12 +784,20 @@ function showInlineDetail(issueId) {
     });
   }
 
-  // Action buttons inside the inline detail
+  // Action buttons inside the inline detail. A Closed issue is final (see
+  // the backend guard in api_update_status), so both the Hold button and
+  // the whole close group (assignee select + Close button) are hidden
+  // once closed -- there's nothing left to toggle or close again.
+  const isClosed = issue.status === "Closed";
   const holdBtn = document.getElementById("inlineDetailHoldBtn");
   if (holdBtn) {
+    holdBtn.classList.toggle("is-hidden", isClosed);
     holdBtn.textContent = issue.status === "On Hold" ? "Release Hold" : "Hold Issue";
     holdBtn.onclick = () => toggleHold(issue.id, issue.status);
   }
+
+  const closeGroup = document.getElementById("inlineDetailCloseGroup");
+  if (closeGroup) closeGroup.classList.toggle("is-hidden", isClosed);
 
   // If this issue has no assignee yet, show the "executor" combobox so
   // whoever actually did the work can be recorded when it's closed

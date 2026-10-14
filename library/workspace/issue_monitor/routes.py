@@ -1,7 +1,7 @@
 """Issue Monitor blueprint: list/dashboard/register/priority-matrix pages
 and their API endpoints."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, render_template, request, session
 
@@ -21,6 +21,24 @@ issue_monitor_bp = Blueprint(
 
 VALID_STATUS = {"Open", "Pending", "Closed", "On Hold"}
 
+# An issue that's still "Open" and hasn't been touched (no Hold, no Close)
+# for this many days automatically becomes "Pending" -- there's no button
+# for this on purpose, it's meant to happen on its own as a sign that an
+# issue has been sitting without action for too long.
+PENDING_THRESHOLD_DAYS = 7
+
+
+def _auto_mark_stale_as_pending():
+    """Flip every "Open" issue older than PENDING_THRESHOLD_DAYS to
+    "Pending". Called on every request that reads issue data (same
+    lazy-recompute pattern as sync_overdue_flags() for KPIRecord.overdue)
+    so the status is always current without needing a background
+    scheduler."""
+    cutoff = datetime.utcnow() - timedelta(days=PENDING_THRESHOLD_DAYS)
+    stale_issues = Issue.query.filter(Issue.status == "Open", Issue.created_at < cutoff).all()
+    for issue in stale_issues:
+        issue.status = "Pending"
+
 
 # ==================== Pages ====================
 
@@ -39,6 +57,8 @@ def index():
 @issue_monitor_bp.route("/<int:issue_id>", methods=["GET"])
 @login_required
 def detail(issue_id):
+    _auto_mark_stale_as_pending()
+    db.session.commit()
     issue = Issue.query.get_or_404(issue_id)
     return render_template(
         "workspace/issue_detail.html",
@@ -53,6 +73,7 @@ def detail(issue_id):
 @issue_monitor_bp.route("/api/issues", methods=["GET"])
 @login_required
 def api_list_issues():
+    _auto_mark_stale_as_pending()
     sync_overdue_flags()
     db.session.commit()
     issues = Issue.query.order_by(Issue.id.desc()).all()
@@ -142,6 +163,15 @@ def api_update_status(issue_id):
 
     if status not in VALID_STATUS:
         return jsonify({"message": "Invalid status."}), 400
+
+    # A Closed issue is final. Without this guard, re-closing it (or
+    # Hold -> Open -> Close again) re-runs record_completion() below and
+    # inflates the "completed" count on the KPI Dashboard every time. The
+    # frontend already hides the Hold/Close buttons once Closed, but that
+    # alone doesn't stop a direct PATCH via Postman or the browser console,
+    # so this check -- not the hidden buttons -- is what actually enforces it.
+    if issue.status == "Closed":
+        return jsonify({"message": "This issue is already closed and can no longer be changed."}), 400
 
     was_assigned_before = issue.assignee_id is not None
 

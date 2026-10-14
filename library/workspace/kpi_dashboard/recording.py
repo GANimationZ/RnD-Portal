@@ -55,11 +55,19 @@ def record_completion(user_id, created_at, already_assigned=True):
     if not user_id:
         return
 
-    record = _get_or_create_week_record(user_id)
+    record = _get_or_create_week_record(user_id)  # this week (the Close week)
     if not already_assigned:
         record.total_assigned += 1
     else:
-        record.pending = max(0, record.pending - 1)
+        # pending was incremented on the week the issue was CREATED (by
+        # record_assignment), so it has to be decremented on that SAME
+        # week's record -- not on this week's record. An issue created in
+        # week 1 and closed in week 2 was previously decrementing week 2's
+        # pending (already 0, clamped by max(0, ...)), so week 1's pending
+        # count never went back down even after the issue was resolved.
+        assignment_week_day = created_at.date() if created_at else None
+        assignment_record = _get_or_create_week_record(user_id, assignment_week_day)
+        assignment_record.pending = max(0, assignment_record.pending - 1)
 
     record.completed += 1
 
