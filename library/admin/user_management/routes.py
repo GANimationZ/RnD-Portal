@@ -57,6 +57,20 @@ def _apply_scope(user, categories, events):
             db.session.add(UserEventScope(user_id=user.id, event=event))
 
 
+def _other_active_super_admins(exclude_user_id):
+    """How many Super Admins, other than exclude_user_id, are both the
+    Super Admin role AND currently active. An inactive Super Admin can't
+    log in, so counting them as a "backup" is how the last-active-admin
+    checks below used to let the only working Super Admin get demoted or
+    deleted as long as some deactivated account still technically held
+    the role."""
+    return User.query.filter(
+        User.role == "Super Admin",
+        User.is_active.is_(True),
+        User.id != exclude_user_id,
+    ).count()
+
+
 # ==================== Page ====================
 
 @user_management_bp.route("", methods=["GET"])
@@ -145,15 +159,28 @@ def api_update_user(user_id):
         role = data.get("role")
         if role not in ROLE_CHOICES:
             return jsonify({"message": "Invalid role."}), 400
-        # Never let the last Super Admin demote themselves away.
+        # Never let the last active Super Admin demote themselves away.
         if user.role == "Super Admin" and role != "Super Admin":
-            remaining = User.query.filter(User.role == "Super Admin", User.id != user.id).count()
-            if remaining == 0:
-                return jsonify({"message": "There must be at least one Super Admin."}), 400
+            if _other_active_super_admins(user.id) == 0:
+                return jsonify({"message": "There must be at least one active Super Admin."}), 400
         user.role = role
 
     if "is_active" in data:
         new_active = bool(data.get("is_active"))
+        if not new_active and user.role == "Super Admin":
+            # A Super Admin can't deactivate their own account -- not even
+            # when other active Super Admins exist. If they genuinely need
+            # to step down, another Super Admin does it for them; that
+            # cross-check is what the "can't delete your own account" rule
+            # below already does for deletion, applied the same way here.
+            if user.id == session.get("user_id"):
+                return jsonify({"message": "You can't deactivate your own account. Ask another Super Admin to do it."}), 400
+            # Deactivating this Super Admin must still leave at least one
+            # OTHER active Super Admin able to log in and manage users --
+            # otherwise there's no one left to reactivate anyone, and the
+            # only fix would be editing the database directly.
+            if _other_active_super_admins(user.id) == 0:
+                return jsonify({"message": "There must be at least one active Super Admin."}), 400
         user.is_active = new_active
         if new_active and user.approved_at is None:
             from datetime import datetime
@@ -185,9 +212,8 @@ def api_delete_user(user_id):
         return jsonify({"message": "You can't delete your own account."}), 400
 
     if user.role == "Super Admin":
-        remaining = User.query.filter(User.role == "Super Admin", User.id != user.id).count()
-        if remaining == 0:
-            return jsonify({"message": "There must be at least one Super Admin."}), 400
+        if _other_active_super_admins(user.id) == 0:
+            return jsonify({"message": "There must be at least one active Super Admin."}), 400
 
     db.session.delete(user)
     db.session.commit()

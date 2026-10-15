@@ -37,7 +37,7 @@ MAX_UPLOAD_SIZE_MB = 10
 
 
 def _configure(app):
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+    app.config["SECRET_KEY"] = _get_or_create_secret_key(app)
     app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
     # To migrate SQLite -> PostgreSQL, just set DATABASE_URL (see MIGRATION.md).
@@ -47,6 +47,40 @@ def _configure(app):
 
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+
+
+def _get_or_create_secret_key(app):
+    """Flask's session cookies are signed with SECRET_KEY -- change the key
+    and every existing login session is invalidated, since the signature
+    no longer matches.
+
+    An env var always wins (the normal way to set it in production). With
+    none set, the key used to be re-randomized on every single process
+    start via secrets.token_hex(32) -- which also logged everyone out on
+    every restart, including the auto-reloader restarting the dev server
+    on every file save. Instead, generate it once and persist it to a file
+    in the instance folder (same place database.db and kpi_history live,
+    and already outside version control -- see .gitignore), so restarts
+    reuse the same key and existing sessions keep working."""
+    env_key = os.environ.get("SECRET_KEY")
+    if env_key:
+        return env_key
+
+    os.makedirs(app.instance_path, exist_ok=True)
+    key_path = os.path.join(app.instance_path, "secret_key")
+
+    if os.path.exists(key_path):
+        with open(key_path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+
+    key = secrets.token_hex(32)
+    with open(key_path, "w", encoding="utf-8") as f:
+        f.write(key)
+    try:
+        os.chmod(key_path, 0o600)  # readable/writable by the owner only
+    except OSError:
+        pass  # chmod isn't meaningful on every platform (e.g. Windows) -- not fatal
+    return key
 
 
 def _register_blueprints(app):

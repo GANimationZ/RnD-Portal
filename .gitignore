@@ -1,0 +1,11 @@
+# Local/runtime data -- never commit these:
+# - instance/secret_key: the persisted session-signing key (see
+#   library/__init__.py, _get_or_create_secret_key()). Committing it
+#   defeats the point of keeping it secret.
+# - instance/database.db, instance/kpi_history/: local data, not source.
+instance/
+
+__pycache__/
+*.pyc
+.venv/
+venv/
