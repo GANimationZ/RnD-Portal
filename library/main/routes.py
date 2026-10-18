@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from library.auth import home_url, login_required, roles_required
 from library.extensions import db
 from library.models import User
-from library.naming import name_from_email, unique_display_name
+from library.naming import is_valid_email_format, name_from_email, normalize_email, unique_display_name
 
 main_bp = Blueprint("main", __name__)
 
@@ -34,18 +34,20 @@ def register():
         if not data:
             return jsonify({"error": "Invalid request."}), 400
 
-        email = (data.get("email") or "").strip()
+        email = normalize_email(data.get("email"))
         password = data.get("password")
         retype = data.get("retype")
 
         if not email or not password:
             return jsonify({"error": "Please fill all the empty boxes."}), 400
+        if not is_valid_email_format(email):
+            return jsonify({"error": "Format email tidak valid."}), 400
         if len(password) < 8:
             return jsonify({"error": "Minimal 8 Characters long."}), 400
         if password != retype:
             return jsonify({"error": "Password does not match"}), 400
         if User.query.filter_by(email=email).first():
-            return jsonify({"error": "An account with this email already exists."}), 409
+            return jsonify({"error": "Email sudah terdaftar."}), 409
 
         # No username field anymore -- the display name is derived from
         # the email's local-part (see library/naming.py), e.g.
@@ -87,7 +89,7 @@ def login():
     if not isinstance(email, str) or not isinstance(password, str):
         return _login_error("Invalid login request. Reload the page and try again.", 400)
 
-    email = email.strip()
+    email = normalize_email(email)
     if not email:
         return _login_error("Email is required.", 400, "email")
     if not password:
@@ -156,5 +158,15 @@ def org_structure():
     return render_template(
         "team/structure.html",
         active_nav="structure",
+        username=session.get("username"),
+    )
+
+
+@main_bp.route("/team/others", methods=["GET"])
+@login_required
+def team_others():
+    return render_template(
+        "team/others.html",
+        active_nav="others",
         username=session.get("username"),
     )

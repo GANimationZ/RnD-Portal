@@ -125,6 +125,22 @@
             the "Assignee" combobox when QA registers a new Issue (Member role only).
           </p>
 
+          <div class="um-form__scope-group is-hidden" id="umBestPracticeSection">
+            <span class="um-form__scope-title">Best Practice Notes</span>
+            <ul class="um-notes-list" id="umNotesList">
+              <!-- baris di-generate JS -->
+            </ul>
+            <div class="um-notes-add">
+              <input
+                type="text"
+                id="umNewNote"
+                placeholder="Write a new Best Practice note..."
+                maxlength="2000"
+              />
+              <button type="button" id="umAddNoteBtn">Add Note</button>
+            </div>
+          </div>
+
           <div class="um-form__actions">
             <button type="button" id="umCancelEdit" class="um-btn-secondary is-hidden">
               Cancel Edit

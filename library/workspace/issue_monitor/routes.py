@@ -8,7 +8,7 @@ from flask import Blueprint, jsonify, render_template, request, session
 from library.auth import login_required, roles_required
 from library.extensions import db
 from library.files import is_allowed, get_file_type, save_upload
-from library.models import Issue, IssueAttachment, User
+from library.models import CATEGORY_CHOICES, EVENT_CHOICES, Issue, IssueAttachment, User
 from library.workspace.kpi_dashboard.recording import (
     record_assignment,
     record_completion,
@@ -94,6 +94,13 @@ def api_create_issue():
 
     if not all([title, category, event, description, deadline_raw]):
         return jsonify({"message": "All fields are required."}), 400
+
+    # Category/event drive the assignee-scope check right below (covers())
+    # and feed the KPI Dashboard's per-category breakdowns -- an
+    # unrecognized value like "Kantin" would silently corrupt both, so it
+    # has to be one of the app's actual choices, not just "not empty".
+    if category not in CATEGORY_CHOICES or event not in EVENT_CHOICES:
+        return jsonify({"message": "Category atau event tidak valid."}), 400
 
     try:
         deadline = datetime.strptime(deadline_raw, "%Y-%m-%d").date()

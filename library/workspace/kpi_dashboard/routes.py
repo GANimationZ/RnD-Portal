@@ -116,15 +116,22 @@ def _snapshot_path(filename):
 
 
 def _ensure_current_month_snapshot():
-    """Auto-generate this month's snapshot if it doesn't exist yet, in
-    case nobody exported manually."""
+    """Rebuild (overwrite) THIS month's snapshot every time the History
+    page is opened, so it always reflects live data up to now -- it used
+    to only be written once (the first time anyone opened History that
+    month) and never touched again, so a file labeled e.g. "October 2026"
+    actually held whatever the numbers happened to be on day 1, not
+    October's real data.
+
+    A past month's file is a different filename (previous year/month) and
+    is never touched here, so once a month ends its snapshot stays as it
+    was -- only the current month's file is live/overwritten."""
     now = datetime.now()
     filename = f"{now.year}-{now.month:02d}.xlsx"
     filepath = _snapshot_path(filename)
 
-    if not os.path.exists(filepath):
-        wb = build_individual_workbook(get_employees_for_export())
-        wb.save(filepath)
+    wb = build_individual_workbook(get_employees_for_export())
+    wb.save(filepath)
 
     return filepath
 
@@ -169,6 +176,25 @@ def api_team():
     return jsonify(team_summary(employees, range_key))
 
 
+@kpi_dashboard_bp.route("/api/employees/<int:employee_id>/best-practices", methods=["GET"])
+def api_list_best_practices(employee_id):
+    """List of {id, note} for one Member -- used by the User Management
+    edit-user panel (Super Admin) to manage this Member's notes, and
+    available to the Member themselves for the same reason as the POST/
+    DELETE endpoints below."""
+    from flask import session
+
+    employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
+
+    if session.get("role") == "Member" and session.get("user_id") != employee.id:
+        return jsonify({"message": "Members can only view their own notes."}), 403
+    if session.get("role") not in ("Super Admin", "Member"):
+        return jsonify({"message": "Access denied."}), 403
+
+    notes = [{"id": bp.id, "note": bp.note} for bp in employee.best_practices]
+    return jsonify({"notes": notes})
+
+
 @kpi_dashboard_bp.route("/api/employees/<int:employee_id>/best-practices", methods=["POST"])
 def api_add_best_practice(employee_id):
     """Best Practice notes are written MANUALLY (never auto-generated
@@ -183,15 +209,42 @@ def api_add_best_practice(employee_id):
     if session.get("role") not in ("Super Admin", "Member"):
         return jsonify({"message": "Access denied."}), 403
 
-    note = (request.get_json(silent=True) or {}).get("note", "").strip()
-    if not note:
+    # Never trust client input: request.get_json() can return anything
+    # JSON allows (a string, a number, null, a list...), and dict.get()
+    # only falls back to its default when the key is MISSING -- a body of
+    # {"note": null} still makes .get("note", "") return None, and
+    # None.strip() crashes with a 500 instead of a normal validation error.
+    payload = request.get_json(silent=True)
+    note = payload.get("note") if isinstance(payload, dict) else None
+    if not isinstance(note, str) or not note.strip():
         return jsonify({"message": "Note cannot be empty."}), 400
+    note = note.strip()
 
     order = BestPractice.query.filter_by(user_id=employee.id).count()
     db.session.add(BestPractice(user_id=employee.id, note=note, sort_order=order))
     db.session.commit()
 
     return jsonify({"message": "Note added.", "note": note}), 201
+
+
+@kpi_dashboard_bp.route("/api/employees/<int:employee_id>/best-practices/<int:note_id>", methods=["DELETE"])
+def api_delete_best_practice(employee_id, note_id):
+    """Same ownership rule as adding a note: a Member may only delete
+    their own, Super Admin may delete anyone's."""
+    from flask import session
+
+    employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
+
+    if session.get("role") == "Member" and session.get("user_id") != employee.id:
+        return jsonify({"message": "Members can only delete their own notes."}), 403
+    if session.get("role") not in ("Super Admin", "Member"):
+        return jsonify({"message": "Access denied."}), 403
+
+    note = BestPractice.query.filter_by(id=note_id, user_id=employee.id).first_or_404()
+    db.session.delete(note)
+    db.session.commit()
+
+    return jsonify({"message": "Note deleted."})
 
 
 # ==================== Export (per selected month) / History (.xlsx archive) ====================

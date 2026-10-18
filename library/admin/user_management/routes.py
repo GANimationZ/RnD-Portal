@@ -22,7 +22,7 @@ from library.models import (
     UserCategoryScope,
     UserEventScope,
 )
-from library.naming import name_from_email, unique_display_name
+from library.naming import is_valid_email_format, name_from_email, normalize_email, unique_display_name
 
 user_management_bp = Blueprint(
     "user_management", __name__, url_prefix="/admin/users"
@@ -105,7 +105,7 @@ def api_list_users():
 def api_create_user():
     data = request.get_json(silent=True) or {}
 
-    email = (data.get("email") or "").strip()
+    email = normalize_email(data.get("email"))
     password = data.get("password") or ""
     role = data.get("role") or "Member"
     categories = data.get("categories") or []
@@ -113,12 +113,14 @@ def api_create_user():
 
     if not email or not password:
         return jsonify({"message": "Email and password are required."}), 400
+    if not is_valid_email_format(email):
+        return jsonify({"message": "Format email tidak valid."}), 400
     if len(password) < 8:
         return jsonify({"message": "Password must be at least 8 characters."}), 400
     if role not in ROLE_CHOICES:
         return jsonify({"message": "Invalid role."}), 400
     if User.query.filter_by(email=email).first():
-        return jsonify({"message": "An account with this email already exists."}), 409
+        return jsonify({"message": "Email sudah terdaftar."}), 409
 
     # Display name is derived from the email (see library/naming.py).
     username = _derived_name(email)
@@ -147,10 +149,12 @@ def api_update_user(user_id):
     data = request.get_json(silent=True) or {}
 
     if "email" in data:
-        email = (data.get("email") or "").strip()
+        email = normalize_email(data.get("email"))
         if email and email != user.email:
+            if not is_valid_email_format(email):
+                return jsonify({"message": "Format email tidak valid."}), 400
             if User.query.filter(User.email == email, User.id != user.id).first():
-                return jsonify({"message": "An account with this email already exists."}), 409
+                return jsonify({"message": "Email sudah terdaftar."}), 409
             user.email = email
             # Keep the display name in sync with the new email.
             user.username = _derived_name(email, exclude_user_id=user.id)

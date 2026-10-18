@@ -3,6 +3,12 @@
 // ============================================================
 
 const UM_API_BASE = "/admin/users/api";
+// Best Practice notes live on the KPI Dashboard blueprint's API (same
+// backend data/rules as the KPI employee panel), reused here so Super
+// Admin manages a Member's notes from the same place they manage the
+// Member's account, instead of from the KPI Dashboard (which stays
+// view-only reporting).
+const KPI_API_BASE = "/workspace/kpi-dashboard/api";
 
 const ROLE_BADGE_CLASS = {
   "Super Admin": "badge-red",
@@ -111,6 +117,8 @@ function resetForm() {
   document.getElementById("umSubmitBtn").value = "Save User";
   document.getElementById("umCancelEdit").classList.add("is-hidden");
   document.getElementById("formTabLabel").innerHTML = `<i class="bxf bx-plus"></i> Add User`;
+
+  hideBestPracticeSection();
 }
 
 function fillFormForEdit(user) {
@@ -137,7 +145,153 @@ function fillFormForEdit(user) {
   document.getElementById("umCancelEdit").classList.remove("is-hidden");
   document.getElementById("formTabLabel").innerHTML = `<i class="bxf bx-edit"></i> Edit User`;
 
+  // Best Practice notes only exist for Members, and only once the user
+  // actually exists (there's no employee_id yet while creating a new one).
+  if (user.role === "Member") {
+    showBestPracticeSection(user.id);
+  } else {
+    hideBestPracticeSection();
+  }
+
   document.querySelector('.nav-item__left[data-tab="user-form"]')?.click();
+}
+
+// ------------------------------------------------------------
+// BEST PRACTICE NOTES (edit mode, Member only)
+// ------------------------------------------------------------
+function hideBestPracticeSection() {
+  document.getElementById("umBestPracticeSection")?.classList.add("is-hidden");
+  const list = document.getElementById("umNotesList");
+  if (list) list.innerHTML = "";
+  const input = document.getElementById("umNewNote");
+  if (input) input.value = "";
+}
+
+async function showBestPracticeSection(memberId) {
+  const section = document.getElementById("umBestPracticeSection");
+  if (section) section.classList.remove("is-hidden");
+  await fetchAndRenderNotes(memberId);
+}
+
+function renderNotesList(notes) {
+  const list = document.getElementById("umNotesList");
+  if (!list) return;
+
+  if (notes.length === 0) {
+    list.innerHTML = `<li class="um-notes-empty">No notes yet.</li>`;
+    return;
+  }
+
+  list.innerHTML = notes
+    .map(
+      (n) => `
+    <li data-note-id="${n.id}">
+      <span>${escapeHtml(n.note)}</span>
+      <button type="button" class="um-notes-delete" data-note-id="${n.id}" title="Delete note">
+        <i class="bxf bx-trash"></i>
+      </button>
+    </li>`
+    )
+    .join("");
+}
+
+async function fetchAndRenderNotes(memberId) {
+  const list = document.getElementById("umNotesList");
+  if (list) list.innerHTML = `<li class="um-notes-empty">Loading...</li>`;
+  try {
+    const res = await fetch(`${KPI_API_BASE}/employees/${memberId}/best-practices`);
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.message || "Failed to load notes.", "error");
+      return;
+    }
+    renderNotesList(data.notes || []);
+  } catch (err) {
+    console.error(err);
+    showToast("Terjadi kesalahan saat memuat catatan.", "error");
+  }
+}
+
+function initBestPracticeSection() {
+  const addBtn = document.getElementById("umAddNoteBtn");
+  const input = document.getElementById("umNewNote");
+  const list = document.getElementById("umNotesList");
+  if (!addBtn || !input || !list) return;
+
+  addBtn.addEventListener("click", async () => {
+    const note = input.value.trim();
+    if (!note) {
+      showToast("Note cannot be empty.", "error");
+      return;
+    }
+    if (!editingId) return; // section is hidden in create mode, but guard anyway
+
+    addBtn.disabled = true;
+    try {
+      const res = await fetch(`${KPI_API_BASE}/employees/${editingId}/best-practices`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.message || "Failed to add note.", "error");
+        return;
+      }
+      input.value = "";
+      await fetchAndRenderNotes(editingId);
+      showToast(data.message || "Note added.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Terjadi kesalahan saat menghubungi server.", "error");
+    } finally {
+      addBtn.disabled = false;
+    }
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addBtn.click();
+    }
+  });
+
+  list.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".um-notes-delete");
+    if (!btn || !editingId) return;
+    const noteId = Number(btn.dataset.noteId);
+
+    const confirmed = await showConfirm("Delete this note? This action cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`${KPI_API_BASE}/employees/${editingId}/best-practices/${noteId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.message || "Failed to delete note.", "error");
+        return;
+      }
+      await fetchAndRenderNotes(editingId);
+      showToast(data.message || "Note deleted.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Terjadi kesalahan saat menghubungi server.", "error");
+    }
+  });
+
+  // Switching the role dropdown away from "Member" mid-edit hides the
+  // section immediately (the notes themselves are untouched in the DB --
+  // this only affects what's shown while editing).
+  document.getElementById("umRole")?.addEventListener("change", (e) => {
+    if (!editingId) return;
+    if (e.target.value === "Member") {
+      showBestPracticeSection(editingId);
+    } else {
+      hideBestPracticeSection();
+    }
+  });
 }
 
 // ------------------------------------------------------------
@@ -279,5 +433,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initTableActions();
   initForm();
+  initBestPracticeSection();
   fetchUsers();
 });

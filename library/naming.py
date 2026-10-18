@@ -9,6 +9,27 @@ if any, are dropped), each capitalized.
 import re
 
 
+def normalize_email(email):
+    """Strip surrounding whitespace and lowercase, so the same real-world
+    address (which email providers treat case-insensitively in practice)
+    always maps to one DB value -- without this, "Bob@test.com" and
+    "bob@test.com" look identical on screen but are different strings to
+    the uniqueness check and to login's lookup, letting the same email
+    register twice and breaking login for anyone who types a different
+    case than they registered with."""
+    return (email or "").strip().lower()
+
+
+def is_valid_email_format(email):
+    """Deliberately simple, not a full RFC 5322 validator: rejects the
+    obvious non-emails ("abc", empty, no "@") without the false-positive
+    risk of a stricter regex rejecting a real address."""
+    if "@" not in email:
+        return False
+    local_part, _, domain_part = email.rpartition("@")
+    return bool(local_part) and "." in domain_part and not domain_part.startswith(".") and not domain_part.endswith(".")
+
+
 def name_from_email(email):
     local_part = (email or "").split("@")[0]
     parts = [p for p in re.split(r"[._\-+]+", local_part) if p]
