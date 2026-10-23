@@ -1,11 +1,3 @@
-"""Builds and reads KPI Dashboard Excel files with openpyxl.
-
-Styling mirrors the original reference file:
-- "KPI DASHBOARD" title row: full merge, yellow background, bold.
-- Table header: gray-blue background, bold, centered, thin border all sides.
-- Data rows: light blue background, thin border all sides.
-"""
-
 from io import BytesIO
 from datetime import datetime
 
@@ -16,9 +8,9 @@ from openpyxl.utils import get_column_letter
 FONT_NAME = "Calibri"
 FONT_SIZE = 12
 
-TITLE_FILL = PatternFill("solid", fgColor="FFFF00")           # yellow
-HEADER_FILL = PatternFill("solid", fgColor="B4BBC3")          # gray-blue, matches reference file
-DATA_FILL = PatternFill("solid", fgColor="DAE3F3")            # light blue, matches reference file
+TITLE_FILL = PatternFill("solid", fgColor="FFFF00")
+HEADER_FILL = PatternFill("solid", fgColor="B4BBC3")
+DATA_FILL = PatternFill("solid", fgColor="DAE3F3")
 
 THIN = Side(style="thin", color="000000")
 BORDER_ALL = Border(top=THIN, bottom=THIN, left=THIN, right=THIN)
@@ -31,9 +23,8 @@ COLUMNS = [
     "No", "Name", "Role", "Total Assigned", "Completed",
     "Pending", "Overdue", "Completion", "Avg Resolution", "Avg Resolution",
 ]
-SUB_HEADERS = {9: "(Days)", 10: "(Hours)"}  # columns I & J (1-indexed)
+SUB_HEADERS = {9: "(Days)", 10: "(Hours)"}
 
-# Column widths match the reference file (unlisted columns keep Excel's default).
 COLUMN_WIDTHS = {
     "B": 18.25, "C": 15.5, "D": 18.125, "E": 9.875,
     "H": 11.125, "I": 17.25, "J": 19.375,
@@ -53,9 +44,6 @@ def _style_title_row(ws, last_col):
 
 
 def _style_header_rows(ws, last_col):
-    # Baris 3 & 4: kolom A-H merge vertikal (satu header, 2 baris tinggi),
-    # Columns I & J are NOT merged (matches the reference file: "Avg
-    # Resolution" is repeated in I3 & J3, then "(Days)"/"(Hours)" in row 4).
     for col in range(1, last_col + 1):
         header_cell = ws.cell(row=3, column=col)
         header_cell.value = COLUMNS[col - 1]
@@ -103,8 +91,6 @@ def _employee_row(idx, emp):
 
 
 def build_individual_workbook(employees):
-    """employees: list of dicts with keys name, role, totalAssigned, completed,
-    pending, overdue, avgResolutionDays (the same fields the JS uses)."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Per Employee"
@@ -121,7 +107,6 @@ def build_individual_workbook(employees):
 
 
 def build_team_workbook(employees):
-    """2 sheets: 'Team Summary' (team totals) + 'Per Employee' (detail, same style)."""
     wb = Workbook()
 
     ws_summary = wb.active
@@ -167,7 +152,6 @@ def build_team_workbook(employees):
     for col_letter in ["A", "B", "C", "D", "E"]:
         ws_summary.column_dimensions[col_letter].width = 20
 
-    # Second sheet: per-employee detail, same style as the Individual export.
     ws_detail = wb.create_sheet("Per Employee")
     last_col_detail = len(COLUMNS)
     _style_title_row(ws_detail, last_col_detail)
@@ -187,15 +171,13 @@ def workbook_to_bytes(wb):
 
 
 def parse_employee_workbook(file_stream):
-    """Read an exported file (or similar format) back into a list of dicts.
-    Data starts at row 5 (after the title + 2 header rows)."""
     wb = load_workbook(file_stream, data_only=True)
     sheet_name = "Per Employee" if "Per Employee" in wb.sheetnames else wb.sheetnames[0]
     ws = wb[sheet_name]
 
     rows = []
     for row in ws.iter_rows(min_row=5, values_only=True):
-        if not row or row[1] is None:  # empty Name column -> stop reading
+        if not row or row[1] is None:
             continue
         _, name, role, total_assigned, completed, pending, overdue, completion, avg_days, avg_hours = row[:10]
         rows.append({

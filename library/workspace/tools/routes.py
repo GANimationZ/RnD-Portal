@@ -1,10 +1,3 @@
-"""Integrated Tools blueprint: one searchable list of Tools and Material,
-each a link-out to a web page built by another team.
-
-Anyone logged in can add an entry. Deleting is limited to whoever created
-it, or a Super Admin.
-"""
-
 from urllib.parse import urlparse
 
 from flask import Blueprint, jsonify, render_template, request, session

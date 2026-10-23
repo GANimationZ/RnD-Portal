@@ -1,15 +1,3 @@
-"""User Management blueprint.
-
-- `/admin/users` page (user list + create/edit form) -- Super Admin only.
-- CRUD API for users, including role and scope (category/event) per user.
-  Scope is normalized via UserCategoryScope/UserEventScope (a user can
-  have several categories and events).
-- `/api/assignable` is used by the Issue Register form to fill the
-  "Assignee" combobox -- returns Members whose scope covers the given
-  category and event. Also reachable by Admin (QA), since QA is who
-  creates issues and picks the assignee.
-"""
-
 from flask import Blueprint, jsonify, render_template, request, session
 
 from library.auth import login_required, roles_required
@@ -30,9 +18,6 @@ user_management_bp = Blueprint(
 
 
 def _derived_name(email, exclude_user_id=None):
-    """Display name derived from the email, made unique across users
-    (optionally ignoring one user, when re-deriving on email change)."""
-
     def exists(candidate):
         query = User.query.filter_by(username=candidate)
         if exclude_user_id is not None:
@@ -43,8 +28,6 @@ def _derived_name(email, exclude_user_id=None):
 
 
 def _apply_scope(user, categories, events):
-    """Replace a user's full category/event scope with the given lists
-    (shared by create and update for consistency)."""
     UserCategoryScope.query.filter_by(user_id=user.id).delete()
     UserEventScope.query.filter_by(user_id=user.id).delete()
 
@@ -58,12 +41,6 @@ def _apply_scope(user, categories, events):
 
 
 def _other_active_super_admins(exclude_user_id):
-    """How many Super Admins, other than exclude_user_id, are both the
-    Super Admin role AND currently active. An inactive Super Admin can't
-    log in, so counting them as a "backup" is how the last-active-admin
-    checks below used to let the only working Super Admin get demoted or
-    deleted as long as some deactivated account still technically held
-    the role."""
     return User.query.filter(
         User.role == "Super Admin",
         User.is_active.is_(True),
@@ -127,13 +104,10 @@ def api_create_user():
 
     user = User(username=username, email=email, role=role)
     user.set_password(password)
-    # Created directly by Super Admin -> treated as already verified
-    # (approved_at set), so if later deactivated the status_label becomes
-    # "Inactive" rather than "Pending" again.
     from datetime import datetime
     user.approved_at = datetime.utcnow()
     db.session.add(user)
-    db.session.flush()  # populate user.id for _apply_scope
+    db.session.flush()
 
     _apply_scope(user, categories, events)
     db.session.commit()
@@ -163,7 +137,6 @@ def api_update_user(user_id):
         role = data.get("role")
         if role not in ROLE_CHOICES:
             return jsonify({"message": "Invalid role."}), 400
-        # Never let the last active Super Admin demote themselves away.
         if user.role == "Super Admin" and role != "Super Admin":
             if _other_active_super_admins(user.id) == 0:
                 return jsonify({"message": "There must be at least one active Super Admin."}), 400
@@ -172,17 +145,8 @@ def api_update_user(user_id):
     if "is_active" in data:
         new_active = bool(data.get("is_active"))
         if not new_active and user.role == "Super Admin":
-            # A Super Admin can't deactivate their own account -- not even
-            # when other active Super Admins exist. If they genuinely need
-            # to step down, another Super Admin does it for them; that
-            # cross-check is what the "can't delete your own account" rule
-            # below already does for deletion, applied the same way here.
             if user.id == session.get("user_id"):
                 return jsonify({"message": "You can't deactivate your own account. Ask another Super Admin to do it."}), 400
-            # Deactivating this Super Admin must still leave at least one
-            # OTHER active Super Admin able to log in and manage users --
-            # otherwise there's no one left to reactivate anyone, and the
-            # only fix would be editing the database directly.
             if _other_active_super_admins(user.id) == 0:
                 return jsonify({"message": "There must be at least one active Super Admin."}), 400
         user.is_active = new_active
@@ -230,9 +194,6 @@ def api_delete_user(user_id):
 @login_required
 @roles_required("Super Admin", "Admin")
 def api_assignable_users():
-    """Called by issue-monitor.js once both category and event are
-    selected in the Register form. Returns active Members whose scope
-    covers both values."""
     category = (request.args.get("category") or "").strip()
     event = (request.args.get("event") or "").strip()
 

@@ -19,8 +19,6 @@ from library.extensions import db
 from library.models import User
 from library.naming import name_from_email
 
-# Plaintext is fine for a demo seed -- change these via User Management
-# as soon as the app is used for real.
 USER_SEED = [
     {
         "email": "super.admin@rndportal.local",
@@ -53,5 +51,4 @@ def seed_users():
 
 
 def seed_dummy_data():
-    """Idempotent: no-op if the users table already has rows."""
     seed_users()

@@ -1,7 +1,3 @@
-"""TV Design Concept blueprint: a searchable library of design entries
-(serial number / production / origin) each with attached files (images,
-PDF, Word, Excel, PowerPoint)."""
-
 from flask import Blueprint, jsonify, render_template, request, session
 
 from library.auth import login_required
@@ -96,10 +92,7 @@ def api_create_asset():
 def api_delete_asset(asset_id):
     asset = TvDesignAsset.query.get_or_404(asset_id)
 
-    # Attachment rows cascade-delete with the asset, but the uploaded files
-    # themselves live on disk and are not tracked by the DB foreign key, so
-    # they have to be removed explicitly or they become orphaned "sampah"
-    # in static/assets/uploads/tv-design/.
+    # DB rows cascade-delete, but uploaded files on disk don't -- remove them too.
     upload_dir = get_upload_dir("tv-design")
     for attachment in asset.attachments:
         filepath = os.path.join(upload_dir, attachment.filename)

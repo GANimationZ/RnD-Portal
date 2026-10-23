@@ -102,10 +102,8 @@ SNAPSHOT_NAME_PATTERN = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])\.xlsx$")
 
 
 def _snapshot_path(filename):
-    """Absolute path of an archived snapshot, or None if `filename` is not
-    a plain "YYYY-MM.xlsx" name that resolves inside the archive folder.
-    Every read of a user-supplied snapshot name goes through here so it can
-    never point outside kpi_history (path traversal)."""
+    """Absolute path of an archived snapshot inside kpi_history, or None
+    if `filename` isn't a plain "YYYY-MM.xlsx" name (prevents path traversal)."""
     if not isinstance(filename, str) or not SNAPSHOT_NAME_PATTERN.match(filename):
         return None
     base = os.path.realpath(_history_dir())
@@ -116,16 +114,9 @@ def _snapshot_path(filename):
 
 
 def _ensure_current_month_snapshot():
-    """Rebuild (overwrite) THIS month's snapshot every time the History
-    page is opened, so it always reflects live data up to now -- it used
-    to only be written once (the first time anyone opened History that
-    month) and never touched again, so a file labeled e.g. "October 2026"
-    actually held whatever the numbers happened to be on day 1, not
-    October's real data.
-
-    A past month's file is a different filename (previous year/month) and
-    is never touched here, so once a month ends its snapshot stays as it
-    was -- only the current month's file is live/overwritten."""
+    """Rebuild (overwrite) THIS month's snapshot every time History is
+    opened, so it stays current instead of freezing on day-1 data.
+    Past months use a different filename and are never touched."""
     now = datetime.now()
     filename = f"{now.year}-{now.month:02d}.xlsx"
     filepath = _snapshot_path(filename)
@@ -178,10 +169,8 @@ def api_team():
 
 @kpi_dashboard_bp.route("/api/employees/<int:employee_id>/best-practices", methods=["GET"])
 def api_list_best_practices(employee_id):
-    """List of {id, note} for one Member -- used by the User Management
-    edit-user panel (Super Admin) to manage this Member's notes, and
-    available to the Member themselves for the same reason as the POST/
-    DELETE endpoints below."""
+    """List of {id, note} for one Member. Used by the User Management
+    edit-user panel; same ownership rule as the POST/DELETE endpoints."""
     from flask import session
 
     employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
@@ -209,11 +198,7 @@ def api_add_best_practice(employee_id):
     if session.get("role") not in ("Super Admin", "Member"):
         return jsonify({"message": "Access denied."}), 403
 
-    # Never trust client input: request.get_json() can return anything
-    # JSON allows (a string, a number, null, a list...), and dict.get()
-    # only falls back to its default when the key is MISSING -- a body of
-    # {"note": null} still makes .get("note", "") return None, and
-    # None.strip() crashes with a 500 instead of a normal validation error.
+    # payload may not be a dict, and "note" may be non-string/null/missing
     payload = request.get_json(silent=True)
     note = payload.get("note") if isinstance(payload, dict) else None
     if not isinstance(note, str) or not note.strip():

@@ -1,11 +1,3 @@
-"""Settings blueprint -- self-service profile page.
-
-Deliberately separate from library/admin/user_management: that one lets
-Super Admin edit ANY user's role/scope/status; this one only ever touches
-`session["user_id"]`'s own row, and never role/scope/is_active (those stay
-admin-managed). Available to every logged-in role.
-"""
-
 import os
 
 from flask import Blueprint, jsonify, render_template, request, session
@@ -18,7 +10,7 @@ from library.naming import name_from_email, unique_display_name
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
 
-MAX_PROFILE_PICTURE_BYTES = 2 * 1024 * 1024  # 2 MB
+MAX_PROFILE_PICTURE_BYTES = 2 * 1024 * 1024
 PROFILE_UPLOAD_SUBDIR = "profiles"
 
 
@@ -57,7 +49,6 @@ def update_profile():
         if User.query.filter(User.email == email, User.id != user.id).first():
             return jsonify({"error": "An account with this email already exists."}), 409
         user.email = email
-        # Name follows the email -- see library/naming.py.
         user.username = unique_display_name(
             name_from_email(email),
             lambda candidate: User.query.filter(

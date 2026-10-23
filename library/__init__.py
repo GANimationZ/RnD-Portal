@@ -1,10 +1,3 @@
-"""Application factory -- see flask.palletsprojects.com/en/latest/patterns/appfactory/.
-
-All setup (config, db, blueprints) happens in one place (create_app())
-instead of being scattered across app.py, so a step can't be silently
-skipped without it being obvious from reading this file.
-"""
-
 import os
 import secrets
 
@@ -27,12 +20,6 @@ def create_app():
 
     return app
 
-
-# Hard cap on any single upload (Issue Monitor attachments, TV Design
-# attachments), enforced by Werkzeug before the request body is even fully
-# read into memory -- without it nothing stops someone uploading a 5 GB
-# file and filling up the server's disk. 10 MB matches what the UI tells
-# the user ("Ukuran file maksimal 10 MB.").
 MAX_UPLOAD_SIZE_MB = 10
 
 
@@ -50,18 +37,6 @@ def _configure(app):
 
 
 def _get_or_create_secret_key(app):
-    """Flask's session cookies are signed with SECRET_KEY -- change the key
-    and every existing login session is invalidated, since the signature
-    no longer matches.
-
-    An env var always wins (the normal way to set it in production). With
-    none set, the key used to be re-randomized on every single process
-    start via secrets.token_hex(32) -- which also logged everyone out on
-    every restart, including the auto-reloader restarting the dev server
-    on every file save. Instead, generate it once and persist it to a file
-    in the instance folder (same place database.db and kpi_history live,
-    and already outside version control -- see .gitignore), so restarts
-    reuse the same key and existing sessions keep working."""
     env_key = os.environ.get("SECRET_KEY")
     if env_key:
         return env_key
@@ -77,9 +52,9 @@ def _get_or_create_secret_key(app):
     with open(key_path, "w", encoding="utf-8") as f:
         f.write(key)
     try:
-        os.chmod(key_path, 0o600)  # readable/writable by the owner only
+        os.chmod(key_path, 0o600)
     except OSError:
-        pass  # chmod isn't meaningful on every platform (e.g. Windows) -- not fatal
+        pass
     return key
 
 

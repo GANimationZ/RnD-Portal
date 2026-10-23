@@ -1,5 +1,3 @@
-"""Shared file upload helpers for issue_monitor and tv_design blueprints."""
-
 import os
 from datetime import datetime
 

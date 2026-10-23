@@ -693,9 +693,8 @@ function applyFilters() {
   renderTable();
 }
 
-// CSV/Excel formula injection: a cell that starts with = + - @ (or a tab/CR)
-// is run as a formula when the file is opened in Excel. Prefix such text
-// cells with an apostrophe so they stay plain text.
+// Prevents CSV/Excel formula injection: a cell starting with = + - @ runs
+// as a formula when opened in Excel, so prefix it with an apostrophe.
 function sanitizeCell(value) {
   if (typeof value !== "string") return value;
   if (value !== "-" && /^[=+\-@\t\r]/.test(value)) return `'${value}`;
@@ -784,10 +783,7 @@ function showInlineDetail(issueId) {
     });
   }
 
-  // Action buttons inside the inline detail. A Closed issue is final (see
-  // the backend guard in api_update_status), so both the Hold button and
-  // the whole close group (assignee select + Close button) are hidden
-  // once closed -- there's nothing left to toggle or close again.
+  // A Closed issue is final -- hide Hold/Close once closed (backend also enforces this).
   const isClosed = issue.status === "Closed";
   const holdBtn = document.getElementById("inlineDetailHoldBtn");
   if (holdBtn) {

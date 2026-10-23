@@ -1,29 +1,11 @@
-"""Derives a human display name from an email address, since the app no
-longer collects a separate username at registration.
-
-Example: "john.doe@test.com" -> "John Doe"
-Only the first and last token of the local-part are used (middle names,
-if any, are dropped), each capitalized.
-"""
-
 import re
 
 
 def normalize_email(email):
-    """Strip surrounding whitespace and lowercase, so the same real-world
-    address (which email providers treat case-insensitively in practice)
-    always maps to one DB value -- without this, "Bob@test.com" and
-    "bob@test.com" look identical on screen but are different strings to
-    the uniqueness check and to login's lookup, letting the same email
-    register twice and breaking login for anyone who types a different
-    case than they registered with."""
     return (email or "").strip().lower()
 
 
 def is_valid_email_format(email):
-    """Deliberately simple, not a full RFC 5322 validator: rejects the
-    obvious non-emails ("abc", empty, no "@") without the false-positive
-    risk of a stricter regex rejecting a real address."""
     if "@" not in email:
         return False
     local_part, _, domain_part = email.rpartition("@")
@@ -43,8 +25,6 @@ def name_from_email(email):
 
 
 def unique_display_name(base_name, exists_fn):
-    """Appends " (2)", " (3)", ... until exists_fn(candidate) is False.
-    exists_fn should check whether a User with that name already exists."""
     if not exists_fn(base_name):
         return base_name
 

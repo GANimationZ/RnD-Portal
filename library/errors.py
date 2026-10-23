@@ -1,16 +1,3 @@
-"""Custom error pages (403 Forbidden & 404 Not Found).
-
-One place for all HTTP error handling, so responses stay consistent:
-
-- Normal browser navigation -> HTML page (templates/errors/403.html, 404.html)
-- API / fetch()             -> JSON {"message": ...} with the same status
-- /static/* file requests   -> plain text (no need to render a full page
-                               for a missing image/CSS/JS)
-
-To trigger a 403 with a custom message from any route:
-    abort(403, description="Message for the user")
-"""
-
 from flask import Response, jsonify, render_template, request, session, url_for
 from werkzeug.exceptions import Forbidden, NotFound, RequestEntityTooLarge
 
@@ -22,8 +9,6 @@ DEFAULT_JSON_MESSAGES = {
     413: "Ukuran file maksimal 10 MB.",
 }
 
-# Werkzeug's built-in descriptions are not shown to the user -- only custom
-# descriptions passed via abort(..., description=...) are used.
 _WERKZEUG_DEFAULTS = {
     403: Forbidden.description,
     404: NotFound.description,
@@ -71,8 +56,4 @@ def register_error_handlers(app):
 
     @app.errorhandler(413)
     def too_large(error):
-        # Triggered automatically by Flask/Werkzeug once a request body goes
-        # past app.config["MAX_CONTENT_LENGTH"] -- the view function for the
-        # upload never even runs, so this is the only place the message
-        # needs to be set.
         return _respond(413, error)

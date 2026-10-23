@@ -1,7 +1,4 @@
-"""Issue Monitor blueprint: list/dashboard/register/priority-matrix pages
-and their API endpoints."""
-
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, jsonify, render_template, request, session
 
@@ -21,23 +18,14 @@ issue_monitor_bp = Blueprint(
 
 VALID_STATUS = {"Open", "Pending", "Closed", "On Hold"}
 
-# An issue that's still "Open" and hasn't been touched (no Hold, no Close)
-# for this many days automatically becomes "Pending" -- there's no button
-# for this on purpose, it's meant to happen on its own as a sign that an
-# issue has been sitting without action for too long.
-PENDING_THRESHOLD_DAYS = 7
-
-
 def _auto_mark_stale_as_pending():
-    """Flip every "Open" issue older than PENDING_THRESHOLD_DAYS to
-    "Pending". Called on every request that reads issue data (same
-    lazy-recompute pattern as sync_overdue_flags() for KPIRecord.overdue)
-    so the status is always current without needing a background
-    scheduler."""
-    cutoff = datetime.utcnow() - timedelta(days=PENDING_THRESHOLD_DAYS)
-    stale_issues = Issue.query.filter(Issue.status == "Open", Issue.created_at < cutoff).all()
-    for issue in stale_issues:
-        issue.status = "Pending"
+    now = datetime.utcnow()
+    open_issues = Issue.query.filter(Issue.status == "Open").all()
+    for issue in open_issues:
+        deadline_dt = datetime.combine(issue.deadline, datetime.min.time())
+        midpoint = issue.created_at + (deadline_dt - issue.created_at) / 2
+        if now >= midpoint:
+            issue.status = "Pending"
 
 
 # ==================== Pages ====================
@@ -95,10 +83,6 @@ def api_create_issue():
     if not all([title, category, event, description, deadline_raw]):
         return jsonify({"message": "All fields are required."}), 400
 
-    # Category/event drive the assignee-scope check right below (covers())
-    # and feed the KPI Dashboard's per-category breakdowns -- an
-    # unrecognized value like "Kantin" would silently corrupt both, so it
-    # has to be one of the app's actual choices, not just "not empty".
     if category not in CATEGORY_CHOICES or event not in EVENT_CHOICES:
         return jsonify({"message": "Category atau event tidak valid."}), 400
 
@@ -106,10 +90,11 @@ def api_create_issue():
         deadline = datetime.strptime(deadline_raw, "%Y-%m-%d").date()
     except ValueError:
         return jsonify({"message": "Invalid deadline format."}), 400
+    
+    MIN_DEADLINE_DAYS = 4
+    if deadline < date.today() + timedelta(days=MIN_DEADLINE_DAYS):
+        return jsonify({"message": f"Deadline minimal {MIN_DEADLINE_DAYS} hari dari sekarang."}), 400
 
-    # assignee_id is optional (open to anyone whose scope matches).
-    # If given, must be a Member whose scope actually covers this
-    # category/event -- never trust the client's value blindly.
     assignee_id = None
     if assignee_id_raw:
         candidate = User.query.get(assignee_id_raw)
@@ -136,7 +121,7 @@ def api_create_issue():
         status="Open",
     )
     db.session.add(issue)
-    db.session.flush()  # populate issue.id for attachments & KPI recording
+    db.session.flush()
 
     for file in files:
         if not (file and file.filename):
@@ -149,7 +134,7 @@ def api_create_issue():
             file_type=get_file_type(file.filename),
         ))
         if issue.image_filename is None and get_file_type(file.filename) == "image":
-            issue.image_filename = filename  # backward compat for the old single-image view
+            issue.image_filename = filename
 
     if assignee_id:
         record_assignment(assignee_id)
@@ -166,25 +151,16 @@ def api_update_status(issue_id):
     issue = Issue.query.get_or_404(issue_id)
     data = request.get_json(silent=True) or {}
     status = data.get("status")
-    assignee_id_raw = data.get("assignee_id")  # optional: assign executor at close time
+    assignee_id_raw = data.get("assignee_id")
 
     if status not in VALID_STATUS:
         return jsonify({"message": "Invalid status."}), 400
 
-    # A Closed issue is final. Without this guard, re-closing it (or
-    # Hold -> Open -> Close again) re-runs record_completion() below and
-    # inflates the "completed" count on the KPI Dashboard every time. The
-    # frontend already hides the Hold/Close buttons once Closed, but that
-    # alone doesn't stop a direct PATCH via Postman or the browser console,
-    # so this check -- not the hidden buttons -- is what actually enforces it.
     if issue.status == "Closed":
         return jsonify({"message": "This issue is already closed and can no longer be changed."}), 400
 
     was_assigned_before = issue.assignee_id is not None
 
-    # If this issue has no assignee yet and one is now provided (whether
-    # closing or just updating status), validate and save it -- this is
-    # the official path for "assign executor at close time".
     if assignee_id_raw and not issue.assignee_id:
         candidate = User.query.get(assignee_id_raw)
         if not candidate or candidate.role != "Member" or not candidate.covers(issue.category, issue.event):

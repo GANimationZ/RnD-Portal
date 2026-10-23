@@ -3,11 +3,7 @@
 // ============================================================
 
 const UM_API_BASE = "/admin/users/api";
-// Best Practice notes live on the KPI Dashboard blueprint's API (same
-// backend data/rules as the KPI employee panel), reused here so Super
-// Admin manages a Member's notes from the same place they manage the
-// Member's account, instead of from the KPI Dashboard (which stays
-// view-only reporting).
+// Best Practice notes reuse the KPI Dashboard blueprint's API.
 const KPI_API_BASE = "/workspace/kpi-dashboard/api";
 
 const ROLE_BADGE_CLASS = {
@@ -145,8 +141,7 @@ function fillFormForEdit(user) {
   document.getElementById("umCancelEdit").classList.remove("is-hidden");
   document.getElementById("formTabLabel").innerHTML = `<i class="bxf bx-edit"></i> Edit User`;
 
-  // Best Practice notes only exist for Members, and only once the user
-  // actually exists (there's no employee_id yet while creating a new one).
+  // Notes are Member-only, and only once the user exists (edit mode).
   if (user.role === "Member") {
     showBestPracticeSection(user.id);
   } else {
@@ -281,9 +276,7 @@ function initBestPracticeSection() {
     }
   });
 
-  // Switching the role dropdown away from "Member" mid-edit hides the
-  // section immediately (the notes themselves are untouched in the DB --
-  // this only affects what's shown while editing).
+  // Hide the section immediately if the role dropdown changes away from Member.
   document.getElementById("umRole")?.addEventListener("change", (e) => {
     if (!editingId) return;
     if (e.target.value === "Member") {
