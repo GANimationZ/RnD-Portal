@@ -183,26 +183,25 @@ select {
 }
 .main-body-content .body .main-container .tool-card {
   position: relative;
+  border: 1px solid #e4e7ec;
   border-radius: 8px;
+  background: #f7f8fa;
   overflow: hidden;
+  transition: all 0.2s ease;
+}
+.main-body-content .body .main-container .tool-card:hover {
+  border-color: #a50034;
+  background: #700023;
+}
+.main-body-content .body .main-container .tool-card:hover .tool-card__go {
+  opacity: 1;
 }
 .main-body-content .body .main-container .tool-card__link {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 14px;
-  border: 1px solid #e4e7ec;
-  border-radius: 8px;
-  background: #f7f8fa;
   text-decoration: none;
-  transition: all 0.2s ease;
-}
-.main-body-content .body .main-container .tool-card__link:hover {
-  border-color: #a50034;
-  background: #700023;
-}
-.main-body-content .body .main-container .tool-card__link:hover .tool-card__go {
-  opacity: 1;
 }
 .main-body-content .body .main-container .tool-card__icon {
   display: flex;
@@ -247,10 +246,40 @@ select {
   opacity: 0;
   transition: opacity 0.2s ease;
 }
-.main-body-content .body .main-container .tool-delete {
+.main-body-content .body .main-container .tool-stock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 12px;
+  flex-wrap: wrap;
+}
+.main-body-content .body .main-container .tool-stock__qty {
+  font-size: 12px;
+  color: #8a8f98;
+}
+.main-body-content .body .main-container .tool-stock__avail {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.main-body-content .body .main-container .tool-stock__avail.is-available {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+}
+.main-body-content .body .main-container .tool-stock__avail.is-unavailable {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+.main-body-content .body .main-container .tool-actions {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: flex;
+  gap: 4px;
+}
+.main-body-content .body .main-container .tool-edit,
+.main-body-content .body .main-container .tool-delete {
   width: 24px;
   height: 24px;
   border: none;
@@ -262,6 +291,10 @@ select {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+}
+.main-body-content .body .main-container .tool-edit:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
 }
 .main-body-content .body .main-container .tool-delete:hover {
   background: rgba(226, 75, 74, 0.1);
@@ -413,6 +446,18 @@ select {
 .tool-modal__form textarea {
   min-height: 70px;
   resize: vertical;
+}
+.tool-modal__form .tool-modal__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 400;
+  color: #6b6b6b;
+  cursor: pointer;
+}
+.tool-modal__form .tool-modal__checkbox input[type=checkbox] {
+  width: auto;
+  cursor: pointer;
 }
 .tool-modal__form input[type=submit] {
   background-color: #a50034;

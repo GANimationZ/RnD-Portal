@@ -1,3 +1,6 @@
+"""Issue Monitor blueprint: list/dashboard/register/priority-matrix pages
+and their API endpoints."""
+
 from datetime import date, datetime, timedelta
 
 from flask import Blueprint, jsonify, render_template, request, session
@@ -19,6 +22,14 @@ issue_monitor_bp = Blueprint(
 VALID_STATUS = {"Open", "Pending", "Closed", "On Hold"}
 
 def _auto_mark_stale_as_pending():
+    """Flip an "Open" issue to "Pending" once today passes the MIDPOINT
+    between when it was created and its deadline -- a tight deadline (e.g.
+    10 days) warns earlier (day 5) than a loose one (e.g. 15 days -> day
+    7.5), rather than a flat number of days for every issue regardless of
+    urgency. Called on every read (same lazy-recompute pattern as
+    sync_overdue_flags()); doesn't touch On Hold/Closed issues, and
+    doesn't affect `overdue` (still purely deadline-passed, computed
+    separately by sync_overdue_flags())."""
     now = datetime.utcnow()
     open_issues = Issue.query.filter(Issue.status == "Open").all()
     for issue in open_issues:
@@ -83,6 +94,7 @@ def api_create_issue():
     if not all([title, category, event, description, deadline_raw]):
         return jsonify({"message": "All fields are required."}), 400
 
+    # Must be a real choice, not just non-empty (feeds assignee scope + KPI breakdowns)
     if category not in CATEGORY_CHOICES or event not in EVENT_CHOICES:
         return jsonify({"message": "Category atau event tidak valid."}), 400
 
@@ -90,11 +102,18 @@ def api_create_issue():
         deadline = datetime.strptime(deadline_raw, "%Y-%m-%d").date()
     except ValueError:
         return jsonify({"message": "Invalid deadline format."}), 400
-    
+
+    # A deadline closer than this leaves too little room before the
+    # midpoint-based auto-Pending rule kicks in -- at the extreme
+    # (deadline == today), the midpoint IS the creation moment, so the
+    # issue would become "Pending" instantly.
     MIN_DEADLINE_DAYS = 4
     if deadline < date.today() + timedelta(days=MIN_DEADLINE_DAYS):
         return jsonify({"message": f"Deadline minimal {MIN_DEADLINE_DAYS} hari dari sekarang."}), 400
 
+    # assignee_id is optional (open to anyone whose scope matches).
+    # If given, must be a Member whose scope actually covers this
+    # category/event -- never trust the client's value blindly.
     assignee_id = None
     if assignee_id_raw:
         candidate = User.query.get(assignee_id_raw)
@@ -121,7 +140,7 @@ def api_create_issue():
         status="Open",
     )
     db.session.add(issue)
-    db.session.flush()
+    db.session.flush()  # populate issue.id for attachments & KPI recording
 
     for file in files:
         if not (file and file.filename):
@@ -134,7 +153,7 @@ def api_create_issue():
             file_type=get_file_type(file.filename),
         ))
         if issue.image_filename is None and get_file_type(file.filename) == "image":
-            issue.image_filename = filename
+            issue.image_filename = filename  # backward compat for the old single-image view
 
     if assignee_id:
         record_assignment(assignee_id)
@@ -151,16 +170,21 @@ def api_update_status(issue_id):
     issue = Issue.query.get_or_404(issue_id)
     data = request.get_json(silent=True) or {}
     status = data.get("status")
-    assignee_id_raw = data.get("assignee_id")
+    assignee_id_raw = data.get("assignee_id")  # optional: assign executor at close time
 
     if status not in VALID_STATUS:
         return jsonify({"message": "Invalid status."}), 400
 
+    # A Closed issue is final -- enforced here (not just the hidden
+    # frontend buttons) so re-closing can't inflate the completed count.
     if issue.status == "Closed":
         return jsonify({"message": "This issue is already closed and can no longer be changed."}), 400
 
     was_assigned_before = issue.assignee_id is not None
 
+    # If this issue has no assignee yet and one is now provided (whether
+    # closing or just updating status), validate and save it -- this is
+    # the official path for "assign executor at close time".
     if assignee_id_raw and not issue.assignee_id:
         candidate = User.query.get(assignee_id_raw)
         if not candidate or candidate.role != "Member" or not candidate.covers(issue.category, issue.event):

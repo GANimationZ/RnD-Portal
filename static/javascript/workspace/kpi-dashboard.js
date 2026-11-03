@@ -407,19 +407,24 @@ function renderHistoryMonthOptions() {
     .join("");
 }
 
-// Export Individual / Export Team always export the month currently
-// chosen in the Archive Month dropdown ("YYYY-MM" sent as ?month=).
+// Export Individual / Export Team (xlsx and PDF alike) always export the
+// month currently chosen in the Archive Month dropdown ("YYYY-MM" sent as
+// &month=). The PDF buttons' base href already carries ?format=pdf, so
+// month is appended with "&" there and "?" on the plain xlsx buttons.
 function updateExportLinks() {
   const select = el("historyMonthSelect");
   const monthKey = select && select.value ? select.value.replace(".xlsx", "") : "";
 
-  ["exportIndividualBtn", "exportTeamBtn"].forEach((id) => {
+  ["exportIndividualBtn", "exportIndividualPdfBtn", "exportTeamBtn", "exportTeamPdfBtn"].forEach((id) => {
     const link = el(id);
     if (!link) return;
     if (!link.dataset.baseHref) link.dataset.baseHref = link.getAttribute("href");
-    link.href = monthKey
-      ? `${link.dataset.baseHref}?month=${encodeURIComponent(monthKey)}`
-      : link.dataset.baseHref;
+    if (!monthKey) {
+      link.href = link.dataset.baseHref;
+      return;
+    }
+    const separator = link.dataset.baseHref.includes("?") ? "&" : "?";
+    link.href = `${link.dataset.baseHref}${separator}month=${encodeURIComponent(monthKey)}`;
   });
 }
 

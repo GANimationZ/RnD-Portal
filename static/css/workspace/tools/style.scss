@@ -194,30 +194,33 @@
         gap: 12px;
       }
 
+      // Border/background live on the outer .tool-card itself (not on
+      // __link) so the stock row and Edit/Delete buttons -- which sit
+      // beside __link as siblings, not inside it -- are visually
+      // enclosed by the same box, instead of spilling outside it.
       .tool-card {
         position: relative;
+        border: 1px solid #e4e7ec;
         border-radius: 8px;
+        background: #f7f8fa;
         overflow: hidden;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: $primary-color;
+          background: $primary-hover-color;
+
+          .tool-card__go {
+            opacity: 1;
+          }
+        }
 
         &__link {
           display: flex;
           align-items: flex-start;
           gap: 12px;
           padding: 14px;
-          border: 1px solid #e4e7ec;
-          border-radius: 8px;
-          background: #f7f8fa;
           text-decoration: none;
-          transition: all 0.2s ease;
-
-          &:hover {
-            border-color: $primary-color;
-            background: $primary-hover-color;
-
-            .tool-card__go {
-              opacity: 1;
-            }
-          }
         }
 
         &__icon {
@@ -271,10 +274,51 @@
         }
       }
 
-      .tool-delete {
+      // Plain, non-interactive display -- editing happens through the
+      // Edit button/modal (see .tool-actions below), not here, so this
+      // row never changes shape depending on who's viewing it.
+      .tool-stock {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 14px 12px;
+        flex-wrap: wrap;
+
+        &__qty {
+          font-size: 12px;
+          color: #8a8f98;
+        }
+
+        &__avail {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 10px;
+
+          &.is-available {
+            background: rgba(34, 197, 94, 0.12);
+            color: #15803d;
+          }
+
+          &.is-unavailable {
+            background: rgba(239, 68, 68, 0.12);
+            color: #b91c1c;
+          }
+        }
+      }
+
+      // Edit + Delete sit together, top-right corner, same spot on every
+      // card regardless of what fields a given user is allowed to touch.
+      .tool-actions {
         position: absolute;
         top: 8px;
         right: 8px;
+        display: flex;
+        gap: 4px;
+      }
+
+      .tool-edit,
+      .tool-delete {
         width: 24px;
         height: 24px;
         border: none;
@@ -286,11 +330,16 @@
         align-items: center;
         justify-content: center;
         transition: all 0.2s ease;
+      }
 
-        &:hover {
-          background: rgba(226, 75, 74, 0.1);
-          color: #e24b4a;
-        }
+      .tool-edit:hover {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+      }
+
+      .tool-delete:hover {
+        background: rgba(226, 75, 74, 0.1);
+        color: #e24b4a;
       }
 
       // ---- Menu list ----
@@ -463,6 +512,20 @@
     textarea {
       min-height: 70px;
       resize: vertical;
+    }
+
+    .tool-modal__checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: $ps;
+      color: $secondary-color;
+      cursor: pointer;
+
+      input[type="checkbox"] {
+        width: auto;
+        cursor: pointer;
+      }
     }
 
     input[type="submit"] {

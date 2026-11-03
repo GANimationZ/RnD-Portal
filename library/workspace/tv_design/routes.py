@@ -1,3 +1,7 @@
+"""TV Design Concept blueprint: a searchable library of design entries
+(serial number / production / origin) each with attached files (images,
+PDF, Word, Excel, PowerPoint)."""
+
 from flask import Blueprint, jsonify, render_template, request, session
 
 from library.auth import login_required

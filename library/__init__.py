@@ -1,3 +1,10 @@
+"""Application factory -- see flask.palletsprojects.com/en/latest/patterns/appfactory/.
+
+All setup (config, db, blueprints) happens in one place (create_app())
+instead of being scattered across app.py, so a step can't be silently
+skipped without it being obvious from reading this file.
+"""
+
 import os
 import secrets
 
@@ -20,6 +27,9 @@ def create_app():
 
     return app
 
+
+# Hard cap on any single upload (Issue Monitor / TV Design attachments),
+# enforced by Werkzeug. Matches the limit stated in the UI.
 MAX_UPLOAD_SIZE_MB = 10
 
 
@@ -37,6 +47,10 @@ def _configure(app):
 
 
 def _get_or_create_secret_key(app):
+    """SECRET_KEY signs session cookies, so a new key invalidates every
+    login. An env var always wins; otherwise persist a generated key to
+    the instance folder so it survives restarts instead of logging
+    everyone out each time (see .gitignore)."""
     env_key = os.environ.get("SECRET_KEY")
     if env_key:
         return env_key
@@ -52,9 +66,9 @@ def _get_or_create_secret_key(app):
     with open(key_path, "w", encoding="utf-8") as f:
         f.write(key)
     try:
-        os.chmod(key_path, 0o600)
+        os.chmod(key_path, 0o600)  # readable/writable by the owner only
     except OSError:
-        pass
+        pass  # chmod isn't meaningful on every platform (e.g. Windows) -- not fatal
     return key
 
 
