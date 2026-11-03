@@ -66,6 +66,7 @@ def _register_blueprints(app):
     from library.admin.user_management.routes import user_management_bp
     from library.settings.routes import settings_bp
     from library.workspace.tools.routes import tools_bp
+    from library.workspace.assets.routes import assets_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(kpi_dashboard_bp)
@@ -74,6 +75,7 @@ def _register_blueprints(app):
     app.register_blueprint(user_management_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(tools_bp)
+    app.register_blueprint(assets_bp)
 
 
 def _register_context_processors(app):

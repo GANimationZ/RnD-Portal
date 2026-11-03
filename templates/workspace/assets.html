@@ -1,0 +1,195 @@
+{# ---- Define / Extends ---- #}
+{% extends "partials/top-sidebar.html" %}
+{% block title %}<title>Assets - RnD Portal</title>{% endblock %}
+{% block styles %}
+  {# style.css Issue Monitor dipakai ulang (tabel, filter, badge, pagination) #}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/workspace/issue-monitor/style.css') }}"
+  />
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/workspace/assets/style.css') }}"
+  />
+{% endblock %}
+
+{# ---- Main Content ---- #}
+{% block content %}
+  <div class="main-body-content">
+    <div class="body active" data-panel="assets">
+      {# ---- Ringkasan ---- #}
+      <div class="preview_total">
+        <div class="ttl_issues blue">
+          <span class="pv_text">TOTAL ASSET PV</span
+          ><span class="pv_number" id="totalAssets">0</span>
+        </div>
+        <div class="ttl_issues green">
+          <span class="pv_text">TERVERIFIKASI</span
+          ><span class="pv_number" id="totalMatched">0</span>
+        </div>
+        <div class="ttl_issues yellow">
+          <span class="pv_text">BELUM DICEK</span
+          ><span class="pv_number" id="totalPending">0</span>
+        </div>
+        <div class="ttl_issues red">
+          <span class="pv_text">TIDAK COCOK / BUKAN PV</span
+          ><span class="pv_number" id="totalRejected">0</span>
+        </div>
+      </div>
+
+      {# ---- Scanner ---- #}
+      <section class="asset-scan">
+        <div class="asset-scan__head">
+          <span class="asset-scan__title"
+            ><i class="bxf bx-scan-barcode"></i> Scan Asset</span
+          >
+          <span class="asset-scan__hint"
+            >Arahkan scanner ke barcode Nomor Seri (scanner akan menekan Enter
+            otomatis), atau ketik manual.</span
+          >
+        </div>
+
+        <form class="asset-scan__form" id="scanForm" autocomplete="off">
+          <input
+            type="text"
+            id="scanSerial"
+            placeholder="Scan / ketik Nomor Seri"
+            autocomplete="off"
+            spellcheck="false"
+            required
+          />
+          <input
+            type="text"
+            id="scanName"
+            placeholder="Nama Barang (opsional, untuk cek kecocokan)"
+            autocomplete="off"
+          />
+          <button type="submit" class="asset-scan__submit">
+            <i class="bxf bx-search"></i> Cek Asset
+          </button>
+          <button type="button" class="asset-scan__camera" id="cameraBtn">
+            <i class="bxf bx-camera"></i> Kamera
+          </button>
+        </form>
+
+        <div class="scan-result is-idle" id="scanResult" aria-live="polite">
+          <div class="scan-result__icon"><i class="bxf bx-scan-barcode"></i></div>
+          <div class="scan-result__body">
+            <div class="scan-result__status" id="scanStatus">
+              Menunggu scan...
+            </div>
+            <div class="scan-result__message" id="scanMessage">
+              Hasil pengecekan asset akan tampil di sini.
+            </div>
+            <div class="scan-result__meta is-hidden" id="scanMeta">
+              <div>
+                <span class="scan-result__label">Nama Barang</span>
+                <span class="scan-result__value" id="scanResultName">-</span>
+              </div>
+              <div>
+                <span class="scan-result__label">Nomor Seri</span>
+                <span class="scan-result__value" id="scanResultSerial">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scan-history is-hidden" id="scanHistoryWrap">
+          <span class="scan-history__title">Riwayat scan terakhir</span>
+          <ul class="scan-history__list" id="scanHistory"></ul>
+        </div>
+
+        <p class="asset-scan__note">
+          Data di halaman ini masih data contoh (dummy). Contoh untuk dicoba:
+          <code>FLK-87V-48210931</code>
+        </p>
+      </section>
+
+      {# ---- Filter & Export ---- #}
+      <div class="activity-filters">
+        <div class="search_and_filters">
+          <form id="s_f" action="" method="get">
+            <label for="searchInput">ACTIVE FILTERS</label>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Cari nama barang atau nomor seri"
+            />
+            <select class="status" id="filterStatus">
+              <option value="all" selected>All Status</option>
+              <option value="pending">Belum Dicek</option>
+              <option value="match">Terverifikasi</option>
+              <option value="mismatch">Nama Tidak Cocok</option>
+            </select>
+          </form>
+        </div>
+        <div class="btns">
+          <button id="reset" type="button">Reset</button>
+          <div class="execute_btns">
+            <button id="exportExcel" type="button">
+              <i class="bxf bx-arrow-to-bottom"></i>Excel
+            </button>
+            <button id="exportCsv" type="button">
+              <i class="bxf bx-arrow-to-bottom"></i>CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {# ---- Tabel Asset ---- #}
+      <div class="list">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Nama Barang</th>
+              <th>Nomor Seri</th>
+              <th class="center">Status Scan</th>
+              <th class="center">Waktu Scan</th>
+            </tr>
+          </thead>
+          <tbody id="assetTableBody">
+            <!-- baris di-generate JS -->
+          </tbody>
+        </table>
+
+        <div class="list__pagination">
+          <div class="pagination__info">
+            <span>Show</span>
+            <select id="rowsPerPage">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="20">20</option>
+            </select>
+            <span id="paginationSummary">Showing 0-0 of 0</span>
+          </div>
+          <div class="pagination__pages" id="paginationPages"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Modal scan lewat kamera ---- #}
+  <div class="camera-modal is-hidden" id="cameraModal">
+    <div class="camera-modal__dialog">
+      <div class="camera-modal__head">
+        <span>Scan dengan Kamera</span>
+        <button type="button" id="cameraClose" title="Close">
+          <i class="bxf bx-x"></i>
+        </button>
+      </div>
+      <div class="camera-modal__view">
+        <video id="cameraVideo" playsinline muted></video>
+        <div class="camera-modal__frame"></div>
+      </div>
+      <p class="camera-modal__hint" id="cameraHint">Mengaktifkan kamera...</p>
+    </div>
+  </div>
+{% endblock %}
+
+{# ---- Define Script ---- #}
+{% block script %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='vendor/sheetjs/xlsx.full.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='javascript/workspace/assets.js') }}"></script>
+{% endblock %}

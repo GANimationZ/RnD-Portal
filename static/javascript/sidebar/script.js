@@ -4,6 +4,7 @@ const icons = {
   concept: "bx-monitor-wallpaper",
   issue: "bx-alert-triangle",
   tool: "bx-spanner",
+  asset: "bx-scan-barcode",
   pin: "bx-location-pin",
   dollar: "bx-dollar-circle",
   chevron: "bx-chevron-down",
@@ -44,6 +45,12 @@ const NAV_GROUPS = [
         label: "LVT/MNT ─ Issue Monitoring",
         icon: "issue",
         href: "/workspace/issue-monitor",
+      },
+      {
+        id: "assets",
+        label: "Assets",
+        icon: "asset",
+        href: "/workspace/assets",
       },
       {
         id: "tools",
