@@ -1,26 +1,6 @@
-"""SQLAlchemy models for RnD Portal.
-
-Notes:
-- All columns use generic SQLAlchemy types (Integer, String, Float, Date,
-  DateTime, Text, Boolean) so nothing here needs to change when migrating
-  from SQLite to PostgreSQL -- just set DATABASE_URL (see MIGRATION.md).
-- Historical KPI data is stored as normalized rows (one KPIRecord per user
-  per period), not as a JSON blob, so it stays queryable/indexable in
-  Postgres.
-- Single team, three access levels via User.role: "Super Admin" (manages
-  users), "Admin" (QA, creates/closes issues), "Member" (view issues,
-  execute assigned ones). See library/auth.py:roles_required().
-- UserCategoryScope / UserEventScope are normalized pivot tables so a
-  Member can have more than one category/event.
-"""
-
 from library.extensions import db
 
 ROLE_CHOICES = ["Super Admin", "Admin", "Member"]
-
-# Must match Issue.category / Issue.event and issue-monitor.js's
-# CATEGORY_META / EVENT_META exactly, so Member <-> Issue scope matching
-# stays correct.
 CATEGORY_CHOICES = ["PCBA/SMT", "SQA", "Line-Prod", "OQA", "CSS/SVC"]
 EVENT_CHOICES = ["PV", "Pre-MP", "MP", "Field"]
 
@@ -29,16 +9,12 @@ class User(db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    # No separate username is collected anymore -- this is auto-derived
-    # from the email's local-part at creation time (see library/naming.py),
-    # e.g. "john.doe@test.com" -> "John Doe". Still the column shown
-    # everywhere as the person's name.
     username = db.Column(db.String(255), nullable=False, unique=True)
     email = db.Column(db.String(255), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="Member")
     job_title = db.Column(db.String(120), nullable=True)
-    profile_picture = db.Column(db.String(255), nullable=True)  # cosmetic label for KPI Dashboard
+    profile_picture = db.Column(db.String(255), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     approved_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -82,8 +58,6 @@ class User(db.Model):
         return sorted(s.event for s in self.event_scopes)
 
     def covers(self, category, event):
-        """True if this user's scope includes both category and event --
-        the requirement to appear in the Issue Register assignee combobox."""
         return category in self.categories and event in self.events
 
     @property
@@ -111,9 +85,6 @@ class User(db.Model):
 
 
 class UserCategoryScope(db.Model):
-    """One row = one category a user may handle. Multiple rows per user_id
-    means more than one category."""
-
     __tablename__ = "user_category_scopes"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -126,8 +97,6 @@ class UserCategoryScope(db.Model):
 
 
 class UserEventScope(db.Model):
-    """Same as UserCategoryScope, for Event."""
-
     __tablename__ = "user_event_scopes"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -140,15 +109,6 @@ class UserEventScope(db.Model):
 
 
 class KPIRecord(db.Model):
-    """One row = a Member's performance summary for one week. Backs the
-    Recent / Last Week / Last Month / Last Year filters via a simple
-    `WHERE period_date >= cutoff` query.
-
-    Filled automatically from Issue Monitor activity (see recording.py):
-    - Issue created with an assignee -> total_assigned & pending +1.
-    - Issue closed -> completed +1, pending -1, avg_resolution_days updated.
-    """
-
     __tablename__ = "kpi_records"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -169,9 +129,6 @@ class KPIRecord(db.Model):
 
 
 class BestPractice(db.Model):
-    """A manually-written tip for a Member (by themselves or Super Admin),
-    not auto-generated from Issue activity."""
-
     __tablename__ = "best_practices"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -182,13 +139,6 @@ class BestPractice(db.Model):
 
 
 class Issue(db.Model):
-    """One row = one issue registered via Issue Register.
-
-    `owner_name` = the QA/Admin who created the issue.
-    `assignee_id` = the Member assigned to execute it (chosen from a
-    combobox filtered by category/event, see User.covers()).
-    """
-
     __tablename__ = "issues"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -240,10 +190,6 @@ class Issue(db.Model):
 
 
 class IssueAttachment(db.Model):
-    """One file attached to an Issue (image, Word, Excel, or PowerPoint).
-    Kept separate from Issue.image_filename (retained for backward
-    compatibility) so an issue can have multiple attachments."""
-
     __tablename__ = "issue_attachments"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -265,9 +211,6 @@ class IssueAttachment(db.Model):
 
 
 class TvDesignAsset(db.Model):
-    """One board/product design entry in the TV Design Concept library.
-    Searchable by serial_number, production, and origin."""
-
     __tablename__ = "tv_design_assets"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -303,8 +246,6 @@ class TvDesignAsset(db.Model):
 
 
 class TvDesignAttachment(db.Model):
-    """One file (image / excel / ppt / pdf) attached to a TvDesignAsset."""
-
     __tablename__ = "tv_design_attachments"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -326,10 +267,6 @@ class TvDesignAttachment(db.Model):
 
 
 class ToolLink(db.Model):
-    """A link-out entry in Integrated Tools. The actual web tools /
-    material pages are built by other teams, so this only stores where to
-    send the user (url) plus how to find it (kind, category, name)."""
-
     __tablename__ = "tool_links"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -338,8 +275,6 @@ class ToolLink(db.Model):
     category = db.Column(db.String(80), nullable=False, index=True)
     url = db.Column(db.String(1000), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    quantity = db.Column(db.Integer, nullable=False, default=1)
-    is_available = db.Column(db.Boolean, nullable=False, default=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
@@ -353,8 +288,6 @@ class ToolLink(db.Model):
             "category": self.category,
             "url": self.url,
             "description": self.description,
-            "quantity": self.quantity,
-            "is_available": self.is_available,
             "created_by": self.created_by.username if self.created_by else None,
             "created_by_id": self.created_by_id,
             "created_at": self.created_at.strftime("%d-%m-%Y") if self.created_at else None,

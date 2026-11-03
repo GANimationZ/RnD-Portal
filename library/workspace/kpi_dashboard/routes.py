@@ -27,7 +27,6 @@ from .kpi_excel import (
     workbook_to_bytes,
     parse_employee_workbook,
 )
-from .kpi_pdf import build_individual_pdf, build_team_pdf
 from .metrics import (
     DEFAULT_RANGE,
     RANGE_LABELS,
@@ -268,14 +267,10 @@ def _employees_for_month(month_key):
     return parse_employee_workbook(filepath)
 
 
-def _export_month(xlsx_builder, pdf_builder, prefix):
+def _export_month(builder, prefix):
     month_key = _month_param()
     if month_key is None:
         return jsonify({"message": "Invalid month. Use the format YYYY-MM."}), 400
-
-    fmt = (request.args.get("format") or "xlsx").strip().lower()
-    if fmt not in ("xlsx", "pdf"):
-        return jsonify({"message": "Format must be xlsx or pdf."}), 400
 
     try:
         employees = _employees_for_month(month_key)
@@ -285,15 +280,7 @@ def _export_month(xlsx_builder, pdf_builder, prefix):
     if employees is None:
         return jsonify({"message": "No archive found for the selected month."}), 404
 
-    if fmt == "pdf":
-        return send_file(
-            pdf_builder(employees),
-            as_attachment=True,
-            download_name=f"{prefix}-{month_key}.pdf",
-            mimetype="application/pdf",
-        )
-
-    buffer = workbook_to_bytes(xlsx_builder(employees))
+    buffer = workbook_to_bytes(builder(employees))
     return send_file(
         buffer,
         as_attachment=True,
@@ -304,12 +291,12 @@ def _export_month(xlsx_builder, pdf_builder, prefix):
 
 @kpi_dashboard_bp.route("/export/individual")
 def export_individual():
-    return _export_month(build_individual_workbook, build_individual_pdf, "kpi-individual")
+    return _export_month(build_individual_workbook, "kpi-individual")
 
 
 @kpi_dashboard_bp.route("/export/team")
 def export_team():
-    return _export_month(build_team_workbook, build_team_pdf, "kpi-team")
+    return _export_month(build_team_workbook, "kpi-team")
 
 
 @kpi_dashboard_bp.route("/history")

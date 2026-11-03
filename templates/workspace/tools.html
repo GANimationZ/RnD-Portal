@@ -82,33 +82,8 @@
         />
         <datalist id="toolCategoryOptions"></datalist>
         <input type="url" id="toolFormUrl" placeholder="Link (https://...)" required />
-        <input type="number" id="toolFormQuantity" placeholder="Quantity" min="0" step="1" value="1" />
-        <label class="tool-modal__checkbox">
-          <input type="checkbox" id="toolFormAvailable" checked />
-          Available
-        </label>
         <textarea id="toolFormDescription" placeholder="Short description (optional)"></textarea>
         <input type="submit" value="Save" id="toolFormSubmit" />
-      </form>
-    </div>
-  </div>
-
-  {# ---- Edit modal: quantity / availability only ---- #}
-  <div class="tool-modal is-hidden" id="toolEditModal">
-    <div class="tool-modal__dialog">
-      <div class="tool-modal__head">
-        <span class="tool-modal__title">Edit Stock &mdash; <span id="toolEditName"></span></span>
-        <button type="button" class="tool-modal__close" id="toolEditModalClose" aria-label="Close">
-          <i class="bxf bx-x"></i>
-        </button>
-      </div>
-      <form class="tool-modal__form" id="toolEditForm">
-        <input type="number" id="toolEditQuantity" placeholder="Quantity" min="0" step="1" required />
-        <label class="tool-modal__checkbox">
-          <input type="checkbox" id="toolEditAvailable" />
-          Available
-        </label>
-        <input type="submit" value="Save" id="toolEditSubmit" />
       </form>
     </div>
   </div>
