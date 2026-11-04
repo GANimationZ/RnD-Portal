@@ -484,9 +484,7 @@ function initIssueRegister() {
 
   document.getElementById("openIssueRegister")?.addEventListener("click", openIssueRegister);
   document.getElementById("issueRegisterClose")?.addEventListener("click", closeIssueRegister);
-  document.getElementById("issueRegisterModal")?.addEventListener("click", (e) => {
-    if (e.target.id === "issueRegisterModal") closeIssueRegister();
-  });
+  bindBackdropClose(document.getElementById("issueRegisterModal"), closeIssueRegister);
   document.addEventListener("keydown", (e) => {
     const modal = document.getElementById("issueRegisterModal");
     if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeIssueRegister();
@@ -733,27 +731,97 @@ function sanitizeCell(value) {
   return value;
 }
 
-function exportData(type) {
-  const rows = [["No", "Title", "Priority", "Category", "Event", "Deadline", "Assignee", "Status"]];
-  filteredData.forEach((issue, i) => {
-    rows.push([i + 1, issue.title, issue.priority, issue.category, issue.event, issue.deadline, issue.assignee_name || "-", issue.status]);
+function exportFileStamp() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+}
+
+// Describes the filters that are currently active, for the Excel subtitle
+function describeActiveFilters() {
+  const parts = [];
+  const search = (document.getElementById("searchInput")?.value || "").trim();
+  if (search) parts.push(`search "${search}"`);
+  [
+    ["filterPriority", "priority"],
+    ["filterStatus", "status"],
+    ["filterCategory", "category"],
+    ["filterEvent", "event"],
+    ["filterAssignee", "assignee"],
+  ].forEach(([id, label]) => {
+    const select = document.getElementById(id);
+    if (select && select.selectedIndex > 0) {
+      parts.push(`${label}: ${select.options[select.selectedIndex].text}`);
+    }
   });
+  return parts.length ? parts.join(", ") : "no filters";
+}
 
-  const content = rows
-    .map((r) => r.map((c) => `"${String(sanitizeCell(c)).replace(/"/g, '""')}"`).join(","))
-    .join("\r\n");
+async function exportData(type) {
+  if (filteredData.length === 0) {
+    showToast("There are no issues to export.", "error");
+    return;
+  }
 
-  const mime = type === "csv" ? "text/csv" : "application/vnd.ms-excel";
-  const ext = type === "csv" ? "csv" : "xls";
+  // ---- CSV (plain data) ----
+  if (type === "csv") {
+    const rows = [["No", "Title", "Priority", "Category", "Event", "Deadline", "Assignee", "Status"]];
+    filteredData.forEach((issue, i) => {
+      rows.push([i + 1, issue.title, issue.priority, issue.category, issue.event, issue.deadline, issue.assignee_name || "-", issue.status]);
+    });
+    const content = rows
+      .map((r) => r.map((c) => `"${String(sanitizeCell(c)).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
 
-  const blob = new Blob([content], { type: mime });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `issue-list.${ext}`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(link.href);
+    // BOM so Excel reads the CSV as UTF-8
+    const blob = new Blob(["\ufeff" + content], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `issue-list_${exportFileStamp()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+    return;
+  }
+
+  // ---- Excel: a real, styled .xlsx (see shared/excel-export.js) ----
+  try {
+    await exportStyledExcel({
+      fileName: `issue-list_${exportFileStamp()}.xlsx`,
+      sheetName: "Issue List",
+      title: "Issue List",
+      subtitle: `Exported ${formatExportTimestamp()}  |  ${filteredData.length} issue${filteredData.length === 1 ? "" : "s"}  |  ${describeActiveFilters()}`,
+      columns: [
+        { header: "No", width: 6, align: "center" },
+        { header: "Title", width: 46, align: "left", wrap: true },
+        { header: "Priority", width: 13, align: "center" },
+        { header: "Category", width: 14, align: "center" },
+        { header: "Event", width: 11, align: "center" },
+        { header: "Deadline", width: 14, align: "center" },
+        { header: "Assignee", width: 24, align: "left" },
+        { header: "Status", width: 13, align: "center" },
+      ],
+      rows: filteredData.map((issue, i) => [
+        i + 1,
+        issue.title,
+        issue.priority,
+        issue.category,
+        issue.event,
+        issue.deadline,
+        issue.assignee_name || "-",
+        issue.status,
+      ]),
+      colors: {
+        Priority: { High: "red", Medium: "yellow", Low: "green" },
+        Status: { Open: "blue", Pending: "yellow", Closed: "green", "On Hold": "red" },
+      },
+    });
+    showToast(`${filteredData.length} issues exported to Excel.`, "success");
+  } catch (err) {
+    console.error(err);
+    showToast(err.message || "Failed to export Excel.", "error");
+  }
 }
 
 // ============================================================
@@ -879,9 +947,7 @@ function initInlineDetail() {
   // Clicking the dark area outside the dialog (not the card) also
   // closes it, like a typical modal.
   if (panel) {
-    panel.addEventListener("click", (e) => {
-      if (e.target === panel) panel.classList.add("is-hidden");
-    });
+    bindBackdropClose(panel, () => panel.classList.add("is-hidden"));
   }
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && panel && !panel.classList.contains("is-hidden")) {

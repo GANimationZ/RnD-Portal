@@ -104,9 +104,7 @@
     }
 
     overlay.querySelector(".file-preview-dialog__close").addEventListener("click", close);
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) close();
-    });
+    bindBackdropClose(overlay, close);
     document.addEventListener("keydown", onKeydown);
 
     document.body.appendChild(overlay);

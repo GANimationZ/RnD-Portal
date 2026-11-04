@@ -42,6 +42,7 @@ def _load_live_session_user():
     session["role"] = user.role
     g._live_session_user = user
     return user
+from flask import jsonify, redirect, request, session, url_for
 
 
 def login_required(f):
@@ -59,6 +60,10 @@ def login_required(f):
 
 
 def roles_required(*roles):
+    """Use after @login_required. Redirects HTML page requests back to the
+    dashboard, but returns 403 JSON for API/fetch requests so the frontend
+    can show a proper error instead of an unexpected HTML response."""
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -70,6 +75,16 @@ def roles_required(*roles):
 
             if session.get("role") not in roles:
                 abort(403)
+            if session.get("role") not in roles:
+                wants_json = (
+                    request.is_json
+                    or request.path.startswith("/admin/users/api")
+                    or request.path.rstrip("/").endswith("/api")
+                    or "/api/" in request.path
+                )
+                if wants_json:
+                    return jsonify({"message": "Akses ditolak: hak akses tidak mencukupi."}), 403
+                return redirect(url_for("main.kpi_dashboard"))
 
             return f(*args, **kwargs)
 

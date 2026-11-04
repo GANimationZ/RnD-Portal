@@ -14,6 +14,36 @@ window.escapeHtml = function escapeHtml(value) {
   })[ch]);
 };
 
+// ============================================================
+// bindBackdropClose(overlay, onClose)
+// Closes a popup when the dark area around it is clicked -- but ONLY when the
+// press AND the release both happened on that dark area.
+//
+// Without this, selecting text inside the popup and dragging the cursor past
+// the edge of the dialog counted as a "click on the backdrop" (the browser
+// fires `click` on the common ancestor, i.e. the overlay) and closed the popup
+// in the middle of the selection.
+// ============================================================
+window.bindBackdropClose = function bindBackdropClose(overlay, onClose) {
+  if (!overlay) return;
+  let pressedOnBackdrop = false;
+  let releasedOnBackdrop = false;
+
+  overlay.addEventListener("pointerdown", (e) => {
+    pressedOnBackdrop = e.target === overlay;
+    releasedOnBackdrop = false;
+  });
+  overlay.addEventListener("pointerup", (e) => {
+    releasedOnBackdrop = e.target === overlay;
+  });
+  overlay.addEventListener("click", (e) => {
+    const isRealBackdropClick = e.target === overlay && pressedOnBackdrop && releasedOnBackdrop;
+    pressedOnBackdrop = false;
+    releasedOnBackdrop = false;
+    if (isRealBackdropClick) onClose(e);
+  });
+};
+
 (function () {
   function ensureContainer() {
     let container = document.getElementById("toastContainer");
@@ -85,9 +115,7 @@ window.escapeHtml = function escapeHtml(value) {
 
       overlay.querySelector(".confirm-dialog__cancel").addEventListener("click", () => close(false));
       overlay.querySelector(".confirm-dialog__confirm").addEventListener("click", () => close(true));
-      overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) close(false);
-      });
+      bindBackdropClose(overlay, () => close(false));
       document.addEventListener("keydown", onKeydown);
 
       document.body.appendChild(overlay);

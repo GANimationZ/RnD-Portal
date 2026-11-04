@@ -115,6 +115,67 @@ select {
   color: #700023;
 }
 
+.export-menu {
+  position: relative;
+}
+.export-menu .btn-export .export-menu__caret {
+  font-size: 14px;
+  margin-left: 2px;
+  transition: transform 0.2s ease;
+}
+.export-menu.is-open .export-menu__caret {
+  transform: rotate(180deg);
+}
+.export-menu__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 200px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #e4e6ea;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.export-menu__list.is-hidden {
+  display: none;
+}
+.export-menu__list a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #444;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.export-menu__list a i {
+  font-size: 15px;
+  color: #a50034;
+}
+.export-menu__list a:hover {
+  background: rgba(165, 0, 52, 0.08);
+  color: #a50034;
+}
+.export-menu__group {
+  padding: 8px 10px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8a8f98;
+}
+.export-menu__group:not(:first-child) {
+  margin-top: 4px;
+  border-top: 1px solid #eceff3;
+}
+
 .main-body-content {
   padding: 0 20px;
 }
@@ -643,4 +704,6 @@ select {
 
 .history-subpanel {
   margin-top: 15px;
-}/*# sourceMappingURL=style.css.map */
+}
+
+/*# sourceMappingURL=style.css.map */

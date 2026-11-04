@@ -349,5 +349,7 @@
 {# ---- Define Script ---- #}
 {% block script %}
   {{ super() }}
+  <script src="{{ url_for('static', filename='vendor/exceljs/exceljs.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='javascript/shared/excel-export.js') }}"></script>
   <script src="{{ url_for('static', filename='javascript/workspace/issue-monitor.js')}}"></script>
 {% endblock %}

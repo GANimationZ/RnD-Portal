@@ -24,6 +24,7 @@ from library.models import BestPractice, User
 from .kpi_excel import (
     build_individual_workbook,
     build_team_workbook,
+    period_label_from_key,
     workbook_to_bytes,
     parse_employee_workbook,
 )
@@ -267,10 +268,15 @@ def _employees_for_month(month_key):
     return parse_employee_workbook(filepath)
 
 
-def _export_month(builder, prefix):
+def _export_month(xlsx_builder, pdf_builder_name, prefix):
+    """Download the selected month as .xlsx (default) or .pdf (?format=pdf)."""
     month_key = _month_param()
     if month_key is None:
         return jsonify({"message": "Invalid month. Use the format YYYY-MM."}), 400
+
+    export_format = (request.args.get("format") or "xlsx").strip().lower()
+    if export_format not in ("xlsx", "pdf"):
+        return jsonify({"message": "Invalid format. Use xlsx or pdf."}), 400
 
     try:
         employees = _employees_for_month(month_key)
@@ -280,7 +286,26 @@ def _export_month(builder, prefix):
     if employees is None:
         return jsonify({"message": "No archive found for the selected month."}), 404
 
-    buffer = workbook_to_bytes(builder(employees))
+    period_label = period_label_from_key(month_key)
+
+    if export_format == "pdf":
+        # Imported here so a missing `reportlab` only disables PDF export
+        # instead of stopping the whole app from starting.
+        try:
+            from . import kpi_pdf
+        except ImportError:
+            return jsonify({
+                "message": "PDF export needs the 'reportlab' package. Run: pip install -r requirements.txt",
+            }), 500
+        buffer = getattr(kpi_pdf, pdf_builder_name)(employees, period_label)
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"{prefix}-{month_key}.pdf",
+            mimetype="application/pdf",
+        )
+
+    buffer = workbook_to_bytes(xlsx_builder(employees, period_label))
     return send_file(
         buffer,
         as_attachment=True,
@@ -291,12 +316,12 @@ def _export_month(builder, prefix):
 
 @kpi_dashboard_bp.route("/export/individual")
 def export_individual():
-    return _export_month(build_individual_workbook, "kpi-individual")
+    return _export_month(build_individual_workbook, "build_individual_pdf", "kpi-individual")
 
 
 @kpi_dashboard_bp.route("/export/team")
 def export_team():
-    return _export_month(build_team_workbook, "kpi-team")
+    return _export_month(build_team_workbook, "build_team_pdf", "kpi-team")
 
 
 @kpi_dashboard_bp.route("/history")

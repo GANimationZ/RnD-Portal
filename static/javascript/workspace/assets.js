@@ -9,6 +9,7 @@
 //   POST /workspace/assets/api/assets        -> add an asset manually
 //   PUT  /workspace/assets/api/assets/<id>   -> edit an asset
 //   DELETE /workspace/assets/api/assets/<id> -> delete an asset
+//   POST /workspace/assets/api/assets/import -> import from Excel (check first with dry_run, then apply)
 //   POST /workspace/assets/api/assets/scan   -> check a scanned serial
 // Scan results are saved, so they survive a page refresh.
 //
@@ -294,7 +295,9 @@ async function processScan(rawSerial, rawName) {
     if (data.result === "unknown") {
       showScanResult("unknown", {
         status: "NOT A PV ASSET",
-        message: "This Serial Number was not found in the PV asset database.",
+        message: data.valid_format
+          ? "This Serial Number was not found in the PV asset database."
+          : "This is not a PV Serial Number: it does not match the format of 4 letters + 8 digits, and it was not found in the database.",
         serial,
       });
       renderSummary();
@@ -432,11 +435,12 @@ function initAddAsset() {
   if (!form) return;
 
   document.getElementById("addAssetBtn")?.addEventListener("click", () => openAssetModal());
+  document.getElementById("newAssetSerial")?.addEventListener("input", (e) => {
+    e.target.value = e.target.value.toUpperCase();
+  });
   document.getElementById("addAssetClose")?.addEventListener("click", closeAddAsset);
   document.getElementById("addAssetCancel")?.addEventListener("click", closeAddAsset);
-  document.getElementById("addAssetModal")?.addEventListener("click", (e) => {
-    if (e.target.id === "addAssetModal") closeAddAsset();
-  });
+  bindBackdropClose(document.getElementById("addAssetModal"), closeAddAsset);
   document.addEventListener("keydown", (e) => {
     const modal = document.getElementById("addAssetModal");
     if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeAddAsset();
@@ -489,6 +493,318 @@ function initAddAsset() {
       saveBtn.disabled = false;
     }
   });
+}
+
+// ============================================================
+// ---- Import from Excel ---- //
+// Step 1: choose a file and Merge / Replace  ->  the server checks the file
+//         (dry run) and reports new rows, conflicts and rows with errors.
+// Step 2: review. Every conflict (same Serial Number, different names) needs a
+//         choice: keep one of the names or type a new one. Then apply.
+// The file is sent again when applying, so what is reviewed is what is saved.
+// ============================================================
+const importState = { analysis: null, mode: "merge", currentCount: 0 };
+
+function importEl(id) {
+  return document.getElementById(id);
+}
+
+function setImportStep(step) {
+  importEl("importSelectForm")?.classList.toggle("is-hidden", step !== "select");
+  importEl("importReview")?.classList.toggle("is-hidden", step !== "review");
+  setText(
+    "importTitle",
+    step === "select"
+      ? "Import Assets from Excel"
+      : importState.mode === "replace"
+        ? "Review Import - Replace"
+        : "Review Import - Merge",
+  );
+}
+
+function setImportError(id, message) {
+  const el = importEl(id);
+  if (el) el.textContent = message || "";
+}
+
+function openImportModal() {
+  importEl("importSelectForm")?.reset();
+  importState.analysis = null;
+  setImportError("importError", "");
+  setImportError("importReviewError", "");
+  setImportStep("select");
+  importEl("importModal")?.classList.remove("is-hidden");
+}
+
+function closeImportModal() {
+  importEl("importModal")?.classList.add("is-hidden");
+  importState.analysis = null;
+  document.getElementById("scanSerial")?.focus();
+}
+
+function selectedImportMode() {
+  return document.querySelector('input[name="importMode"]:checked')?.value || "merge";
+}
+
+async function checkImportFile() {
+  const file = importEl("importFile")?.files?.[0];
+  if (!file) {
+    setImportError("importError", "Please choose an Excel file (.xlsx) first.");
+    return;
+  }
+  if (!file.name.toLowerCase().endsWith(".xlsx")) {
+    setImportError("importError", "Only .xlsx files are supported. In Excel, use Save As > Excel Workbook (.xlsx).");
+    return;
+  }
+
+  const btn = importEl("importCheck");
+  btn.disabled = true;
+  setImportError("importError", "");
+
+  try {
+    const body = new FormData();
+    body.append("file", file);
+    body.append("mode", selectedImportMode());
+    body.append("dry_run", "1");
+    const data = await request("/assets/import", { method: "POST", body });
+
+    importState.analysis = data.analysis;
+    importState.mode = data.mode;
+    importState.currentCount = data.current_count;
+    renderImportReview();
+    setImportStep("review");
+  } catch (err) {
+    setImportError("importError", err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function importableCount() {
+  const a = importState.analysis;
+  return a ? a.new.length + a.conflicts.length : 0;
+}
+
+function renderImportReview() {
+  const a = importState.analysis;
+  const isReplace = importState.mode === "replace";
+  setImportError("importReviewError", "");
+
+  // ---- summary chips ----
+  const stats = [
+    ["Rows read", a.rows_read, "gray"],
+    ["New", a.new.length, "green"],
+  ];
+  if (!isReplace) stats.push(["Already up to date", a.unchanged.length, "blue"]);
+  stats.push(["Conflicts", a.conflicts.length, a.conflicts.length ? "yellow" : "gray"]);
+  stats.push(["Errors (skipped)", a.invalid.length, a.invalid.length ? "red" : "gray"]);
+  importEl("importStats").innerHTML = stats
+    .map(([label, value, tone]) => `<div class="import-stat import-stat--${tone}"><span class="import-stat__value">${value}</span><span class="import-stat__label">${label}</span></div>`)
+    .join("");
+
+  // ---- Replace warning ----
+  const warn = importEl("importReplaceWarning");
+  if (isReplace && importState.currentCount > 0) {
+    warn.textContent = `Replace will delete all ${importState.currentCount} current asset${importState.currentCount === 1 ? "" : "s"} and their scan results. Only the ${importableCount()} asset${importableCount() === 1 ? "" : "s"} from this file will remain.`;
+    warn.classList.remove("is-hidden");
+  } else {
+    warn.classList.add("is-hidden");
+  }
+
+  renderImportConflicts(a);
+  renderImportInvalid(a);
+
+  // ---- apply button ----
+  const apply = importEl("importApply");
+  const n = importableCount();
+  apply.disabled = n === 0;
+  apply.textContent = n === 0
+    ? "Nothing to import"
+    : isReplace
+      ? `Replace with ${n} asset${n === 1 ? "" : "s"}`
+      : `Merge ${n} asset${n === 1 ? "" : "s"}`;
+  apply.classList.toggle("is-danger", isReplace);
+}
+
+function renderImportConflicts(a) {
+  const wrap = importEl("importConflictsWrap");
+  const list = importEl("importConflicts");
+  wrap.classList.toggle("is-hidden", a.conflicts.length === 0);
+  setText("importConflictsTitle", `Conflicts (${a.conflicts.length})`);
+
+  list.innerHTML = a.conflicts
+    .map((c, i) => {
+      const choices = c.candidates
+        .map(
+          (cand, j) => `
+          <label class="import-choice">
+            <input type="radio" name="conflict-${i}" value="${j}" ${j === 0 ? "checked" : ""} />
+            <span class="import-choice__text">
+              <span class="import-choice__name">${escapeHtml(cand.name)}</span>
+              <span class="import-choice__source">${escapeHtml(cand.source)}</span>
+            </span>
+          </label>`,
+        )
+        .join("");
+
+      return `
+        <div class="import-conflict" data-index="${i}">
+          <div class="import-conflict__head">
+            <span class="import-conflict__serial">${escapeHtml(c.serial)}</span>
+            <span class="import-conflict__count">${c.candidates.length} different names</span>
+          </div>
+          ${choices}
+          <label class="import-choice import-choice--edit">
+            <input type="radio" name="conflict-${i}" value="edit" />
+            <span class="import-choice__text">
+              <span class="import-choice__source">Edit - type the name to use</span>
+              <input type="text" class="import-edit" maxlength="120" placeholder="Item name" autocomplete="off" />
+            </span>
+          </label>
+        </div>`;
+    })
+    .join("");
+
+  // Typing in the edit box selects the "Edit" choice automatically
+  list.querySelectorAll(".import-edit").forEach((input) => {
+    const radio = input.closest("label").querySelector('input[type="radio"]');
+    input.addEventListener("focus", () => { radio.checked = true; });
+    input.addEventListener("input", () => {
+      radio.checked = true;
+      input.classList.remove("is-invalid");
+    });
+  });
+}
+
+function renderImportInvalid(a) {
+  const wrap = importEl("importInvalidWrap");
+  wrap.classList.toggle("is-hidden", a.invalid.length === 0);
+  setText("importInvalidTitle", `Rows with errors (${a.invalid.length})`);
+
+  importEl("importInvalid").innerHTML = `
+    <table>
+      <thead><tr><th>Row</th><th>Item Name</th><th>Serial Number</th><th>Problem</th></tr></thead>
+      <tbody>
+        ${a.invalid
+          .map((r) => `<tr><td>${r.row}</td><td>${escapeHtml(r.name || "-")}</td><td class="asset-serial">${escapeHtml(r.serial || "-")}</td><td>${escapeHtml(r.reason)}</td></tr>`)
+          .join("")}
+      </tbody>
+    </table>`;
+}
+
+// Bulk choices for conflicts
+function chooseAllConflicts(pick) {
+  const a = importState.analysis;
+  if (!a) return;
+  a.conflicts.forEach((c, i) => {
+    const idx = pick(c);
+    const radio = document.querySelector(`input[name="conflict-${i}"][value="${idx}"]`);
+    if (radio) radio.checked = true;
+  });
+}
+
+// Returns { resolutions } or { error }
+function collectImportResolutions() {
+  const a = importState.analysis;
+  const resolutions = {};
+  let firstInvalid = null;
+
+  a.conflicts.forEach((c, i) => {
+    const checked = document.querySelector(`input[name="conflict-${i}"]:checked`);
+    if (!checked) return;
+
+    if (checked.value === "edit") {
+      const input = checked.closest("label").querySelector(".import-edit");
+      const name = input.value.replace(/\s+/g, " ").trim();
+      if (!name) {
+        input.classList.add("is-invalid");
+        firstInvalid = firstInvalid || input;
+      } else {
+        resolutions[c.serial] = name;
+      }
+    } else {
+      resolutions[c.serial] = c.candidates[Number(checked.value)].name;
+    }
+  });
+
+  if (firstInvalid) {
+    firstInvalid.focus();
+    return { error: "Please type a name for every conflict where you chose \"Edit\"." };
+  }
+  return { resolutions };
+}
+
+async function applyImport() {
+  const a = importState.analysis;
+  const file = importEl("importFile")?.files?.[0];
+  if (!a || !file) return;
+
+  const { resolutions, error } = collectImportResolutions();
+  if (error) {
+    setImportError("importReviewError", error);
+    return;
+  }
+  setImportError("importReviewError", "");
+
+  const isReplace = importState.mode === "replace";
+  if (isReplace && importState.currentCount > 0) {
+    const ok = await showConfirm(
+      `Replace all ${importState.currentCount} current assets with the ${importableCount()} from the file? Scan results will be deleted too. This action cannot be undone.`,
+      { confirmText: "Replace" },
+    );
+    if (!ok) return;
+  }
+
+  const btn = importEl("importApply");
+  btn.disabled = true;
+  try {
+    const body = new FormData();
+    body.append("file", file);
+    body.append("mode", importState.mode);
+    body.append("resolutions", JSON.stringify(resolutions));
+    const data = await request("/assets/import", { method: "POST", body });
+
+    closeImportModal();
+    await fetchAssets();
+    if (isReplace) {
+      showScanResult("idle", {
+        status: "Waiting for scan...",
+        message: "The asset check result will appear here.",
+      });
+    }
+    renderSummary();
+    resetFilters();
+    showToast(data.message, "success");
+  } catch (err) {
+    setImportError("importReviewError", err.message);
+    btn.disabled = false;
+  }
+}
+
+function initImport() {
+  if (!importEl("importModal")) return;
+
+  importEl("importBtn")?.addEventListener("click", openImportModal);
+  importEl("importClose")?.addEventListener("click", closeImportModal);
+  importEl("importCancel")?.addEventListener("click", closeImportModal);
+  importEl("importAbort")?.addEventListener("click", closeImportModal); // "Cancel Import"
+  importEl("importBack")?.addEventListener("click", () => setImportStep("select"));
+  bindBackdropClose(importEl("importModal"), closeImportModal);
+  document.addEventListener("keydown", (e) => {
+    const modal = importEl("importModal");
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeImportModal();
+  });
+
+  importEl("importSelectForm")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    checkImportFile();
+  });
+  importEl("importApply")?.addEventListener("click", applyImport);
+
+  importEl("importKeepAll")?.addEventListener("click", () => chooseAllConflicts(() => 0));
+  importEl("importUseAllNew")?.addEventListener("click", () =>
+    chooseAllConflicts((c) => (c.candidates[0].source === "Current data" ? 1 : c.candidates.length - 1)),
+  );
 }
 
 // ============================================================
@@ -559,9 +875,7 @@ function closeCamera() {
 function initCamera() {
   document.getElementById("cameraBtn")?.addEventListener("click", openCamera);
   document.getElementById("cameraClose")?.addEventListener("click", closeCamera);
-  document.getElementById("cameraModal")?.addEventListener("click", (e) => {
-    if (e.target.id === "cameraModal") closeCamera();
-  });
+  bindBackdropClose(document.getElementById("cameraModal"), closeCamera);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && cameraStream) closeCamera();
   });
@@ -594,23 +908,30 @@ function exportFileName(ext) {
   return `pv-assets_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.${ext}`;
 }
 
-function exportExcel() {
+async function exportExcel() {
   if (filteredData.length === 0) {
     showToast("There are no assets to export.", "error");
     return;
   }
-  if (typeof XLSX === "undefined") {
-    showToast("The Excel library failed to load. Please reload the page.", "error");
-    return;
+
+  try {
+    await exportStyledExcel({
+      fileName: exportFileName("xlsx"),
+      sheetName: "PV Assets",
+      title: "PV Assets",
+      subtitle: `Exported ${formatExportTimestamp()}  |  ${filteredData.length} asset${filteredData.length === 1 ? "" : "s"}`,
+      columns: [
+        { header: "No", width: 7, align: "center" },
+        { header: "Item Name", width: 48, align: "left" },
+        { header: "Serial Number", width: 30, align: "left" },
+      ],
+      rows: exportRows().slice(1),
+    });
+    showToast(`${filteredData.length} assets exported to Excel.`, "success");
+  } catch (err) {
+    console.error(err);
+    showToast(err.message || "Failed to export Excel.", "error");
   }
-
-  const ws = XLSX.utils.aoa_to_sheet(exportRows());
-  ws["!cols"] = [{ wch: 6 }, { wch: 46 }, { wch: 28 }];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "PV Assets");
-  XLSX.writeFile(wb, exportFileName("xlsx"));
-  showToast(`${filteredData.length} assets exported to Excel.`, "success");
 }
 
 function exportCsv() {
@@ -666,6 +987,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initScanner();
   initCamera();
   initAddAsset();
+  initImport();
   await fetchAssets();
   renderSummary();
   applyFilters();

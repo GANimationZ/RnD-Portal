@@ -117,9 +117,7 @@ function closeTvModal() {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tvAddBtn")?.addEventListener("click", openTvModal);
   document.getElementById("tvModalClose")?.addEventListener("click", closeTvModal);
-  document.getElementById("tvModal")?.addEventListener("click", (e) => {
-    if (e.target.id === "tvModal") closeTvModal();
-  });
+  bindBackdropClose(document.getElementById("tvModal"), closeTvModal);
   document.addEventListener("keydown", (e) => {
     const modal = document.getElementById("tvModal");
     if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeTvModal();

@@ -373,9 +373,7 @@ function initForm() {
   };
   document.getElementById("umCancelEdit")?.addEventListener("click", closeAndReset);
   document.getElementById("umModalClose")?.addEventListener("click", closeAndReset);
-  document.getElementById("userModal")?.addEventListener("click", (e) => {
-    if (e.target.id === "userModal") closeAndReset();
-  });
+  bindBackdropClose(document.getElementById("userModal"), closeAndReset);
   document.addEventListener("keydown", (e) => {
     const modal = document.getElementById("userModal");
     if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeAndReset();

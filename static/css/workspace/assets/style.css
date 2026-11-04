@@ -353,6 +353,300 @@ select {
   color: #6b6b6b;
 }
 
+#importModal .app-modal__dialog {
+  max-width: 760px;
+}
+#importModal .app-modal__hint a {
+  color: #a50034;
+  font-weight: 600;
+}
+#importModal .import-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+#importModal .import-mode {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #bfbfbf;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+#importModal .import-mode input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: #a50034;
+}
+#importModal .import-mode:hover {
+  border-color: #a50034;
+}
+#importModal .import-mode:has(input:checked) {
+  border-color: #a50034;
+  background: rgba(165, 0, 52, 0.06);
+}
+#importModal .import-mode--danger:has(input:checked) {
+  border-color: #e24b4a;
+  background: rgba(226, 75, 74, 0.12);
+}
+#importModal .import-mode__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#importModal .import-mode__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+}
+#importModal .import-mode__desc {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #666;
+}
+#importModal .import-review {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#importModal .import-review__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 18px 6px;
+  overflow-y: auto;
+  max-height: 56vh;
+}
+#importModal .import-review__error {
+  padding: 0 18px;
+}
+#importModal .import-review__actions {
+  padding: 0 18px 18px;
+}
+#importModal .app-modal__btn-primary.is-danger {
+  background: #e24b4a;
+  border-color: #e24b4a;
+}
+#importModal .app-modal__btn-primary.is-danger:hover {
+  background: #b93a39;
+  border-color: #b93a39;
+}
+#importModal .import-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#importModal .import-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 96px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+#importModal .import-stat__value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+#importModal .import-stat__label {
+  font-size: 11px;
+  font-weight: 600;
+}
+#importModal .import-stat--gray {
+  background: #f2f4f7;
+  border-color: #98a2b3;
+  color: #475467;
+}
+#importModal .import-stat--green {
+  background: rgba(61, 220, 151, 0.14);
+  border-color: #1a9c68;
+  color: #05603a;
+}
+#importModal .import-stat--blue {
+  background: rgba(79, 140, 255, 0.12);
+  border-color: #4f8cff;
+  color: #1849a9;
+}
+#importModal .import-stat--yellow {
+  background: rgba(242, 166, 35, 0.16);
+  border-color: #f2a623;
+  color: #93370d;
+}
+#importModal .import-stat--red {
+  background: rgba(226, 75, 74, 0.12);
+  border-color: #e24b4a;
+  color: #b42318;
+}
+#importModal .import-warning {
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #b42318;
+  background: rgba(226, 75, 74, 0.12);
+  border: 1px solid rgba(226, 75, 74, 0.35);
+  border-radius: 8px;
+}
+#importModal .import-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#importModal .import-section__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b6b6b;
+}
+#importModal .import-section__hint {
+  margin: 2px 0 8px;
+  font-size: 12px;
+  color: #667085;
+}
+#importModal .import-bulk {
+  display: flex;
+  gap: 6px;
+}
+#importModal .import-bulk button {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #a50034;
+  background: white;
+  border: 1px solid #a50034;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+#importModal .import-bulk button:hover {
+  background: rgba(165, 0, 52, 0.08);
+}
+#importModal .import-conflict {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(242, 166, 35, 0.5);
+  border-left: 4px solid #f2a623;
+  border-radius: 8px;
+  background: #fffdf7;
+}
+#importModal .import-conflict__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+#importModal .import-conflict__serial {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #333;
+}
+#importModal .import-conflict__count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #93370d;
+}
+#importModal .import-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#importModal .import-choice input[type=radio] {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin: 3px 0 0;
+  padding: 0;
+  accent-color: #a50034;
+}
+#importModal .import-choice:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+#importModal .import-choice:has(input[type=radio]:checked) {
+  background: rgba(165, 0, 52, 0.07);
+}
+#importModal .import-choice__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+}
+#importModal .import-choice__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  word-break: break-word;
+}
+#importModal .import-choice__source {
+  font-size: 11px;
+  font-weight: 500;
+  color: #667085;
+}
+#importModal .import-edit {
+  margin-top: 3px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid #bfbfbf;
+  border-radius: 6px;
+  outline-color: #a50034;
+}
+#importModal .import-edit.is-invalid {
+  border-color: #e24b4a;
+}
+#importModal .import-invalid {
+  max-height: 190px;
+  overflow: auto;
+  border: 1px solid #e4e6ea;
+  border-radius: 8px;
+}
+#importModal .import-invalid table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+#importModal .import-invalid th,
+#importModal .import-invalid td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #eceff3;
+  vertical-align: top;
+}
+#importModal .import-invalid th {
+  position: sticky;
+  top: 0;
+  background: #f2f4f7;
+  color: #475467;
+  font-weight: 700;
+}
+#importModal .import-invalid .asset-serial {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+#importModal .import-invalid td:last-child {
+  color: #b42318;
+}
+
+@media (max-width: 760px) {
+  #importModal .import-modes {
+    grid-template-columns: 1fr;
+  }
+}
 @media (max-width: 760px) {
   .main-body-content .body[data-panel=assets] .asset-scan__form {
     flex-direction: column;

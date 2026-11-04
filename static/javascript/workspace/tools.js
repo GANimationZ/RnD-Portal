@@ -194,9 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   el("toolAddBtn").addEventListener("click", openModal);
   el("toolModalClose").addEventListener("click", closeModal);
-  el("toolModal").addEventListener("click", (e) => {
-    if (e.target === el("toolModal")) closeModal();
-  });
+  bindBackdropClose(el("toolModal"), closeModal);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !el("toolModal").classList.contains("is-hidden")) closeModal();
   });

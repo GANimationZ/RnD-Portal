@@ -1,12 +1,27 @@
+import json
 import re
 from datetime import datetime
+from io import BytesIO
 
-from flask import Blueprint, jsonify, render_template, request, session
+from flask import Blueprint, jsonify, render_template, request, send_file, session
 from sqlalchemy.exc import IntegrityError
 
 from library.auth import login_required, roles_required
 from library.extensions import db
 from library.models import PvAsset, PvAssetScan
+
+from .importer import (
+    MAX_FILE_BYTES,
+    SERIAL_RULE,
+    ImportFormatError,
+    analyze_rows,
+    build_template_workbook,
+    collapse_spaces,
+    name_key,
+    is_valid_serial,
+    normalize_serial,
+    parse_assets_workbook,
+)
 
 assets_bp = Blueprint("assets", __name__, url_prefix="/workspace/assets")
 
@@ -14,17 +29,12 @@ assets_bp = Blueprint("assets", __name__, url_prefix="/workspace/assets")
 ALLOWED_ROLES = ("Super Admin", "Member")
 
 NAME_MAX = 120
-SERIAL_MAX = 60
 HISTORY_LIMIT = 6
 
 
 def serial_key(value):
     """Normalized serial: no whitespace/control chars, upper case."""
     return re.sub(r"[\s\x00-\x1f\x7f]+", "", value or "").upper()
-
-
-def name_key(value):
-    return re.sub(r"\s+", " ", value or "").strip().lower()
 
 
 def _history():
@@ -76,8 +86,9 @@ def _parse_asset_payload(data):
         return None, None, (jsonify({"message": "Serial Number is required.", "fields": ["serial"]}), 400)
     if len(name) > NAME_MAX:
         return None, None, (jsonify({"message": f"Item Name must be at most {NAME_MAX} characters.", "fields": ["name"]}), 400)
-    if len(serial) > SERIAL_MAX:
-        return None, None, (jsonify({"message": f"Serial Number must be at most {SERIAL_MAX} characters.", "fields": ["serial"]}), 400)
+    serial = normalize_serial(serial)  # stored in upper case
+    if not is_valid_serial(serial):
+        return None, None, (jsonify({"message": f"Serial Number must be {SERIAL_RULE}.", "fields": ["serial"]}), 400)
     return name, serial, None
 
 
@@ -216,9 +227,148 @@ def api_scan_asset():
 
     return jsonify({
         "result": result,
+        "valid_format": is_valid_serial(key),
         "already_scanned": already_scanned,
         "asset": asset.to_dict() if asset else None,
         "input_name": input_name,
         "unknown_count": _unknown_count(),
         "history": _history(),
     })
+
+
+# ==================== Import from Excel ====================
+#
+# POST /api/assets/import  (multipart: file, mode, dry_run, resolutions)
+#   dry_run=1  -> only analyse the file and report what would happen
+#   otherwise  -> apply it. The file is parsed again here, so the user reviews
+#                 and applies exactly the same result.
+#   mode=merge   keep current assets, add new ones, resolve name conflicts
+#   mode=replace delete ALL current assets (+ scan results) and use the file
+
+@assets_bp.route("/api/assets/import/template", methods=["GET"])
+@login_required
+@roles_required(*ALLOWED_ROLES)
+def api_import_template():
+    return send_file(
+        build_template_workbook(),
+        as_attachment=True,
+        download_name="pv-assets-template.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@assets_bp.route("/api/assets/import", methods=["POST"])
+@login_required
+@roles_required(*ALLOWED_ROLES)
+def api_import_assets():
+    mode = (request.form.get("mode") or "merge").strip().lower()
+    if mode not in ("merge", "replace"):
+        return jsonify({"message": "Invalid import mode. Choose Merge or Replace."}), 400
+    dry_run = request.form.get("dry_run") == "1"
+
+    upload = request.files.get("file")
+    if upload is None or not upload.filename:
+        return jsonify({"message": "Please choose an Excel file (.xlsx) first."}), 400
+    if not upload.filename.lower().endswith(".xlsx"):
+        return jsonify({"message": "Only .xlsx files are supported. In Excel, use Save As > Excel Workbook (.xlsx)."}), 400
+    data = upload.read(MAX_FILE_BYTES + 1)
+    if len(data) > MAX_FILE_BYTES:
+        return jsonify({"message": "The file is too large (maximum 3 MB)."}), 413
+
+    try:
+        rows = parse_assets_workbook(BytesIO(data))
+    except ImportFormatError as exc:
+        return jsonify({"message": str(exc)}), 400
+
+    existing = {a.serial_key: a.name for a in PvAsset.query.all()}
+    analysis = analyze_rows(rows, mode, existing)
+
+    if dry_run:
+        return jsonify({"mode": mode, "analysis": analysis, "current_count": len(existing)})
+
+    # ---- apply ----
+    try:
+        resolutions = json.loads(request.form.get("resolutions") or "{}")
+        if not isinstance(resolutions, dict):
+            raise ValueError
+    except ValueError:
+        return jsonify({"message": "Invalid conflict choices."}), 400
+
+    chosen = {}
+    unresolved = []
+    for conflict in analysis["conflicts"]:
+        serial = conflict["serial"]
+        final = collapse_spaces(str(resolutions.get(serial) or ""))
+        if not final:
+            unresolved.append(serial)
+        elif len(final) > NAME_MAX:
+            return jsonify({"message": f"Item Name for {serial} must be at most {NAME_MAX} characters."}), 400
+        else:
+            chosen[serial] = final
+    if unresolved:
+        return jsonify({"message": "Some conflicts have not been resolved yet.", "unresolved": unresolved}), 409
+
+    if not analysis["new"] and not analysis["conflicts"]:
+        if mode == "replace":
+            return jsonify({"message": "The file has no valid assets, so nothing was replaced."}), 400
+        return jsonify({"message": "Nothing to import: no new assets or changes were found in the file."}), 400
+
+    user_id = session.get("user_id")
+    result = {
+        "added": 0, "updated": 0, "kept": 0,
+        "unchanged": len(analysis["unchanged"]),
+        "skipped": len(analysis["invalid"]),
+        "deleted": 0,
+    }
+
+    try:
+        if mode == "replace":
+            result["deleted"] = PvAsset.query.count()
+            PvAssetScan.query.delete()
+            PvAsset.query.delete()
+            db.session.flush()
+            current = {}
+        else:
+            current = {a.serial_key: a for a in PvAsset.query.all()}
+
+        for item in analysis["new"]:
+            db.session.add(PvAsset(name=item["name"], serial_number=item["serial"],
+                                   serial_key=item["serial"], created_by_id=user_id))
+            result["added"] += 1
+
+        for conflict in analysis["conflicts"]:
+            serial = conflict["serial"]
+            final = chosen[serial]
+            asset = current.get(serial)
+            if asset is None:
+                db.session.add(PvAsset(name=final, serial_number=serial,
+                                       serial_key=serial, created_by_id=user_id))
+                result["added"] += 1
+            elif name_key(final) == name_key(asset.name):
+                result["kept"] += 1
+            else:
+                asset.name = final
+                # The old verification was for the old name -> scan again
+                asset.scan_status = "pending"
+                asset.scanned_at = None
+                asset.scanned_by_id = None
+                result["updated"] += 1
+
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Another user changed the asset list at the same time. Please try the import again."}), 409
+
+    parts = [f"{result['added']} added"]
+    if result["updated"]:
+        parts.append(f"{result['updated']} updated")
+    if result["kept"]:
+        parts.append(f"{result['kept']} kept as is")
+    if result["unchanged"]:
+        parts.append(f"{result['unchanged']} unchanged")
+    if result["skipped"]:
+        parts.append(f"{result['skipped']} invalid row{'s' if result['skipped'] != 1 else ''} skipped")
+    if mode == "replace":
+        parts.append(f"{result['deleted']} old asset{'s' if result['deleted'] != 1 else ''} deleted")
+    label = "Replace" if mode == "replace" else "Merge"
+    return jsonify({"message": f"{label} complete: " + ", ".join(parts) + ".", "result": result})

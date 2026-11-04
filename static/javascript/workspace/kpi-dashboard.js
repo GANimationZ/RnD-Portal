@@ -407,19 +407,47 @@ function renderHistoryMonthOptions() {
     .join("");
 }
 
-// Export Individual / Export Team always export the month currently
-// chosen in the Archive Month dropdown ("YYYY-MM" sent as ?month=).
+// Every item of the Export dropdown (Individual / Team, Excel / PDF) exports
+// the month currently chosen in the Archive Month dropdown ("YYYY-MM" is sent
+// as ?month=; the PDF links already carry ?format=pdf).
 function updateExportLinks() {
   const select = el("historyMonthSelect");
   const monthKey = select && select.value ? select.value.replace(".xlsx", "") : "";
 
-  ["exportIndividualBtn", "exportTeamBtn"].forEach((id) => {
-    const link = el(id);
-    if (!link) return;
+  document.querySelectorAll("[data-export-link]").forEach((link) => {
     if (!link.dataset.baseHref) link.dataset.baseHref = link.getAttribute("href");
-    link.href = monthKey
-      ? `${link.dataset.baseHref}?month=${encodeURIComponent(monthKey)}`
-      : link.dataset.baseHref;
+    const url = new URL(link.dataset.baseHref, window.location.origin);
+    if (monthKey) url.searchParams.set("month", monthKey);
+    link.href = url.pathname + url.search;
+  });
+}
+
+// ---- Export dropdown: open / close ----
+function initExportMenu() {
+  const menu = el("exportMenu");
+  const btn = el("exportMenuBtn");
+  const list = el("exportMenuList");
+  if (!menu || !btn || !list) return;
+
+  const setOpen = (open) => {
+    list.classList.toggle("is-hidden", !open);
+    btn.setAttribute("aria-expanded", String(open));
+    menu.classList.toggle("is-open", open);
+  };
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setOpen(list.classList.contains("is-hidden"));
+  });
+  // Choosing an item starts the download and closes the menu
+  list.addEventListener("click", (e) => {
+    if (e.target.closest("[data-export-link]")) setOpen(false);
+  });
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target)) setOpen(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setOpen(false);
   });
 }
 
@@ -527,6 +555,7 @@ document.addEventListener("panel:show", (e) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   loadKpiOverview();
+  initExportMenu();
 
   const monthSelect = el("historyMonthSelect");
   if (monthSelect) {

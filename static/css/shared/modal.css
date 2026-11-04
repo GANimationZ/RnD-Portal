@@ -24,8 +24,9 @@
   background: rgba(15, 15, 20, 0.55);
 }
 
-.app-modal.is-hidden {
-  display: none;
+.app-modal.is-hidden,
+.app-modal .is-hidden {
+  display: none !important;
 }
 
 .app-modal__dialog {

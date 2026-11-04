@@ -128,22 +128,35 @@
           ><i class="bxf bx-history"></i> Monthly History</span
         >
         <div class="history-panel__actions">
-          <a
-            class="btn-export"
-            id="exportIndividualBtn"
-            href="{{ url_for('kpi_dashboard.export_individual') }}"
-          >
-            <i class="bxf bx-arrow-to-bottom"></i>
-            Export Individual
-          </a>
-          <a
-            class="btn-export"
-            id="exportTeamBtn"
-            href="{{ url_for('kpi_dashboard.export_team') }}"
-          >
-            <i class="bxf bx-arrow-to-bottom"></i>
-            Export Team
-          </a>
+          <div class="export-menu" id="exportMenu">
+            <button
+              type="button"
+              class="btn-export"
+              id="exportMenuBtn"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >
+              <i class="bxf bx-arrow-to-bottom"></i>
+              Export
+              <i class="bxf bx-chevron-down export-menu__caret"></i>
+            </button>
+            <div class="export-menu__list is-hidden" id="exportMenuList" role="menu">
+              <span class="export-menu__group">Individual</span>
+              <a role="menuitem" data-export-link href="{{ url_for('kpi_dashboard.export_individual') }}">
+                <i class="bxf bx-table"></i> Excel (.xlsx)
+              </a>
+              <a role="menuitem" data-export-link href="{{ url_for('kpi_dashboard.export_individual', format='pdf') }}">
+                <i class="bxf bx-file"></i> PDF
+              </a>
+              <span class="export-menu__group">Team</span>
+              <a role="menuitem" data-export-link href="{{ url_for('kpi_dashboard.export_team') }}">
+                <i class="bxf bx-table"></i> Excel (.xlsx)
+              </a>
+              <a role="menuitem" data-export-link href="{{ url_for('kpi_dashboard.export_team', format='pdf') }}">
+                <i class="bxf bx-file"></i> PDF
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
