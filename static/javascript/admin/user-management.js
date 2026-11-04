@@ -111,8 +111,6 @@ function resetForm() {
 
   document.getElementById("umFormTitle").textContent = "Add New User";
   document.getElementById("umSubmitBtn").value = "Save User";
-  document.getElementById("umCancelEdit").classList.add("is-hidden");
-  document.getElementById("formTabLabel").innerHTML = `<i class="bxf bx-plus"></i> Add User`;
 
   hideBestPracticeSection();
 }
@@ -138,8 +136,6 @@ function fillFormForEdit(user) {
 
   document.getElementById("umFormTitle").textContent = `Edit User: ${user.username}`;
   document.getElementById("umSubmitBtn").value = "Update User";
-  document.getElementById("umCancelEdit").classList.remove("is-hidden");
-  document.getElementById("formTabLabel").innerHTML = `<i class="bxf bx-edit"></i> Edit User`;
 
   // Notes are Member-only, and only once the user exists (edit mode).
   if (user.role === "Member") {
@@ -148,7 +144,18 @@ function fillFormForEdit(user) {
     hideBestPracticeSection();
   }
 
-  document.querySelector('.nav-item__left[data-tab="user-form"]')?.click();
+  openUserModal();
+}
+
+// ------------------------------------------------------------
+// POPUP: open / close
+// ------------------------------------------------------------
+function openUserModal() {
+  document.getElementById("userModal")?.classList.remove("is-hidden");
+}
+
+function closeUserModal() {
+  document.getElementById("userModal")?.classList.add("is-hidden");
 }
 
 // ------------------------------------------------------------
@@ -203,7 +210,7 @@ async function fetchAndRenderNotes(memberId) {
     renderNotesList(data.notes || []);
   } catch (err) {
     console.error(err);
-    showToast("Terjadi kesalahan saat memuat catatan.", "error");
+    showToast("An error occurred while loading the notes.", "error");
   }
 }
 
@@ -238,7 +245,7 @@ function initBestPracticeSection() {
       showToast(data.message || "Note added.", "success");
     } catch (err) {
       console.error(err);
-      showToast("Terjadi kesalahan saat menghubungi server.", "error");
+      showToast("An error occurred while contacting the server.", "error");
     } finally {
       addBtn.disabled = false;
     }
@@ -272,7 +279,7 @@ function initBestPracticeSection() {
       showToast(data.message || "Note deleted.", "success");
     } catch (err) {
       console.error(err);
-      showToast("Terjadi kesalahan saat menghubungi server.", "error");
+      showToast("An error occurred while contacting the server.", "error");
     }
   });
 
@@ -322,7 +329,7 @@ function initTableActions() {
         await fetchUsers();
       } catch (err) {
         console.error(err);
-        showToast("Terjadi kesalahan saat menghubungi server.", "error");
+        showToast("An error occurred while contacting the server.", "error");
       }
       return;
     }
@@ -341,7 +348,7 @@ function initTableActions() {
         showToast(data.message || "User deleted successfully.", "success");
       } catch (err) {
         console.error(err);
-        showToast("Terjadi kesalahan saat menghubungi server.", "error");
+        showToast("An error occurred while contacting the server.", "error");
       }
     }
   });
@@ -354,9 +361,24 @@ function initForm() {
   const form = document.getElementById("userForm");
   if (!form) return;
 
-  document.getElementById("umCancelEdit").addEventListener("click", () => {
+  document.getElementById("umAddBtn")?.addEventListener("click", () => {
     resetForm();
-    document.querySelector('.nav-item__left[data-tab="user-list"]')?.click();
+    openUserModal();
+    document.getElementById("umEmail")?.focus();
+  });
+
+  const closeAndReset = () => {
+    closeUserModal();
+    resetForm();
+  };
+  document.getElementById("umCancelEdit")?.addEventListener("click", closeAndReset);
+  document.getElementById("umModalClose")?.addEventListener("click", closeAndReset);
+  document.getElementById("userModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "userModal") closeAndReset();
+  });
+  document.addEventListener("keydown", (e) => {
+    const modal = document.getElementById("userModal");
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeAndReset();
   });
 
   form.addEventListener("submit", async (e) => {
@@ -405,12 +427,12 @@ function initForm() {
       }
 
       resetForm();
+      closeUserModal();
       await fetchUsers();
-      document.querySelector('.nav-item__left[data-tab="user-list"]')?.click();
       showToast(data.message || "User saved successfully.", "success");
     } catch (err) {
       console.error(err);
-      showToast("Terjadi kesalahan saat menghubungi server.", "error");
+      showToast("An error occurred while contacting the server.", "error");
     } finally {
       submitBtn.disabled = false;
       submitBtn.value = originalValue;

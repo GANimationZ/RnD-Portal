@@ -295,3 +295,59 @@ class ToolLink(db.Model):
 
     def __repr__(self):
         return f"<ToolLink {self.kind}: {self.name}>"
+
+
+class PvAsset(db.Model):
+    """Asset milik PV (daftar resmi yang dicocokkan saat scan di halaman Assets)."""
+
+    __tablename__ = "pv_assets"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False, index=True)
+    serial_number = db.Column(db.String(60), nullable=False)
+    # Nomor seri ternormalisasi (huruf besar, tanpa spasi) -- dipakai untuk
+    # pencocokan hasil scan & mencegah duplikat.
+    serial_key = db.Column(db.String(60), nullable=False, unique=True, index=True)
+    scan_status = db.Column(db.String(20), nullable=False, default="pending")  # pending | match | mismatch
+    scanned_at = db.Column(db.DateTime, nullable=True)
+    scanned_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    scanned_by = db.relationship("User", foreign_keys=[scanned_by_id])
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "serial": self.serial_number,
+            "scan_status": self.scan_status,
+            # ISO (UTC) -- diformat ke zona waktu browser oleh JS
+            "scanned_at": self.scanned_at.isoformat() + "Z" if self.scanned_at else None,
+            "scanned_by": self.scanned_by.username if self.scanned_by else None,
+        }
+
+    def __repr__(self):
+        return f"<PvAsset {self.serial_number}>"
+
+
+class PvAssetScan(db.Model):
+    """Riwayat setiap scan (termasuk yang nomor serinya tidak ada di database)."""
+
+    __tablename__ = "pv_asset_scans"
+
+    id = db.Column(db.Integer, primary_key=True)
+    asset_id = db.Column(db.Integer, db.ForeignKey("pv_assets.id"), nullable=True, index=True)
+    scanned_serial = db.Column(db.String(120), nullable=False)
+    input_name = db.Column(db.String(120), nullable=True)
+    result = db.Column(db.String(20), nullable=False)  # match | mismatch | unknown
+    scanned_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    scanned_at = db.Column(db.DateTime, nullable=False)
+
+    def to_dict(self):
+        return {
+            "serial": self.scanned_serial,
+            "result": self.result,
+            "scanned_at": self.scanned_at.isoformat() + "Z",
+        }

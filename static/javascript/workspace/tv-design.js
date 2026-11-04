@@ -34,7 +34,7 @@ function renderTvGrid() {
   const count = document.getElementById("tvResultCount");
   if (!grid) return;
 
-  if (count) count.textContent = `${tvAssets.length} entries`;
+  if (count) count.textContent = `${tvAssets.length} ${tvAssets.length === 1 ? "entry" : "entries"}`;
 
   if (tvAssets.length === 0) {
     grid.innerHTML = "";
@@ -100,7 +100,31 @@ function renderTvGrid() {
   });
 }
 
+function openTvModal() {
+  const modal = document.getElementById("tvModal");
+  if (!modal) return;
+  document.getElementById("tvForm")?.reset();
+  const messageEl = document.getElementById("tvFormMessage");
+  if (messageEl) messageEl.textContent = "";
+  modal.classList.remove("is-hidden");
+  document.getElementById("tvTitle")?.focus();
+}
+
+function closeTvModal() {
+  document.getElementById("tvModal")?.classList.add("is-hidden");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("tvAddBtn")?.addEventListener("click", openTvModal);
+  document.getElementById("tvModalClose")?.addEventListener("click", closeTvModal);
+  document.getElementById("tvModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "tvModal") closeTvModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    const modal = document.getElementById("tvModal");
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeTvModal();
+  });
+
   const searchInput = document.getElementById("tvSearchInput");
   if (searchInput) {
     let debounceTimer;
@@ -137,9 +161,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!res.ok) throw new Error(data.message || "Failed to save entry.");
 
         form.reset();
+        closeTvModal();
         showToast(data.message, "success");
         await fetchTvAssets();
-        document.querySelector('.nav-item__left[data-tab="browse"]')?.click();
       } catch (err) {
         messageEl.textContent = err.message;
         showToast(err.message, "error");

@@ -1,7 +1,7 @@
 // ============================================================
 // RnD Portal - Issue Monitoring (LVT/MNT)
-// Every panel (Dashboard, Issue Register, List Issue, Priority
-// Matrix) shares one data source: `issueData`, fetched from
+// Every panel (Dashboard, List Issue, Priority Matrix) and the
+// "Register Issue" popup (opened from List Issue) share one data source: `issueData`, fetched from
 // /workspace/issue-monitor/api/issues.
 //
 // Tab switching (.nav-item__left clicks) is handled by
@@ -225,7 +225,7 @@ function renderCategoryChart() {
     data: {
       labels: data.map((d) => d.label),
       datasets: [{
-        label: "Jumlah Issue",
+        label: "Number of Issues",
         data: data.map((d) => d.value),
         backgroundColor: data.map((d) => d.color),
         borderRadius: 4,
@@ -255,7 +255,7 @@ function renderEventChart() {
     data: {
       labels: data.map((d) => d.label),
       datasets: [{
-        label: "Jumlah Issue",
+        label: "Number of Issues",
         data: data.map((d) => d.value),
         backgroundColor: data.map((d) => d.color),
         borderRadius: 4,
@@ -291,7 +291,7 @@ function renderStatusChart() {
     data: {
       labels: data.map((d) => d.label),
       datasets: [{
-        label: "Jumlah Issue",
+        label: "Number of Issues",
         data: data.map((d) => d.value),
         backgroundColor: colors,
         borderRadius: 4,
@@ -417,7 +417,7 @@ async function loadAssignableUsers() {
   }
 
   assigneeEl.disabled = true;
-  assigneeEl.innerHTML = `<option value="" selected>Memuat...</option>`;
+  assigneeEl.innerHTML = `<option value="" selected>Loading...</option>`;
 
   try {
     const params = new URLSearchParams({ category: categoryVal, event: eventVal });
@@ -442,9 +442,35 @@ async function loadAssignableUsers() {
   }
 }
 
+let issueDatePicker = null;
+
+function resetIssueForm() {
+  const form = document.getElementById("issueForm");
+  if (!form) return;
+  form.reset();
+  if (issueDatePicker) issueDatePicker.clear();
+  const assigneeEl = document.getElementById("issueAssignee");
+  if (assigneeEl) {
+    assigneeEl.disabled = true;
+    assigneeEl.innerHTML = `<option value="" selected>Select Category & Event first</option>`;
+  }
+}
+
+function openIssueRegister() {
+  const modal = document.getElementById("issueRegisterModal");
+  if (!modal) return;
+  resetIssueForm();
+  modal.classList.remove("is-hidden");
+  document.getElementById("issueTitle")?.focus();
+}
+
+function closeIssueRegister() {
+  document.getElementById("issueRegisterModal")?.classList.add("is-hidden");
+}
+
 function initIssueRegister() {
   if (document.getElementById("issueDate")) {
-    flatpickr("#issueDate", {
+    issueDatePicker = flatpickr("#issueDate", {
       dateFormat: "Y-m-d",
       altInput: true,
       altFormat: "d - m - Y",
@@ -454,7 +480,17 @@ function initIssueRegister() {
   }
 
   const form = document.getElementById("issueForm");
-  if (!form) return;
+  if (!form) return; // Member role: no register popup on the page
+
+  document.getElementById("openIssueRegister")?.addEventListener("click", openIssueRegister);
+  document.getElementById("issueRegisterClose")?.addEventListener("click", closeIssueRegister);
+  document.getElementById("issueRegisterModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "issueRegisterModal") closeIssueRegister();
+  });
+  document.addEventListener("keydown", (e) => {
+    const modal = document.getElementById("issueRegisterModal");
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeIssueRegister();
+  });
 
   document.getElementById("issueCategory")?.addEventListener("change", loadAssignableUsers);
   document.getElementById("issueEvent")?.addEventListener("change", loadAssignableUsers);
@@ -498,7 +534,7 @@ function initIssueRegister() {
     const originalSubmitValue = submitBtn ? submitBtn.value : null;
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.value = "Menyimpan...";
+      submitBtn.value = "Saving...";
     }
 
     try {
@@ -510,15 +546,11 @@ function initIssueRegister() {
         return;
       }
 
-      form.reset();
-      if (assigneeEl) {
-        assigneeEl.disabled = true;
-        assigneeEl.innerHTML = `<option value="" selected>Select Category & Event first</option>`;
-      }
+      resetIssueForm();
+      closeIssueRegister();
       await fetchIssues();
       renderAll();
 
-      document.querySelector('.nav-item__left[data-tab="list-issue"]')?.click();
       showToast(`Issue "${data.issue.title}" registered successfully.`, "success");
     } catch (err) {
       console.error(err);
@@ -629,7 +661,7 @@ async function updateIssueStatus(issueId, status, assigneeId) {
     if (!res.ok) throw new Error(data.message || "Failed to update status");
     await fetchIssues();
     renderAll();
-    showToast(data.message || "Status diperbarui.", "success");
+    showToast(data.message || "Status updated.", "success");
     return true;
   } catch (err) {
     console.error(err);
@@ -919,7 +951,7 @@ function initListIssue() {
 
       const btn = e.target.closest(".action-btn");
       if (!btn) {
-        // Klik di area baris selain tombol aksi -> buka inline detail
+        // Click on the row (outside the action buttons) -> open the inline detail
         showInlineDetail(issue.id);
         return;
       }

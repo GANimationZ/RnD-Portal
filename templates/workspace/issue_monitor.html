@@ -18,12 +18,6 @@
     <span class="nav-item__left flex-1 active" data-tab="dashboard"
       >Dashboard</span
     >
-    {% if is_admin_or_above %}
-    <span class="nav-item__left flex-1" data-tab="issue-register">
-      <i class="bxf bx-plus"></i>
-      Issue Register</span
-    >
-    {% endif %}
     <span class="nav-item__left flex-1" data-tab="list-issue">List Issue</span>
     <span class="nav-item__left flex-1" data-tab="priority-matrix"
       >Priority Matrix</span
@@ -103,65 +97,6 @@
         </div>
       </div>
     </div>
-    {# ---- Issue Register panel (Admin/QA & Super Admin only -- Member
-       can only view, not create issues) ---- #}
-    {% if is_admin_or_above %}
-    <div class="body" data-panel="issue-register">
-      <div class="register-issue">
-        <span class="register-issue__title">Register an Issue</span>
-        <form class="register-issue__form" action="" method="post" id="issueForm">
-          <input id="issueTitle"
-            type="text"
-            placeholder="Please Insert a title for the Issue"
-            required
-          />
-          <select id="issueCategory">
-            <option value="" selected>Please Select a Category</option>
-            <option value="pcba_smt">PCBA/SMT</option>
-            <option value="SQA">SQA</option>
-            <option value="Line-Prod">Line-Prod</option>
-            <option value="OQA">OQA</option>
-            <option value="css_svc">CSS/SVC</option>
-          </select>
-          <select id="issueEvent">
-            <option value="" selected>Please Select an Event</option>
-            <option value="pv">PV</option>
-            <option value="pre_mp">Pre-MP</option>
-            <option value="mp">MP</option>
-            <option value="field">Field</option>
-          </select>
-          {# ---- Assignee combobox: auto-filled via JS once Category &
-             Event above are both selected (see issue-monitor.js ->
-             loadAssignableUsers()). Only shows Members whose scope
-             matches the category & event (set on the /admin/users page,
-             Super Admin only). ---- #}
-          <select id="issueAssignee" disabled>
-            <option value="" selected>Select Category &amp; Event first</option>
-          </select>
-          <textarea
-            id="issueDescription"
-            placeholder="Please Provide a Description about the Issue you are trying to input"
-            required
-          ></textarea>
-          <input
-            type="text"
-            id="issueDate"
-            class="date-placeholder"
-            placeholder="Provide a Deadline"
-            required
-          />
-          <input
-            type="file"
-            id="issueFile"
-            accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-            multiple
-          />
-          <span class="field-hint">You can attach more than one file: image, PDF, Word, Excel, or PowerPoint.</span>
-          <input type="submit" value="Register Issue" id="sub_btn" />
-        </form>
-      </div>
-    </div>
-    {% endif %}
     {# ---- Panel List Issue ---- #}
     <div class="body" data-panel="list-issue">
       <div class="activity-filters">
@@ -171,7 +106,7 @@
             <input
               type="text"
               id="searchInput"
-              placeholder="Search issue, model, S/N, W/O"
+              placeholder="Search issue title"
             />
             <select class="priority" id="filterPriority">
               <option value="All Priority" selected>
@@ -217,6 +152,9 @@
         <div class="btns">
           <button id="reset">Reset</button>
           <div class="execute_btns">
+            {% if is_admin_or_above %}
+            <button id="openIssueRegister" type="button"><i class="bxf bx-plus"></i>Register Issue</button>
+            {% endif %}
             <button id="exportExcel" type="button"><i class="bxf bx-arrow-to-bottom"></i>Excel</button>
             <button id="exportCsv" type="button"><i class="bxf bx-arrow-to-bottom"></i>CSV</button>
           </div>
@@ -354,6 +292,57 @@
       </div>
     </div>
   </div>
+
+  {# ---- Popup: Register an Issue (Admin/QA & Super Admin only -- Member can
+     only view, not create issues). Opened from the "Register Issue" button
+     in List Issue. ---- #}
+  {% if is_admin_or_above %}
+  <div class="app-modal is-hidden" id="issueRegisterModal">
+    <div class="app-modal__dialog app-modal__dialog--wide">
+      <div class="app-modal__head">
+        <span class="app-modal__title">Register an Issue</span>
+        <button type="button" class="app-modal__close" id="issueRegisterClose" aria-label="Close">
+          <i class="bxf bx-x"></i>
+        </button>
+      </div>
+      <form class="app-modal__form" action="" method="post" id="issueForm">
+        <input id="issueTitle" type="text" placeholder="Please insert a title for the issue" required />
+        <select id="issueCategory">
+          <option value="" selected>Please select a category</option>
+          <option value="pcba_smt">PCBA/SMT</option>
+          <option value="SQA">SQA</option>
+          <option value="Line-Prod">Line-Prod</option>
+          <option value="OQA">OQA</option>
+          <option value="css_svc">CSS/SVC</option>
+        </select>
+        <select id="issueEvent">
+          <option value="" selected>Please select an event</option>
+          <option value="pv">PV</option>
+          <option value="pre_mp">Pre-MP</option>
+          <option value="mp">MP</option>
+          <option value="field">Field</option>
+        </select>
+        {# Assignee combobox: filled via JS once Category & Event above are
+           both selected (see issue-monitor.js -> loadAssignableUsers()).
+           Only shows Members whose scope matches the category & event (set
+           on the User Management page, Super Admin only). #}
+        <select id="issueAssignee" disabled>
+          <option value="" selected>Select Category &amp; Event first</option>
+        </select>
+        <textarea id="issueDescription" placeholder="Please provide a description of the issue" required></textarea>
+        <input type="text" id="issueDate" class="date-placeholder" placeholder="Provide a deadline" required />
+        <input
+          type="file"
+          id="issueFile"
+          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          multiple
+        />
+        <span class="app-modal__hint">You can attach more than one file: image, PDF, Word, Excel, or PowerPoint.</span>
+        <input type="submit" value="Register Issue" id="sub_btn" />
+      </form>
+    </div>
+  </div>
+  {% endif %}
 {% endblock %}
 
 

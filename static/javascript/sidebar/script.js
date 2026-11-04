@@ -46,12 +46,17 @@ const NAV_GROUPS = [
         icon: "issue",
         href: "/workspace/issue-monitor",
       },
-      {
-        id: "assets",
-        label: "Assets",
-        icon: "asset",
-        href: "/workspace/assets",
-      },
+      // Assets: Super Admin & Member only (QA / Admin has no access)
+      ...(window.CURRENT_ROLE === "Admin"
+        ? []
+        : [
+            {
+              id: "assets",
+              label: "Assets",
+              icon: "asset",
+              href: "/workspace/assets",
+            },
+          ]),
       {
         id: "tools",
         label: "Integrated Tools",

@@ -32,13 +32,13 @@ def register():
         if not email or not password:
             return jsonify({"error": "Please fill all the empty boxes."}), 400
         if not is_valid_email_format(email):
-            return jsonify({"error": "Format email tidak valid."}), 400
+            return jsonify({"error": "Invalid email format."}), 400
         if len(password) < 8:
-            return jsonify({"error": "Minimal 8 Characters long."}), 400
+            return jsonify({"error": "Password must be at least 8 characters long."}), 400
         if password != retype:
             return jsonify({"error": "Password does not match"}), 400
         if User.query.filter_by(email=email).first():
-            return jsonify({"error": "Email sudah terdaftar."}), 409
+            return jsonify({"error": "Email is already registered."}), 409
 
         display_name = unique_display_name(
             name_from_email(email),

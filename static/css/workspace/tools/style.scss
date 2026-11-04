@@ -1,50 +1,5 @@
 @use "../../base" as *;
 
-// ---- Navbar tab ----
-.nav__bar {
-  display: flex;
-  background-color: white;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 8px;
-
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  .flex-1 {
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    color: $secondary-color;
-    flex-shrink: 0;
-    white-space: nowrap;
-    padding: 10px 20px;
-    margin: 0 5px;
-    font-size: 12px;
-    font-weight: 300;
-    height: 32px;
-    line-height: 1;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-bottom-color: $primary-color;
-      background-color: $fourtiary-color;
-    }
-
-    &.active {
-      border-bottom-color: $primary-color;
-      background-color: rgba($color: $fourtiary-color, $alpha: 0.25);
-    }
-  }
-}
-
 .main-body-content {
   padding: 0 20px;
 

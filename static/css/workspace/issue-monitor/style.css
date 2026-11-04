@@ -179,56 +179,6 @@ select {
   color: #222;
   border-top: 2px solid #ccc;
 }
-.main-body-content .body .register-issue {
-  display: flex;
-  flex-direction: column;
-  margin: 15px 0;
-}
-.main-body-content .body .register-issue__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #6b6b6b;
-}
-.main-body-content .body .register-issue__form {
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  margin: 10px;
-  gap: 15px;
-  background-color: white;
-  border: 1px solid #a50034;
-  border-radius: 6px;
-}
-.main-body-content .body .register-issue__form input,
-.main-body-content .body .register-issue__form select,
-.main-body-content .body .register-issue__form textarea {
-  padding: 5px;
-  color: #6b6b6b;
-  outline-color: #a50034;
-  border: 1px solid #bfbfbf;
-  border-radius: 6px;
-  font-size: 400;
-  transition: all 0.3s ease;
-}
-.main-body-content .body .register-issue__form input:focus,
-.main-body-content .body .register-issue__form select:focus,
-.main-body-content .body .register-issue__form textarea:focus {
-  transform: scale(1.05);
-}
-.main-body-content .body .register-issue__form textarea {
-  width: 100%;
-  height: 200px;
-  resize: none;
-}
-.main-body-content .body .register-issue__form #sub_btn {
-  color: white;
-  background-color: #a50034;
-  transition: all 0.3s ease;
-}
-.main-body-content .body .register-issue__form #sub_btn:hover {
-  background-color: #700023;
-  transform: scale(1.05);
-}
 .main-body-content .body .activity-filters {
   display: flex;
   flex-direction: column;
@@ -800,4 +750,6 @@ select {
 
 .gantt__empty.is-hidden {
   display: none;
-}/*# sourceMappingURL=style.css.map */
+}
+
+/*# sourceMappingURL=style.css.map */

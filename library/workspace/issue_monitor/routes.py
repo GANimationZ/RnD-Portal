@@ -84,7 +84,7 @@ def api_create_issue():
         return jsonify({"message": "All fields are required."}), 400
 
     if category not in CATEGORY_CHOICES or event not in EVENT_CHOICES:
-        return jsonify({"message": "Category atau event tidak valid."}), 400
+        return jsonify({"message": "Invalid category or event."}), 400
 
     try:
         deadline = datetime.strptime(deadline_raw, "%Y-%m-%d").date()
@@ -93,7 +93,7 @@ def api_create_issue():
     
     MIN_DEADLINE_DAYS = 4
     if deadline < date.today() + timedelta(days=MIN_DEADLINE_DAYS):
-        return jsonify({"message": f"Deadline minimal {MIN_DEADLINE_DAYS} hari dari sekarang."}), 400
+        return jsonify({"message": f"Deadline must be at least {MIN_DEADLINE_DAYS} days from today."}), 400
 
     assignee_id = None
     if assignee_id_raw:

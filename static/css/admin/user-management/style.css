@@ -15,40 +15,6 @@ select {
   font-family: inherit;
 }
 
-.nav__bar {
-  display: flex;
-  background-color: white;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 8px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.nav__bar::-webkit-scrollbar {
-  display: none;
-}
-.nav__bar .flex-1 {
-  color: #6b6b6b;
-  flex-shrink: 0;
-  white-space: nowrap;
-  justify-content: center;
-  padding: 10px 20px;
-  margin: 0 5px;
-  font-size: 12px;
-  font-weight: 300;
-  max-height: 32px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.nav__bar .flex-1:hover {
-  border-bottom: 3px solid #a50034;
-  background-color: #bfbfbf;
-}
-.nav__bar .flex-1.active {
-  border-bottom: 3px solid #a50034;
-  background-color: rgba(191, 191, 191, 0.25);
-}
-
 .main-body-content {
   padding: 0 20px;
 }
@@ -206,41 +172,8 @@ select {
   background: rgba(226, 75, 74, 0.08);
 }
 
-.register-issue.um-form-wrapper {
-  display: flex;
-  flex-direction: column;
-  margin: 15px 0;
-}
-.register-issue.um-form-wrapper .register-issue__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #6b6b6b;
-}
-
 .um-form {
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  margin: 10px;
   gap: 15px;
-  background-color: white;
-  border: 1px solid #a50034;
-  border-radius: 6px;
-  max-width: 640px;
-}
-.um-form input,
-.um-form select {
-  padding: 5px;
-  color: #6b6b6b;
-  outline-color: #a50034;
-  border: 1px solid #bfbfbf;
-  border-radius: 6px;
-  font-size: 400;
-  transition: all 0.3s ease;
-}
-.um-form input:focus,
-.um-form select:focus {
-  transform: scale(1.02);
 }
 .um-form__hint {
   margin: -8px 0 0;
@@ -273,7 +206,34 @@ select {
 .um-form__actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
+}
+
+.um-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 10px;
+}
+
+.um-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 18px;
+  border: 1px solid #a50034;
+  border-radius: 6px;
+  background: white;
+  color: #a50034;
+  font-size: 400;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.um-add-btn:hover {
+  background-color: rgba(107, 107, 107, 0.2);
+  border-color: #700023;
+  color: #700023;
 }
 
 .um-checkbox {
@@ -286,89 +246,8 @@ select {
 }
 .um-checkbox input[type=checkbox] {
   width: auto;
-  accent-color: #a50034;
-}
-
-.um-notes-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0 0 10px;
   padding: 0;
-  list-style: none;
-  max-height: 220px;
-  overflow-y: auto;
-}
-.um-notes-list li {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
-  background: #f7f7f8;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #3d3d3d;
-  line-height: 1.4;
-}
-.um-notes-empty {
-  color: #8a8f98;
-  font-style: italic;
-}
-.um-notes-delete {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  color: #a50034;
-  cursor: pointer;
-  padding: 2px 4px;
-  font-size: 14px;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
-}
-.um-notes-delete:hover {
-  opacity: 1;
-}
-.um-notes-add {
-  display: flex;
-  gap: 8px;
-}
-.um-notes-add input {
-  flex: 1;
-  padding: 5px;
-  color: #6b6b6b;
-  outline-color: #a50034;
-  border: 1px solid #bfbfbf;
-  border-radius: 6px;
-}
-.um-notes-add button {
-  flex-shrink: 0;
-  color: white;
-  background-color: #a50034;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.um-notes-add button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-#umSubmitBtn {
-  color: white;
-  background-color: #a50034;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 400;
-  transition: all 0.3s ease;
-}
-#umSubmitBtn:hover {
-  background-color: #700023;
-  transform: scale(1.03);
+  accent-color: #a50034;
 }
 
 .um-btn-secondary {
@@ -387,4 +266,6 @@ select {
 
 .is-hidden {
   display: none !important;
-}/*# sourceMappingURL=style.css.map */
+}
+
+/*# sourceMappingURL=style.css.map */

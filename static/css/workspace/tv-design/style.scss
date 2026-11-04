@@ -1,50 +1,5 @@
 @use "../../base" as *;
 
-// ---- Navbar tab ----
-.nav__bar {
-  display: flex;
-  background-color: white;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 8px;
-
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  .flex-1 {
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    color: $secondary-color;
-    flex-shrink: 0;
-    white-space: nowrap;
-    padding: 10px 20px;
-    margin: 0 5px;
-    font-size: 12px;
-    font-weight: 300;
-    height: 32px;
-    line-height: 1;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-bottom-color: $primary-color;
-      background-color: $fourtiary-color;
-    }
-
-    &.active {
-      border-bottom-color: $primary-color;
-      background-color: rgba($color: $fourtiary-color, $alpha: 0.25);
-    }
-  }
-}
-
 .main-body-content {
   padding: 0 20px;
 
@@ -85,6 +40,38 @@
         outline: none;
         flex: 1;
         font-size: 13px;
+      }
+
+      &__right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      &__add {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 16px;
+        border: 1px solid $primary-color;
+        border-radius: 6px;
+        background: white;
+        color: $primary-color;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        i {
+          color: inherit;
+        }
+
+        &:hover {
+          background: rgba($secondary-color, 0.15);
+          border-color: $primary-hover-color;
+          color: $primary-hover-color;
+        }
       }
 
       &__count {
@@ -192,68 +179,6 @@
 
       p {
         font-size: 13px;
-      }
-    }
-
-    .tv-form-wrapper {
-      max-width: 480px;
-      background: white;
-      border: 1px solid #e4e7ec;
-      border-radius: 10px;
-      padding: 20px;
-      margin-top: 14px;
-
-      &__title {
-        display: block;
-        font-size: 15px;
-        font-weight: 700;
-        color: #333;
-        margin-bottom: 14px;
-      }
-
-      form {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      input[type="text"],
-      textarea {
-        padding: 9px 12px;
-        border: 1px solid #e4e7ec;
-        border-radius: 8px;
-        font-size: 13px;
-        font-family: inherit;
-      }
-
-      textarea {
-        min-height: 70px;
-        resize: vertical;
-      }
-
-      input[type="submit"] {
-        margin-top: 6px;
-        padding: 10px;
-        border: none;
-        border-radius: 8px;
-        background: #a50034;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-
-        &:hover {
-          background: #86002a;
-        }
-
-        &:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-      }
-
-      .field-hint {
-        font-size: 11px;
-        color: #8a8f98;
       }
     }
   }

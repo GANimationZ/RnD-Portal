@@ -15,46 +15,6 @@ select {
   font-family: inherit;
 }
 
-.nav__bar {
-  display: flex;
-  background-color: white;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 8px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.nav__bar::-webkit-scrollbar {
-  display: none;
-}
-.nav__bar .flex-1 {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: #6b6b6b;
-  flex-shrink: 0;
-  white-space: nowrap;
-  padding: 10px 20px;
-  margin: 0 5px;
-  font-size: 12px;
-  font-weight: 300;
-  height: 32px;
-  line-height: 1;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-}
-.nav__bar .flex-1:hover {
-  border-bottom-color: #a50034;
-  background-color: #bfbfbf;
-}
-.nav__bar .flex-1.active {
-  border-bottom-color: #a50034;
-  background-color: rgba(191, 191, 191, 0.25);
-}
-
 .main-body-content {
   padding: 0 20px;
 }
@@ -92,6 +52,34 @@ select {
   outline: none;
   flex: 1;
   font-size: 13px;
+}
+.main-body-content .body .tv-search__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.main-body-content .body .tv-search__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border: 1px solid #a50034;
+  border-radius: 6px;
+  background: white;
+  color: #a50034;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.main-body-content .body .tv-search__add i {
+  color: inherit;
+}
+.main-body-content .body .tv-search__add:hover {
+  background: rgba(107, 107, 107, 0.15);
+  border-color: #700023;
+  color: #700023;
 }
 .main-body-content .body .tv-search__count {
   font-size: 12px;
@@ -184,62 +172,11 @@ select {
 .main-body-content .body .tv-empty p {
   font-size: 13px;
 }
-.main-body-content .body .tv-form-wrapper {
-  max-width: 480px;
-  background: white;
-  border: 1px solid #e4e7ec;
-  border-radius: 10px;
-  padding: 20px;
-  margin-top: 14px;
-}
-.main-body-content .body .tv-form-wrapper__title {
-  display: block;
-  font-size: 15px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 14px;
-}
-.main-body-content .body .tv-form-wrapper form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.main-body-content .body .tv-form-wrapper input[type=text],
-.main-body-content .body .tv-form-wrapper textarea {
-  padding: 9px 12px;
-  border: 1px solid #e4e7ec;
-  border-radius: 8px;
-  font-size: 13px;
-  font-family: inherit;
-}
-.main-body-content .body .tv-form-wrapper textarea {
-  min-height: 70px;
-  resize: vertical;
-}
-.main-body-content .body .tv-form-wrapper input[type=submit] {
-  margin-top: 6px;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  background: #a50034;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-}
-.main-body-content .body .tv-form-wrapper input[type=submit]:hover {
-  background: #86002a;
-}
-.main-body-content .body .tv-form-wrapper input[type=submit]:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.main-body-content .body .tv-form-wrapper .field-hint {
-  font-size: 11px;
-  color: #8a8f98;
-}
 
 #tvFormMessage {
   font-size: 12px;
   color: #a50034;
   min-height: 16px;
-}/*# sourceMappingURL=style.css.map */
+}
+
+/*# sourceMappingURL=style.css.map */

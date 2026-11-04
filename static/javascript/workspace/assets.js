@@ -1,58 +1,30 @@
 // ============================================================
 // RnD Portal - Assets
-// Cek ketersediaan asset: apakah sebuah barang milik PV atau bukan,
-// dengan scanner (barcode scanner USB/Bluetooth yang bekerja seperti
-// keyboard, atau kamera). Hasil scan dicocokkan dengan daftar asset
-// (Nama Barang + Nomor Seri).
+// Checks whether an item is a PV asset by scanning it (a USB/Bluetooth
+// barcode scanner that types like a keyboard, or the camera) and matching
+// the result against the asset list (Item Name + Serial Number).
 //
-// TAHAP 1 -- FrontEnd saja: `assetData` di bawah adalah DATA CONTOH.
-// Saat backend siap, cukup ganti isi fetchAssets() dengan fetch ke
-// API (mis. GET /workspace/assets/api/assets) -- bagian lain tidak
-// perlu diubah. Bentuk data: { id, name, serial }.
+// Data lives in the database (see library/workspace/assets/routes.py):
+//   GET  /workspace/assets/api/assets        -> asset list + scan summary
+//   POST /workspace/assets/api/assets        -> add an asset manually
+//   PUT  /workspace/assets/api/assets/<id>   -> edit an asset
+//   DELETE /workspace/assets/api/assets/<id> -> delete an asset
+//   POST /workspace/assets/api/assets/scan   -> check a scanned serial
+// Scan results are saved, so they survive a page refresh.
 //
-// Helper showToast() / escapeHtml() datang dari shared/notify.js.
+// showToast() / escapeHtml() come from shared/notify.js.
 // ============================================================
 
-// ------------------------------------------------------------
-// DATA CONTOH (dummy) -- ganti dengan data dari database
-// ------------------------------------------------------------
-const MOCK_ASSETS = [
-  { id: 1, name: "Digital Multimeter Fluke 87V", serial: "FLK-87V-48210931" },
-  { id: 2, name: "Oscilloscope Tektronix MSO44", serial: "TEK-MSO44-B0127845" },
-  { id: 3, name: "DC Power Supply Keysight E36313A", serial: "KS-E36313A-MY61004521" },
-  { id: 4, name: "Color Analyzer Konica Minolta CA-410", serial: "KM-CA410-30417761" },
-  { id: 5, name: "Spectroradiometer Konica Minolta CS-2000", serial: "KM-CS2000-20153398" },
-  { id: 6, name: "Hipot Tester GW Instek GPT-9803", serial: "GW-9803-GEW0912345" },
-  { id: 7, name: "Thermal Chamber ESPEC SU-262", serial: "ESP-SU262-0045781" },
-  { id: 8, name: "Video Signal Generator Astro VG-879", serial: "ASTRO-VG879-7791204" },
-  { id: 9, name: "HDMI Analyzer Quantum Data 780", serial: "QD-780-D1182009" },
-  { id: 10, name: "Torque Screwdriver Kolver FAB12", serial: "KLV-FAB12-5520914" },
-  { id: 11, name: "ESD Wrist Strap Tester", serial: "ESD-WT-0012093" },
-  { id: 12, name: "Infrared Thermometer Fluke 568", serial: "FLK-568-61827340" },
-  { id: 13, name: "Clamp Meter Hioki CM4375", serial: "HIK-CM4375-230981644" },
-  { id: 14, name: "LCR Meter Hioki IM3536", serial: "HIK-IM3536-220714502" },
-  { id: 15, name: "Spectrum Analyzer R&S FPC1500", serial: "RS-FPC1500-103928" },
-  { id: 16, name: "Logic Analyzer Saleae Logic Pro 16", serial: "SAL-LP16-00418237" },
-  { id: 17, name: "Sound Level Meter Rion NL-62", serial: "RION-NL62-00871234" },
-  { id: 18, name: "Luminance Meter Konica Minolta LS-150", serial: "KM-LS150-10094478" },
-  { id: 19, name: "Colorimeter X-Rite i1Pro 3", serial: "XR-I1PRO3-A002917" },
-  { id: 20, name: "Soldering Station Hakko FX-951", serial: "HKO-FX951-FX9510773" },
-  { id: 21, name: "Digital Caliper Mitutoyo 500-196", serial: "MTY-500196-18040215" },
-  { id: 22, name: "Vibration Tester", serial: "VIB-TST-0003391" },
-  { id: 23, name: "Remote Control Tester", serial: "RCT-LG-000127" },
-  { id: 24, name: "Test Jig TV 55 Inch", serial: "JIG-TV55-0092" },
-];
+const API_BASE = "/workspace/assets/api";
 
 // ------------------------------------------------------------
 // CONFIG
 // ------------------------------------------------------------
 const SCAN_STATUS = {
-  pending: { label: "Belum Dicek", badge: "badge-gray" },
-  match: { label: "Terverifikasi", badge: "badge-green" },
-  mismatch: { label: "Nama Tidak Cocok", badge: "badge-yellow" },
+  pending: { label: "Not Checked", badge: "badge-gray" },
+  match: { label: "Verified", badge: "badge-green" },
+  mismatch: { label: "Name Mismatch", badge: "badge-yellow" },
 };
-
-const MAX_HISTORY = 6;
 
 // ------------------------------------------------------------
 // STATE
@@ -61,12 +33,8 @@ let assetData = [];
 let filteredData = [];
 let currentPage = 1;
 let rowsPerPage = 10;
-
-// serial (ternormalisasi) -> { status: "match" | "mismatch", at: Date }
-const scanState = new Map();
-// Scan yang serialnya tidak ada di database (= bukan asset PV)
-let unknownScanCount = 0;
-const scanHistory = [];
+let unknownScanCount = 0; // scans whose serial is not in the database (= not a PV asset)
+let isScanning = false;
 
 // ============================================================
 // ---- Helpers ---- //
@@ -76,8 +44,8 @@ function setText(id, value) {
   if (el) el.textContent = value;
 }
 
-// Serial dibandingkan tanpa spasi & tanpa pembeda huruf besar/kecil,
-// karena scanner kadang menambah spasi/karakter kontrol di ujung.
+// Same normalization as the backend: no whitespace / control characters,
+// upper case -- scanners sometimes append stray spaces or control codes.
 function normalizeSerial(str) {
   return (str || "")
     .toString()
@@ -86,42 +54,48 @@ function normalizeSerial(str) {
     .toUpperCase();
 }
 
-function normalizeName(str) {
-  return (str || "").toString().toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-function formatTime(date) {
+function formatTime(iso) {
+  if (!iso) return "-";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "-";
   const pad = (n) => String(n).padStart(2, "0");
   return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-function statusOf(asset) {
-  const state = scanState.get(normalizeSerial(asset.serial));
-  return state ? state.status : "pending";
+async function request(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const error = new Error(data.message || "Something went wrong. Please try again.");
+    error.fields = data.fields || [];
+    throw error;
+  }
+  return data;
 }
 
 // ============================================================
 // ---- Data layer ---- //
 // ============================================================
 async function fetchAssets() {
-  // TODO (backend): ganti dengan
-  //   const res = await fetch("/workspace/assets/api/assets");
-  //   assetData = (await res.json()).assets || [];
-  assetData = MOCK_ASSETS.map((a) => ({ ...a }));
+  try {
+    const data = await request("/assets");
+    assetData = data.assets || [];
+    unknownScanCount = data.unknown_count || 0;
+    renderHistory(data.history || []);
+  } catch (err) {
+    console.error(err);
+    assetData = [];
+    showToast("Failed to load the asset list.", "error");
+  }
 }
 
 // ============================================================
-// ---- Ringkasan ---- //
+// ---- Summary ---- //
 // ============================================================
 function renderSummary() {
   const total = assetData.length;
-  let matched = 0;
-  let mismatched = 0;
-  assetData.forEach((asset) => {
-    const status = statusOf(asset);
-    if (status === "match") matched++;
-    if (status === "mismatch") mismatched++;
-  });
+  const matched = assetData.filter((a) => a.scan_status === "match").length;
+  const mismatched = assetData.filter((a) => a.scan_status === "mismatch").length;
 
   setText("totalAssets", total);
   setText("totalMatched", matched);
@@ -130,15 +104,15 @@ function renderSummary() {
 }
 
 // ============================================================
-// ---- Tabel Asset ---- //
+// ---- Asset Table ---- //
 // ============================================================
-function renderTable(flashSerial = null) {
+function renderTable(flashId = null) {
   const tbody = document.getElementById("assetTableBody");
   if (!tbody) return;
   tbody.innerHTML = "";
 
   if (filteredData.length === 0) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Tidak ada asset yang cocok dengan filter.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">No assets match the current filters.</td></tr>`;
     renderPaginationSummary(0, 0);
     renderPaginationPages();
     return;
@@ -148,20 +122,24 @@ function renderTable(flashSerial = null) {
   const pageData = filteredData.slice(start, start + rowsPerPage);
 
   pageData.forEach((asset, i) => {
-    const key = normalizeSerial(asset.serial);
-    const status = statusOf(asset);
-    const meta = SCAN_STATUS[status];
-    const state = scanState.get(key);
+    const meta = SCAN_STATUS[asset.scan_status] || SCAN_STATUS.pending;
 
     const row = document.createElement("tr");
-    row.dataset.serial = key;
-    if (flashSerial && key === flashSerial) row.classList.add("is-flash");
+    row.dataset.assetId = asset.id;
+    if (flashId && asset.id === flashId) row.classList.add("is-flash");
     row.innerHTML = `
       <td>${start + i + 1}</td>
       <td>${escapeHtml(asset.name)}</td>
       <td class="asset-serial">${escapeHtml(asset.serial)}</td>
       <td class="center"><span class="badge ${meta.badge}">${meta.label}</span></td>
-      <td class="center">${state ? escapeHtml(formatTime(state.at)) : "-"}</td>
+      <td class="center">${escapeHtml(formatTime(asset.scanned_at))}</td>
+      <td>${escapeHtml(asset.scanned_by || "-")}</td>
+      <td>
+        <div class="action-buttons">
+          <button type="button" class="action-btn" data-action="edit" title="Edit"><i class="bxf bx-edit"></i></button>
+          <button type="button" class="action-btn is-danger" data-action="delete" title="Delete"><i class="bxf bx-trash"></i></button>
+        </div>
+      </td>
     `;
     tbody.appendChild(row);
   });
@@ -211,7 +189,7 @@ function renderPaginationPages() {
   pagesEl.appendChild(nextBtn);
 }
 
-function applyFilters(flashSerial = null) {
+function applyFilters() {
   const searchVal = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
   const searchSerial = normalizeSerial(searchVal);
   const statusVal = document.getElementById("filterStatus")?.value || "all";
@@ -222,37 +200,49 @@ function applyFilters(flashSerial = null) {
       const inSerial = searchSerial && normalizeSerial(asset.serial).includes(searchSerial);
       if (!inName && !inSerial) return false;
     }
-    if (statusVal !== "all" && statusOf(asset) !== statusVal) return false;
+    if (statusVal !== "all" && asset.scan_status !== statusVal) return false;
     return true;
   });
 
   currentPage = 1;
-  renderTable(flashSerial);
+  renderTable();
 }
 
 function resetFilters() {
-  const form = document.getElementById("s_f");
-  if (form) form.reset();
+  document.getElementById("s_f")?.reset();
   applyFilters();
 }
 
+// Show a specific row: reset the filters if they hide it, jump to the page
+// that contains it, and highlight it.
+function revealRow(assetId) {
+  applyFilters();
+  if (!filteredData.some((a) => a.id === assetId)) resetFilters();
+
+  const idx = filteredData.findIndex((a) => a.id === assetId);
+  if (idx >= 0) {
+    currentPage = Math.floor(idx / rowsPerPage) + 1;
+    renderTable(assetId);
+  }
+}
+
 // ============================================================
-// ---- Scan: pencocokan dengan database ---- //
+// ---- Scan: match against the database ---- //
 // ============================================================
+const RESULT_ICON = {
+  match: "bx-check-circle",
+  mismatch: "bx-info-circle",
+  unknown: "bx-x-circle",
+  idle: "bx-scan-barcode",
+};
+
 function showScanResult(kind, { status, message, asset, serial }) {
   const box = document.getElementById("scanResult");
   if (!box) return;
 
   box.className = `scan-result is-${kind}`;
   const iconEl = box.querySelector(".scan-result__icon i");
-  if (iconEl) {
-    iconEl.className = `bxf ${{
-      match: "bx-check-circle",
-      mismatch: "bx-info-circle",
-      unknown: "bx-x-circle",
-      idle: "bx-scan-barcode",
-    }[kind] || "bx-scan-barcode"}`;
-  }
+  if (iconEl) iconEl.className = `bxf ${RESULT_ICON[kind] || RESULT_ICON.idle}`;
 
   setText("scanStatus", status);
   setText("scanMessage", message);
@@ -263,80 +253,84 @@ function showScanResult(kind, { status, message, asset, serial }) {
     return;
   }
   meta?.classList.remove("is-hidden");
-  setText("scanResultName", asset ? asset.name : "- (tidak ada di database)");
+  setText("scanResultName", asset ? asset.name : "- (not in the database)");
   setText("scanResultSerial", asset ? asset.serial : serial);
 }
 
-function addHistory(kind, serial) {
-  scanHistory.unshift({ kind, serial });
-  if (scanHistory.length > MAX_HISTORY) scanHistory.pop();
-
+function renderHistory(history) {
   const wrap = document.getElementById("scanHistoryWrap");
   const list = document.getElementById("scanHistory");
   if (!wrap || !list) return;
 
+  if (!history.length) {
+    wrap.classList.add("is-hidden");
+    list.innerHTML = "";
+    return;
+  }
   wrap.classList.remove("is-hidden");
-  list.innerHTML = scanHistory
-    .map((h) => `<li class="is-${h.kind}">${escapeHtml(h.serial)}</li>`)
+  list.innerHTML = history
+    .map((h) => `<li class="is-${escapeHtml(h.result)}" title="${escapeHtml(formatTime(h.scanned_at))}">${escapeHtml(h.serial)}</li>`)
     .join("");
 }
 
-function processScan(rawSerial, rawName) {
-  const serial = normalizeSerial(rawSerial);
-  if (!serial) return;
+async function processScan(rawSerial, rawName) {
+  const serial = (rawSerial || "").trim();
+  if (!normalizeSerial(serial) || isScanning) return false;
 
-  const name = (rawName || "").trim();
-  const asset = assetData.find((a) => normalizeSerial(a.serial) === serial);
+  isScanning = true;
+  const submitBtn = document.getElementById("scanSubmit");
+  if (submitBtn) submitBtn.disabled = true;
 
-  // 1) Nomor seri tidak ada di database -> bukan asset PV
-  if (!asset) {
-    unknownScanCount++;
-    showScanResult("unknown", {
-      status: "BUKAN ASSET PV",
-      message: "Nomor seri ini tidak ditemukan di database asset PV.",
-      serial: String(rawSerial).trim(),
+  try {
+    const data = await request("/assets/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ serial, name: (rawName || "").trim() }),
     });
-    addHistory("unknown", serial);
+
+    unknownScanCount = data.unknown_count;
+    renderHistory(data.history || []);
+
+    if (data.result === "unknown") {
+      showScanResult("unknown", {
+        status: "NOT A PV ASSET",
+        message: "This Serial Number was not found in the PV asset database.",
+        serial,
+      });
+      renderSummary();
+      return true;
+    }
+
+    // Update the local copy of the scanned asset
+    const idx = assetData.findIndex((a) => a.id === data.asset.id);
+    if (idx >= 0) assetData[idx] = data.asset;
+
+    if (data.result === "mismatch") {
+      showScanResult("mismatch", {
+        status: "MISMATCH",
+        message: `The Serial Number is a registered PV asset, but the item name does not match (entered: "${data.input_name}").`,
+        asset: data.asset,
+      });
+    } else {
+      showScanResult("match", {
+        status: "PV ASSET - MATCH",
+        message: data.already_scanned
+          ? "This asset was already scanned before. The scan time has been updated."
+          : "The Serial Number and Item Name match the database.",
+        asset: data.asset,
+      });
+    }
+
     renderSummary();
-    return;
-  }
-
-  // 2) Nomor seri ada, tapi nama barang yang diinput tidak sama dengan database
-  const nameMismatch = name && normalizeName(name) !== normalizeName(asset.name);
-  const alreadyScanned = scanState.get(serial);
-
-  if (nameMismatch) {
-    scanState.set(serial, { status: "mismatch", at: new Date() });
-    showScanResult("mismatch", {
-      status: "TIDAK COCOK",
-      message: `Nomor seri terdaftar sebagai asset PV, tetapi nama barang tidak sama (diinput: "${name}").`,
-      asset,
-    });
-    addHistory("mismatch", serial);
-  } else {
-    // 3) Cocok
-    scanState.set(serial, { status: "match", at: new Date() });
-    showScanResult("match", {
-      status: "ASSET PV - COCOK",
-      message: alreadyScanned
-        ? "Asset ini sudah pernah di-scan sebelumnya. Waktu scan diperbarui."
-        : "Nomor seri dan nama barang sesuai dengan database.",
-      asset,
-    });
-    addHistory("match", serial);
-  }
-
-  renderSummary();
-
-  // Tampilkan barisnya: kalau tersaring oleh filter, filter di-reset dulu
-  applyFilters(serial);
-  if (!filteredData.some((a) => normalizeSerial(a.serial) === serial)) {
-    resetFilters();
-  }
-  const idx = filteredData.findIndex((a) => normalizeSerial(a.serial) === serial);
-  if (idx >= 0) {
-    currentPage = Math.floor(idx / rowsPerPage) + 1;
-    renderTable(serial);
+    revealRow(data.asset.id);
+    return true;
+  } catch (err) {
+    console.error(err);
+    showToast(err.message, "error");
+    return false;
+  } finally {
+    isScanning = false;
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
 
@@ -346,25 +340,159 @@ function initScanner() {
   const nameInput = document.getElementById("scanName");
   if (!form || !serialInput) return;
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!serialInput.value.trim()) {
-      showToast("Scan atau ketik Nomor Seri terlebih dahulu.", "error");
+      showToast("Scan or type a Serial Number first.", "error");
       serialInput.focus();
       return;
     }
-    processScan(serialInput.value, nameInput?.value);
-    serialInput.value = "";
-    if (nameInput) nameInput.value = "";
+    const ok = await processScan(serialInput.value, nameInput?.value);
+    if (ok) {
+      serialInput.value = "";
+      if (nameInput) nameInput.value = "";
+    }
     serialInput.focus();
   });
 
-  // Scanner siap dipakai begitu halaman dibuka
+  // Ready for the scanner as soon as the page opens
   serialInput.focus();
 }
 
 // ============================================================
-// ---- Scan lewat kamera (BarcodeDetector) ---- //
+// ---- Add / Edit / Delete asset ---- //
+// The same popup is used for Add and Edit; #editingAssetId is empty when
+// adding and holds the asset id when editing.
+// ============================================================
+const ADD_FIELD_IDS = { name: "newAssetName", serial: "newAssetSerial" };
+
+function openAssetModal(asset = null) {
+  const modal = document.getElementById("addAssetModal");
+  if (!modal) return;
+
+  document.getElementById("addAssetForm")?.reset();
+  showAddError("");
+  document.getElementById("editingAssetId").value = asset ? asset.id : "";
+  setText("assetModalTitle", asset ? "Edit Asset" : "Add Asset");
+  setText("addAssetSave", asset ? "Save Changes" : "Save Asset");
+  if (asset) {
+    document.getElementById("newAssetName").value = asset.name;
+    document.getElementById("newAssetSerial").value = asset.serial;
+  }
+
+  modal.classList.remove("is-hidden");
+  document.getElementById("newAssetName")?.focus();
+}
+
+function closeAddAsset() {
+  document.getElementById("addAssetModal")?.classList.add("is-hidden");
+  document.getElementById("scanSerial")?.focus();
+}
+
+function showAddError(message, fields = []) {
+  setText("addAssetError", message);
+  Object.entries(ADD_FIELD_IDS).forEach(([field, id]) => {
+    document.getElementById(id)?.classList.toggle("is-invalid", fields.includes(field));
+  });
+}
+
+async function deleteAsset(asset) {
+  const confirmed = await showConfirm(
+    `Delete asset "${asset.name}" (${asset.serial})? This action cannot be undone.`,
+    { confirmText: "Delete" },
+  );
+  if (!confirmed) return;
+
+  try {
+    const data = await request(`/assets/${asset.id}`, { method: "DELETE" });
+    assetData = assetData.filter((a) => a.id !== asset.id);
+    renderSummary();
+
+    // The result card must not keep showing an asset that no longer exists
+    if (document.getElementById("scanResultSerial")?.textContent === asset.serial) {
+      showScanResult("idle", {
+        status: "Waiting for scan...",
+        message: "The asset check result will appear here.",
+      });
+    }
+
+    // Stay on the same page of the table (or the last page if it emptied)
+    const page = currentPage;
+    applyFilters();
+    currentPage = Math.min(page, Math.max(1, Math.ceil(filteredData.length / rowsPerPage)));
+    renderTable();
+    showToast(data.message, "success");
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+function initAddAsset() {
+  const form = document.getElementById("addAssetForm");
+  if (!form) return;
+
+  document.getElementById("addAssetBtn")?.addEventListener("click", () => openAssetModal());
+  document.getElementById("addAssetClose")?.addEventListener("click", closeAddAsset);
+  document.getElementById("addAssetCancel")?.addEventListener("click", closeAddAsset);
+  document.getElementById("addAssetModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "addAssetModal") closeAddAsset();
+  });
+  document.addEventListener("keydown", (e) => {
+    const modal = document.getElementById("addAssetModal");
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeAddAsset();
+  });
+
+  // Row actions (Edit / Delete)
+  document.getElementById("assetTableBody")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const id = Number(btn.closest("tr")?.dataset.assetId);
+    const asset = assetData.find((a) => a.id === id);
+    if (!asset) return;
+
+    if (btn.dataset.action === "edit") openAssetModal(asset);
+    if (btn.dataset.action === "delete") deleteAsset(asset);
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const saveBtn = document.getElementById("addAssetSave");
+    const editingId = document.getElementById("editingAssetId").value;
+    saveBtn.disabled = true;
+
+    try {
+      const data = await request(editingId ? `/assets/${editingId}` : "/assets", {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("newAssetName").value,
+          serial: document.getElementById("newAssetSerial").value,
+        }),
+      });
+
+      if (editingId) {
+        const idx = assetData.findIndex((a) => a.id === Number(editingId));
+        if (idx >= 0) assetData[idx] = data.asset;
+      } else {
+        assetData.push(data.asset);
+      }
+
+      closeAddAsset();
+      renderSummary();
+      revealRow(data.asset.id);
+      showToast(editingId ? data.message : `Asset "${data.asset.name}" added successfully.`, "success");
+    } catch (err) {
+      showAddError(err.message, err.fields);
+      const firstField = ADD_FIELD_IDS[(err.fields || [])[0]];
+      if (firstField) document.getElementById(firstField)?.focus();
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+}
+
+// ============================================================
+// ---- Scan with camera (BarcodeDetector) ---- //
 // ============================================================
 let cameraStream = null;
 let cameraTimer = null;
@@ -377,14 +505,14 @@ async function openCamera() {
 
   if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
     showToast(
-      "Browser ini belum mendukung scan lewat kamera. Gunakan barcode scanner atau ketik manual.",
+      "This browser does not support camera scanning. Use a barcode scanner or type the Serial Number.",
       "info",
     );
     return;
   }
 
   modal.classList.remove("is-hidden");
-  hint.textContent = "Mengaktifkan kamera...";
+  hint.textContent = "Starting camera...";
 
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -393,7 +521,7 @@ async function openCamera() {
     });
     video.srcObject = cameraStream;
     await video.play();
-    hint.textContent = "Arahkan kamera ke barcode / QR Nomor Seri.";
+    hint.textContent = "Point the camera at the Serial Number barcode / QR code.";
 
     const detector = new BarcodeDetector();
     cameraTimer = setInterval(async () => {
@@ -405,13 +533,13 @@ async function openCamera() {
           processScan(value, document.getElementById("scanName")?.value);
         }
       } catch (err) {
-        // frame belum siap -- coba lagi di tick berikutnya
+        // frame not ready yet -- try again on the next tick
       }
     }, 300);
   } catch (err) {
     console.error(err);
     closeCamera();
-    showToast("Kamera tidak bisa diakses. Periksa izin kamera di browser.", "error");
+    showToast("Cannot access the camera. Check the camera permission in your browser.", "error");
   }
 }
 
@@ -441,11 +569,11 @@ function initCamera() {
 
 // ============================================================
 // ---- Export (Excel .xlsx & CSV) ---- //
-// Kolom: No, Nama Barang, Nomor Seri
+// Columns: No, Item Name, Serial Number
 // ============================================================
 
-// Cegah formula injection di CSV: sel berawalan = + - @ dianggap
-// formula oleh Excel, jadi diberi awalan apostrof.
+// Prevents CSV formula injection: a cell starting with = + - @ runs as a
+// formula when opened in Excel, so prefix it with an apostrophe.
 function sanitizeCell(value) {
   if (typeof value !== "string") return value;
   if (/^[=+\-@\t\r]/.test(value)) return `'${value}`;
@@ -453,7 +581,7 @@ function sanitizeCell(value) {
 }
 
 function exportRows() {
-  const rows = [["No", "Nama Barang", "Nomor Seri"]];
+  const rows = [["No", "Item Name", "Serial Number"]];
   filteredData.forEach((asset, i) => {
     rows.push([i + 1, asset.name, asset.serial]);
   });
@@ -463,16 +591,16 @@ function exportRows() {
 function exportFileName(ext) {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
-  return `data-asset-pv_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.${ext}`;
+  return `pv-assets_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.${ext}`;
 }
 
 function exportExcel() {
   if (filteredData.length === 0) {
-    showToast("Tidak ada data asset untuk diexport.", "error");
+    showToast("There are no assets to export.", "error");
     return;
   }
   if (typeof XLSX === "undefined") {
-    showToast("Library Excel belum termuat. Muat ulang halaman.", "error");
+    showToast("The Excel library failed to load. Please reload the page.", "error");
     return;
   }
 
@@ -480,14 +608,14 @@ function exportExcel() {
   ws["!cols"] = [{ wch: 6 }, { wch: 46 }, { wch: 28 }];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Asset PV");
+  XLSX.utils.book_append_sheet(wb, ws, "PV Assets");
   XLSX.writeFile(wb, exportFileName("xlsx"));
-  showToast(`${filteredData.length} asset diexport ke Excel.`, "success");
+  showToast(`${filteredData.length} assets exported to Excel.`, "success");
 }
 
 function exportCsv() {
   if (filteredData.length === 0) {
-    showToast("Tidak ada data asset untuk diexport.", "error");
+    showToast("There are no assets to export.", "error");
     return;
   }
 
@@ -495,7 +623,7 @@ function exportCsv() {
     .map((r) => r.map((c) => `"${String(sanitizeCell(c)).replace(/"/g, '""')}"`).join(","))
     .join("\r\n");
 
-  // BOM supaya Excel membaca CSV sebagai UTF-8
+  // BOM so Excel reads the CSV as UTF-8
   const blob = new Blob(["\ufeff" + content], { type: "text/csv;charset=utf-8" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -504,18 +632,15 @@ function exportCsv() {
   link.click();
   link.remove();
   URL.revokeObjectURL(link.href);
-  showToast(`${filteredData.length} asset diexport ke CSV.`, "success");
+  showToast(`${filteredData.length} assets exported to CSV.`, "success");
 }
 
 // ============================================================
-// ---- Filter, pagination, export: pasang event ---- //
+// ---- Filters, pagination, export: wire up events ---- //
 // ============================================================
 function initList() {
-  const searchInput = document.getElementById("searchInput");
-  const filterStatus = document.getElementById("filterStatus");
-
-  searchInput?.addEventListener("input", () => applyFilters());
-  filterStatus?.addEventListener("change", () => applyFilters());
+  document.getElementById("searchInput")?.addEventListener("input", applyFilters);
+  document.getElementById("filterStatus")?.addEventListener("change", applyFilters);
 
   document.getElementById("s_f")?.addEventListener("submit", (e) => e.preventDefault());
   document.getElementById("reset")?.addEventListener("click", (e) => {
@@ -540,6 +665,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initList();
   initScanner();
   initCamera();
+  initAddAsset();
   await fetchAssets();
   renderSummary();
   applyFilters();

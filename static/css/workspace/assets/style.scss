@@ -309,6 +309,12 @@ $danger-bg: rgba(226, 75, 74, 0.12);
       background: #f7f8fa !important;
     }
 
+    // Delete button: red on hover (Edit uses the shared .action-btn hover)
+    .action-btn.is-danger:hover {
+      background: rgba(226, 75, 74, 0.12);
+      color: #e24b4a;
+    }
+
     tbody tr.is-flash td {
       animation: assetRowFlash 1.8s ease-out;
     }
@@ -329,7 +335,7 @@ $danger-bg: rgba(226, 75, 74, 0.12);
   }
 }
 
-// ---- Modal kamera ---- //
+// ---- Camera popup ---- //
 .camera-modal {
   position: fixed;
   inset: 0;

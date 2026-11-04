@@ -2,7 +2,7 @@
 {% extends "partials/top-sidebar.html" %}
 {% block title %}<title>Assets - RnD Portal</title>{% endblock %}
 {% block styles %}
-  {# style.css Issue Monitor dipakai ulang (tabel, filter, badge, pagination) #}
+  {# Issue Monitor stylesheet is reused (table, filters, badges, pagination) #}
   <link
     rel="stylesheet"
     href="{{ url_for('static', filename='css/workspace/issue-monitor/style.css') }}"
@@ -17,22 +17,22 @@
 {% block content %}
   <div class="main-body-content">
     <div class="body active" data-panel="assets">
-      {# ---- Ringkasan ---- #}
+      {# ---- Summary ---- #}
       <div class="preview_total">
         <div class="ttl_issues blue">
-          <span class="pv_text">TOTAL ASSET PV</span
+          <span class="pv_text">TOTAL PV ASSETS</span
           ><span class="pv_number" id="totalAssets">0</span>
         </div>
         <div class="ttl_issues green">
-          <span class="pv_text">TERVERIFIKASI</span
+          <span class="pv_text">VERIFIED</span
           ><span class="pv_number" id="totalMatched">0</span>
         </div>
         <div class="ttl_issues yellow">
-          <span class="pv_text">BELUM DICEK</span
+          <span class="pv_text">NOT CHECKED</span
           ><span class="pv_number" id="totalPending">0</span>
         </div>
         <div class="ttl_issues red">
-          <span class="pv_text">TIDAK COCOK / BUKAN PV</span
+          <span class="pv_text">MISMATCH / NOT PV</span
           ><span class="pv_number" id="totalRejected">0</span>
         </div>
       </div>
@@ -44,8 +44,8 @@
             ><i class="bxf bx-scan-barcode"></i> Scan Asset</span
           >
           <span class="asset-scan__hint"
-            >Arahkan scanner ke barcode Nomor Seri (scanner akan menekan Enter
-            otomatis), atau ketik manual.</span
+            >Point the scanner at the Serial Number barcode (it presses Enter
+            automatically), or type it manually.</span
           >
         </div>
 
@@ -53,7 +53,7 @@
           <input
             type="text"
             id="scanSerial"
-            placeholder="Scan / ketik Nomor Seri"
+            placeholder="Scan / type Serial Number"
             autocomplete="off"
             spellcheck="false"
             required
@@ -61,14 +61,14 @@
           <input
             type="text"
             id="scanName"
-            placeholder="Nama Barang (opsional, untuk cek kecocokan)"
+            placeholder="Item Name (optional, to check for a match)"
             autocomplete="off"
           />
-          <button type="submit" class="asset-scan__submit">
-            <i class="bxf bx-search"></i> Cek Asset
+          <button type="submit" class="asset-scan__submit" id="scanSubmit">
+            <i class="bxf bx-search"></i> Check Asset
           </button>
           <button type="button" class="asset-scan__camera" id="cameraBtn">
-            <i class="bxf bx-camera"></i> Kamera
+            <i class="bxf bx-camera"></i> Camera
           </button>
         </form>
 
@@ -76,18 +76,18 @@
           <div class="scan-result__icon"><i class="bxf bx-scan-barcode"></i></div>
           <div class="scan-result__body">
             <div class="scan-result__status" id="scanStatus">
-              Menunggu scan...
+              Waiting for scan...
             </div>
             <div class="scan-result__message" id="scanMessage">
-              Hasil pengecekan asset akan tampil di sini.
+              The asset check result will appear here.
             </div>
             <div class="scan-result__meta is-hidden" id="scanMeta">
               <div>
-                <span class="scan-result__label">Nama Barang</span>
+                <span class="scan-result__label">Item Name</span>
                 <span class="scan-result__value" id="scanResultName">-</span>
               </div>
               <div>
-                <span class="scan-result__label">Nomor Seri</span>
+                <span class="scan-result__label">Serial Number</span>
                 <span class="scan-result__value" id="scanResultSerial">-</span>
               </div>
             </div>
@@ -95,17 +95,12 @@
         </div>
 
         <div class="scan-history is-hidden" id="scanHistoryWrap">
-          <span class="scan-history__title">Riwayat scan terakhir</span>
+          <span class="scan-history__title">Recent scans</span>
           <ul class="scan-history__list" id="scanHistory"></ul>
         </div>
-
-        <p class="asset-scan__note">
-          Data di halaman ini masih data contoh (dummy). Contoh untuk dicoba:
-          <code>FLK-87V-48210931</code>
-        </p>
       </section>
 
-      {# ---- Filter & Export ---- #}
+      {# ---- Filters & Export ---- #}
       <div class="activity-filters">
         <div class="search_and_filters">
           <form id="s_f" action="" method="get">
@@ -113,19 +108,22 @@
             <input
               type="text"
               id="searchInput"
-              placeholder="Cari nama barang atau nomor seri"
+              placeholder="Search item name or serial number"
             />
             <select class="status" id="filterStatus">
               <option value="all" selected>All Status</option>
-              <option value="pending">Belum Dicek</option>
-              <option value="match">Terverifikasi</option>
-              <option value="mismatch">Nama Tidak Cocok</option>
+              <option value="pending">Not Checked</option>
+              <option value="match">Verified</option>
+              <option value="mismatch">Name Mismatch</option>
             </select>
           </form>
         </div>
         <div class="btns">
           <button id="reset" type="button">Reset</button>
           <div class="execute_btns">
+            <button id="addAssetBtn" type="button">
+              <i class="bxf bx-plus"></i>Add Asset
+            </button>
             <button id="exportExcel" type="button">
               <i class="bxf bx-arrow-to-bottom"></i>Excel
             </button>
@@ -136,20 +134,22 @@
         </div>
       </div>
 
-      {# ---- Tabel Asset ---- #}
+      {# ---- Asset Table ---- #}
       <div class="list">
         <table>
           <thead>
             <tr>
               <th>No.</th>
-              <th>Nama Barang</th>
-              <th>Nomor Seri</th>
-              <th class="center">Status Scan</th>
-              <th class="center">Waktu Scan</th>
+              <th>Item Name</th>
+              <th>Serial Number</th>
+              <th class="center">Scan Status</th>
+              <th class="center">Scanned At</th>
+              <th>Scanned By</th>
+              <th class="center">Action</th>
             </tr>
           </thead>
           <tbody id="assetTableBody">
-            <!-- baris di-generate JS -->
+            <!-- rows are generated by JS -->
           </tbody>
         </table>
 
@@ -169,11 +169,35 @@
     </div>
   </div>
 
-  {# ---- Modal scan lewat kamera ---- #}
+  {# ---- Popup: Add / Edit Asset ---- #}
+  <div class="app-modal is-hidden" id="addAssetModal">
+    <div class="app-modal__dialog">
+      <div class="app-modal__head">
+        <span class="app-modal__title" id="assetModalTitle">Add Asset</span>
+        <button type="button" class="app-modal__close" id="addAssetClose" aria-label="Close">
+          <i class="bxf bx-x"></i>
+        </button>
+      </div>
+      <form class="app-modal__form" id="addAssetForm" autocomplete="off" novalidate>
+        <input type="hidden" id="editingAssetId" value="" />
+        <label for="newAssetName">Item Name</label>
+        <input type="text" id="newAssetName" maxlength="120" placeholder="e.g. Digital Multimeter Fluke 87V" />
+        <label for="newAssetSerial">Serial Number</label>
+        <input type="text" id="newAssetSerial" maxlength="60" spellcheck="false" placeholder="e.g. FLK-87V-48210931" />
+        <p class="app-modal__error" id="addAssetError"></p>
+        <div class="app-modal__actions">
+          <button type="button" class="app-modal__btn-secondary" id="addAssetCancel">Cancel</button>
+          <button type="submit" class="app-modal__btn-primary" id="addAssetSave">Save Asset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ---- Popup: scan with camera ---- #}
   <div class="camera-modal is-hidden" id="cameraModal">
     <div class="camera-modal__dialog">
       <div class="camera-modal__head">
-        <span>Scan dengan Kamera</span>
+        <span>Scan with Camera</span>
         <button type="button" id="cameraClose" title="Close">
           <i class="bxf bx-x"></i>
         </button>
@@ -182,7 +206,7 @@
         <video id="cameraVideo" playsinline muted></video>
         <div class="camera-modal__frame"></div>
       </div>
-      <p class="camera-modal__hint" id="cameraHint">Mengaktifkan kamera...</p>
+      <p class="camera-modal__hint" id="cameraHint">Starting camera...</p>
     </div>
   </div>
 {% endblock %}

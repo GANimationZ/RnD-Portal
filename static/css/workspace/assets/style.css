@@ -260,6 +260,10 @@ select {
   color: #6b6b6b;
   background: #f7f8fa !important;
 }
+.main-body-content .body[data-panel=assets] .list .action-btn.is-danger:hover {
+  background: rgba(226, 75, 74, 0.12);
+  color: #e24b4a;
+}
 .main-body-content .body[data-panel=assets] .list tbody tr.is-flash td {
   animation: assetRowFlash 1.8s ease-out;
 }
