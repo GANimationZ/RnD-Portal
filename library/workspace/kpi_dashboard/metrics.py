@@ -1,8 +1,15 @@
+"""All KPI calculations (workload color, completion rate, leaderboard
+ranking, range aggregation) live here. kpi-dashboard.js just fetches
+/api/* and renders the ready-made fields -- no math on the client side
+beyond what Chart.js itself requires."""
+
 from datetime import date, timedelta
 
 # ---- Ranges: Recent / Last Week / Last Month / Last Year ----
+# All ranges are relative to today via KPIRecord.period_date, so adding a
+# new range later is a single line here.
 RANGE_WINDOW_DAYS = {
-    "recent": 14,
+    "recent": 14,   # default panel view, last ~2 weeks
     "week": 7,
     "month": 30,
     "year": 365,

@@ -3,6 +3,7 @@
 // ============================================================
 
 const UM_API_BASE = "/admin/users/api";
+// Best Practice notes reuse the KPI Dashboard blueprint's API.
 const KPI_API_BASE = "/workspace/kpi-dashboard/api";
 
 const ROLE_BADGE_CLASS = {

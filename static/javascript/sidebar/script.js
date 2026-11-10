@@ -46,12 +46,7 @@ const NAV_GROUPS = [
         icon: "issue",
         href: "/workspace/issue-monitor",
       },
-    ],
-  },
-
-  {
-    label: "Integrated Sets",
-    items: [
+      // Assets: Super Admin & Member only (QA / Admin has no access)
       ...(window.CURRENT_ROLE === "Admin"
         ? []
         : [
@@ -64,13 +59,12 @@ const NAV_GROUPS = [
           ]),
       {
         id: "tools",
-        label: "Tools",
+        label: "Integrated Tools",
         icon: "tool",
         href: "/workspace/tools",
       },
     ],
   },
-
   {
     label: "Team",
     items: [

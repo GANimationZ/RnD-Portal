@@ -1,3 +1,15 @@
+"""KPI Dashboard -> PDF ("Save as PDF").
+
+Same data and same visual language as the Excel export (kpi_excel.py):
+brand-coloured title bar, headline numbers, completion colours, totals.
+
+* build_individual_pdf(employees, period_label) -> BytesIO
+* build_team_pdf(employees, period_label)       -> BytesIO  (summary, chart,
+  leaderboard, then the per-employee table)
+
+Uses reportlab (pure Python, see requirements.txt).
+"""
+
 from datetime import datetime
 from io import BytesIO
 

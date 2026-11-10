@@ -3,10 +3,15 @@
 {% block error_icon %}bx-lock{% endblock %}
 {% block error_code %}403{% endblock %}
 {% block error_heading %}Access Denied{% endblock %}
+
 {% block error_body %}
-    <p class="error-card__text">{{ detail or "You don't have permission to open this page." }}</p>
-    {% if logged_in and current_role %}
-        <span class="error-card__meta">Your current Role: <strong>{{ current_role }}</strong></span>
-    {% endif %}
-    <p class="error-card__hint">Think this is a mistake? Call Super Admin.</p>
+  <p class="error-card__text">
+    {{ detail or "You don't have permission to open this page." }}
+  </p>
+  {% if logged_in and current_role %}
+    <span class="error-card__meta">Role kamu saat ini: <strong>{{ current_role }}</strong></span>
+  {% endif %}
+  <p class="error-card__hint">
+    Merasa seharusnya punya akses? Hubungi Super Admin.
+  </p>
 {% endblock %}

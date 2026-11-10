@@ -1,5 +1,9 @@
 @use "../../base" as *;
 
+// Halaman Assets: tabel, filter, badge & pagination memakai ulang
+// style Issue Monitor (css/workspace/issue-monitor/style.css).
+// File ini hanya berisi bagian yang khusus untuk Assets.
+
 $success: #1a9c68;
 $success-bg: rgba(61, 220, 151, 0.14);
 $warning: #b9760a;

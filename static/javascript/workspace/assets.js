@@ -1,3 +1,21 @@
+// ============================================================
+// RnD Portal - Assets
+// Checks whether an item is a PV asset by scanning it (a USB/Bluetooth
+// barcode scanner that types like a keyboard, or the camera) and matching
+// the result against the asset list (Item Name + Serial Number).
+//
+// Data lives in the database (see library/workspace/assets/routes.py):
+//   GET  /workspace/assets/api/assets        -> asset list + scan summary
+//   POST /workspace/assets/api/assets        -> add an asset manually
+//   PUT  /workspace/assets/api/assets/<id>   -> edit an asset
+//   DELETE /workspace/assets/api/assets/<id> -> delete an asset
+//   POST /workspace/assets/api/assets/import -> import from Excel (check first with dry_run, then apply)
+//   POST /workspace/assets/api/assets/scan   -> check a scanned serial
+// Scan results are saved, so they survive a page refresh.
+//
+// showToast() / escapeHtml() come from shared/notify.js.
+// ============================================================
+
 const API_BASE = "/workspace/assets/api";
 
 // ------------------------------------------------------------
@@ -16,7 +34,7 @@ let assetData = [];
 let filteredData = [];
 let currentPage = 1;
 let rowsPerPage = 10;
-let unknownScanCount = 0;
+let unknownScanCount = 0; // scans whose serial is not in the database (= not a PV asset)
 let isScanning = false;
 
 // ============================================================
@@ -49,9 +67,7 @@ async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, options);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const error = new Error(
-      data.message || "Something went wrong. Please try again.",
-    );
+    const error = new Error(data.message || "Something went wrong. Please try again.");
     error.fields = data.fields || [];
     throw error;
   }
@@ -80,9 +96,7 @@ async function fetchAssets() {
 function renderSummary() {
   const total = assetData.length;
   const matched = assetData.filter((a) => a.scan_status === "match").length;
-  const mismatched = assetData.filter(
-    (a) => a.scan_status === "mismatch",
-  ).length;
+  const mismatched = assetData.filter((a) => a.scan_status === "mismatch").length;
 
   setText("totalAssets", total);
   setText("totalMatched", matched);
@@ -156,10 +170,7 @@ function renderPaginationPages() {
   prevBtn.type = "button";
   prevBtn.textContent = "Prev";
   prevBtn.disabled = currentPage === 1;
-  prevBtn.addEventListener("click", () => {
-    currentPage--;
-    renderTable();
-  });
+  prevBtn.addEventListener("click", () => { currentPage--; renderTable(); });
   pagesEl.appendChild(prevBtn);
 
   for (let p = 1; p <= totalPages; p++) {
@@ -167,10 +178,7 @@ function renderPaginationPages() {
     pageBtn.type = "button";
     pageBtn.textContent = p;
     pageBtn.className = p === currentPage ? "is-active" : "";
-    pageBtn.addEventListener("click", () => {
-      currentPage = p;
-      renderTable();
-    });
+    pageBtn.addEventListener("click", () => { currentPage = p; renderTable(); });
     pagesEl.appendChild(pageBtn);
   }
 
@@ -178,25 +186,19 @@ function renderPaginationPages() {
   nextBtn.type = "button";
   nextBtn.textContent = "Next";
   nextBtn.disabled = currentPage === totalPages;
-  nextBtn.addEventListener("click", () => {
-    currentPage++;
-    renderTable();
-  });
+  nextBtn.addEventListener("click", () => { currentPage++; renderTable(); });
   pagesEl.appendChild(nextBtn);
 }
 
 function applyFilters() {
-  const searchVal = (document.getElementById("searchInput")?.value || "")
-    .trim()
-    .toLowerCase();
+  const searchVal = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
   const searchSerial = normalizeSerial(searchVal);
   const statusVal = document.getElementById("filterStatus")?.value || "all";
 
   filteredData = assetData.filter((asset) => {
     if (searchVal) {
       const inName = asset.name.toLowerCase().includes(searchVal);
-      const inSerial =
-        searchSerial && normalizeSerial(asset.serial).includes(searchSerial);
+      const inSerial = searchSerial && normalizeSerial(asset.serial).includes(searchSerial);
       if (!inName && !inSerial) return false;
     }
     if (statusVal !== "all" && asset.scan_status !== statusVal) return false;
@@ -268,10 +270,7 @@ function renderHistory(history) {
   }
   wrap.classList.remove("is-hidden");
   list.innerHTML = history
-    .map(
-      (h) =>
-        `<li class="is-${escapeHtml(h.result)}" title="${escapeHtml(formatTime(h.scanned_at))}">${escapeHtml(h.serial)}</li>`,
-    )
+    .map((h) => `<li class="is-${escapeHtml(h.result)}" title="${escapeHtml(formatTime(h.scanned_at))}">${escapeHtml(h.serial)}</li>`)
     .join("");
 }
 
@@ -396,9 +395,7 @@ function closeAddAsset() {
 function showAddError(message, fields = []) {
   setText("addAssetError", message);
   Object.entries(ADD_FIELD_IDS).forEach(([field, id]) => {
-    document
-      .getElementById(id)
-      ?.classList.toggle("is-invalid", fields.includes(field));
+    document.getElementById(id)?.classList.toggle("is-invalid", fields.includes(field));
   });
 }
 
@@ -415,9 +412,7 @@ async function deleteAsset(asset) {
     renderSummary();
 
     // The result card must not keep showing an asset that no longer exists
-    if (
-      document.getElementById("scanResultSerial")?.textContent === asset.serial
-    ) {
+    if (document.getElementById("scanResultSerial")?.textContent === asset.serial) {
       showScanResult("idle", {
         status: "Waiting for scan...",
         message: "The asset check result will appear here.",
@@ -427,10 +422,7 @@ async function deleteAsset(asset) {
     // Stay on the same page of the table (or the last page if it emptied)
     const page = currentPage;
     applyFilters();
-    currentPage = Math.min(
-      page,
-      Math.max(1, Math.ceil(filteredData.length / rowsPerPage)),
-    );
+    currentPage = Math.min(page, Math.max(1, Math.ceil(filteredData.length / rowsPerPage)));
     renderTable();
     showToast(data.message, "success");
   } catch (err) {
@@ -442,23 +434,16 @@ function initAddAsset() {
   const form = document.getElementById("addAssetForm");
   if (!form) return;
 
-  document
-    .getElementById("addAssetBtn")
-    ?.addEventListener("click", () => openAssetModal());
+  document.getElementById("addAssetBtn")?.addEventListener("click", () => openAssetModal());
   document.getElementById("newAssetSerial")?.addEventListener("input", (e) => {
     e.target.value = e.target.value.toUpperCase();
   });
-  document
-    .getElementById("addAssetClose")
-    ?.addEventListener("click", closeAddAsset);
-  document
-    .getElementById("addAssetCancel")
-    ?.addEventListener("click", closeAddAsset);
+  document.getElementById("addAssetClose")?.addEventListener("click", closeAddAsset);
+  document.getElementById("addAssetCancel")?.addEventListener("click", closeAddAsset);
   bindBackdropClose(document.getElementById("addAssetModal"), closeAddAsset);
   document.addEventListener("keydown", (e) => {
     const modal = document.getElementById("addAssetModal");
-    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden"))
-      closeAddAsset();
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeAddAsset();
   });
 
   // Row actions (Edit / Delete)
@@ -480,17 +465,14 @@ function initAddAsset() {
     saveBtn.disabled = true;
 
     try {
-      const data = await request(
-        editingId ? `/assets/${editingId}` : "/assets",
-        {
-          method: editingId ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: document.getElementById("newAssetName").value,
-            serial: document.getElementById("newAssetSerial").value,
-          }),
-        },
-      );
+      const data = await request(editingId ? `/assets/${editingId}` : "/assets", {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("newAssetName").value,
+          serial: document.getElementById("newAssetSerial").value,
+        }),
+      });
 
       if (editingId) {
         const idx = assetData.findIndex((a) => a.id === Number(editingId));
@@ -502,12 +484,7 @@ function initAddAsset() {
       closeAddAsset();
       renderSummary();
       revealRow(data.asset.id);
-      showToast(
-        editingId
-          ? data.message
-          : `Asset "${data.asset.name}" added successfully.`,
-        "success",
-      );
+      showToast(editingId ? data.message : `Asset "${data.asset.name}" added successfully.`, "success");
     } catch (err) {
       showAddError(err.message, err.fields);
       const firstField = ADD_FIELD_IDS[(err.fields || [])[0]];
@@ -533,10 +510,7 @@ function importEl(id) {
 }
 
 function setImportStep(step) {
-  importEl("importSelectForm")?.classList.toggle(
-    "is-hidden",
-    step !== "select",
-  );
+  importEl("importSelectForm")?.classList.toggle("is-hidden", step !== "select");
   importEl("importReview")?.classList.toggle("is-hidden", step !== "review");
   setText(
     "importTitle",
@@ -569,9 +543,7 @@ function closeImportModal() {
 }
 
 function selectedImportMode() {
-  return (
-    document.querySelector('input[name="importMode"]:checked')?.value || "merge"
-  );
+  return document.querySelector('input[name="importMode"]:checked')?.value || "merge";
 }
 
 async function checkImportFile() {
@@ -581,10 +553,7 @@ async function checkImportFile() {
     return;
   }
   if (!file.name.toLowerCase().endsWith(".xlsx")) {
-    setImportError(
-      "importError",
-      "Only .xlsx files are supported. In Excel, use Save As > Excel Workbook (.xlsx).",
-    );
+    setImportError("importError", "Only .xlsx files are supported. In Excel, use Save As > Excel Workbook (.xlsx).");
     return;
   }
 
@@ -626,23 +595,11 @@ function renderImportReview() {
     ["Rows read", a.rows_read, "gray"],
     ["New", a.new.length, "green"],
   ];
-  if (!isReplace)
-    stats.push(["Already up to date", a.unchanged.length, "blue"]);
-  stats.push([
-    "Conflicts",
-    a.conflicts.length,
-    a.conflicts.length ? "yellow" : "gray",
-  ]);
-  stats.push([
-    "Errors (skipped)",
-    a.invalid.length,
-    a.invalid.length ? "red" : "gray",
-  ]);
+  if (!isReplace) stats.push(["Already up to date", a.unchanged.length, "blue"]);
+  stats.push(["Conflicts", a.conflicts.length, a.conflicts.length ? "yellow" : "gray"]);
+  stats.push(["Errors (skipped)", a.invalid.length, a.invalid.length ? "red" : "gray"]);
   importEl("importStats").innerHTML = stats
-    .map(
-      ([label, value, tone]) =>
-        `<div class="import-stat import-stat--${tone}"><span class="import-stat__value">${value}</span><span class="import-stat__label">${label}</span></div>`,
-    )
+    .map(([label, value, tone]) => `<div class="import-stat import-stat--${tone}"><span class="import-stat__value">${value}</span><span class="import-stat__label">${label}</span></div>`)
     .join("");
 
   // ---- Replace warning ----
@@ -661,12 +618,11 @@ function renderImportReview() {
   const apply = importEl("importApply");
   const n = importableCount();
   apply.disabled = n === 0;
-  apply.textContent =
-    n === 0
-      ? "Nothing to import"
-      : isReplace
-        ? `Replace with ${n} asset${n === 1 ? "" : "s"}`
-        : `Merge ${n} asset${n === 1 ? "" : "s"}`;
+  apply.textContent = n === 0
+    ? "Nothing to import"
+    : isReplace
+      ? `Replace with ${n} asset${n === 1 ? "" : "s"}`
+      : `Merge ${n} asset${n === 1 ? "" : "s"}`;
   apply.classList.toggle("is-danger", isReplace);
 }
 
@@ -712,9 +668,7 @@ function renderImportConflicts(a) {
   // Typing in the edit box selects the "Edit" choice automatically
   list.querySelectorAll(".import-edit").forEach((input) => {
     const radio = input.closest("label").querySelector('input[type="radio"]');
-    input.addEventListener("focus", () => {
-      radio.checked = true;
-    });
+    input.addEventListener("focus", () => { radio.checked = true; });
     input.addEventListener("input", () => {
       radio.checked = true;
       input.classList.remove("is-invalid");
@@ -732,10 +686,7 @@ function renderImportInvalid(a) {
       <thead><tr><th>Row</th><th>Item Name</th><th>Serial Number</th><th>Problem</th></tr></thead>
       <tbody>
         ${a.invalid
-          .map(
-            (r) =>
-              `<tr><td>${r.row}</td><td>${escapeHtml(r.name || "-")}</td><td class="asset-serial">${escapeHtml(r.serial || "-")}</td><td>${escapeHtml(r.reason)}</td></tr>`,
-          )
+          .map((r) => `<tr><td>${r.row}</td><td>${escapeHtml(r.name || "-")}</td><td class="asset-serial">${escapeHtml(r.serial || "-")}</td><td>${escapeHtml(r.reason)}</td></tr>`)
           .join("")}
       </tbody>
     </table>`;
@@ -747,9 +698,7 @@ function chooseAllConflicts(pick) {
   if (!a) return;
   a.conflicts.forEach((c, i) => {
     const idx = pick(c);
-    const radio = document.querySelector(
-      `input[name="conflict-${i}"][value="${idx}"]`,
-    );
+    const radio = document.querySelector(`input[name="conflict-${i}"][value="${idx}"]`);
     if (radio) radio.checked = true;
   });
 }
@@ -761,9 +710,7 @@ function collectImportResolutions() {
   let firstInvalid = null;
 
   a.conflicts.forEach((c, i) => {
-    const checked = document.querySelector(
-      `input[name="conflict-${i}"]:checked`,
-    );
+    const checked = document.querySelector(`input[name="conflict-${i}"]:checked`);
     if (!checked) return;
 
     if (checked.value === "edit") {
@@ -782,9 +729,7 @@ function collectImportResolutions() {
 
   if (firstInvalid) {
     firstInvalid.focus();
-    return {
-      error: 'Please type a name for every conflict where you chose "Edit".',
-    };
+    return { error: "Please type a name for every conflict where you chose \"Edit\"." };
   }
   return { resolutions };
 }
@@ -843,14 +788,11 @@ function initImport() {
   importEl("importClose")?.addEventListener("click", closeImportModal);
   importEl("importCancel")?.addEventListener("click", closeImportModal);
   importEl("importAbort")?.addEventListener("click", closeImportModal); // "Cancel Import"
-  importEl("importBack")?.addEventListener("click", () =>
-    setImportStep("select"),
-  );
+  importEl("importBack")?.addEventListener("click", () => setImportStep("select"));
   bindBackdropClose(importEl("importModal"), closeImportModal);
   document.addEventListener("keydown", (e) => {
     const modal = importEl("importModal");
-    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden"))
-      closeImportModal();
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeImportModal();
   });
 
   importEl("importSelectForm")?.addEventListener("submit", (e) => {
@@ -859,14 +801,84 @@ function initImport() {
   });
   importEl("importApply")?.addEventListener("click", applyImport);
 
-  importEl("importKeepAll")?.addEventListener("click", () =>
-    chooseAllConflicts(() => 0),
-  );
+  importEl("importKeepAll")?.addEventListener("click", () => chooseAllConflicts(() => 0));
   importEl("importUseAllNew")?.addEventListener("click", () =>
-    chooseAllConflicts((c) =>
-      c.candidates[0].source === "Current data" ? 1 : c.candidates.length - 1,
-    ),
+    chooseAllConflicts((c) => (c.candidates[0].source === "Current data" ? 1 : c.candidates.length - 1)),
   );
+}
+
+// ============================================================
+// ---- Scan with camera (BarcodeDetector) ---- //
+// ============================================================
+let cameraStream = null;
+let cameraTimer = null;
+
+async function openCamera() {
+  const modal = document.getElementById("cameraModal");
+  const video = document.getElementById("cameraVideo");
+  const hint = document.getElementById("cameraHint");
+  if (!modal || !video) return;
+
+  if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
+    showToast(
+      "This browser does not support camera scanning. Use a barcode scanner or type the Serial Number.",
+      "info",
+    );
+    return;
+  }
+
+  modal.classList.remove("is-hidden");
+  hint.textContent = "Starting camera...";
+
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false,
+    });
+    video.srcObject = cameraStream;
+    await video.play();
+    hint.textContent = "Point the camera at the Serial Number barcode / QR code.";
+
+    const detector = new BarcodeDetector();
+    cameraTimer = setInterval(async () => {
+      try {
+        const codes = await detector.detect(video);
+        if (codes.length) {
+          const value = codes[0].rawValue;
+          closeCamera();
+          processScan(value, document.getElementById("scanName")?.value);
+        }
+      } catch (err) {
+        // frame not ready yet -- try again on the next tick
+      }
+    }, 300);
+  } catch (err) {
+    console.error(err);
+    closeCamera();
+    showToast("Cannot access the camera. Check the camera permission in your browser.", "error");
+  }
+}
+
+function closeCamera() {
+  clearInterval(cameraTimer);
+  cameraTimer = null;
+  if (cameraStream) {
+    cameraStream.getTracks().forEach((t) => t.stop());
+    cameraStream = null;
+  }
+  const video = document.getElementById("cameraVideo");
+  if (video) video.srcObject = null;
+  document.getElementById("cameraModal")?.classList.add("is-hidden");
+  document.getElementById("scanSerial")?.focus();
+}
+
+function initCamera() {
+  document.getElementById("cameraBtn")?.addEventListener("click", openCamera);
+  document.getElementById("cameraClose")?.addEventListener("click", closeCamera);
+  bindBackdropClose(document.getElementById("cameraModal"), closeCamera);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && cameraStream) closeCamera();
+  });
 }
 
 // ============================================================
@@ -929,17 +941,11 @@ function exportCsv() {
   }
 
   const content = exportRows()
-    .map((r) =>
-      r
-        .map((c) => `"${String(sanitizeCell(c)).replace(/"/g, '""')}"`)
-        .join(","),
-    )
+    .map((r) => r.map((c) => `"${String(sanitizeCell(c)).replace(/"/g, '""')}"`).join(","))
     .join("\r\n");
 
   // BOM so Excel reads the CSV as UTF-8
-  const blob = new Blob(["\ufeff" + content], {
-    type: "text/csv;charset=utf-8",
-  });
+  const blob = new Blob(["\ufeff" + content], { type: "text/csv;charset=utf-8" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = exportFileName("csv");
@@ -954,24 +960,16 @@ function exportCsv() {
 // ---- Filters, pagination, export: wire up events ---- //
 // ============================================================
 function initList() {
-  document
-    .getElementById("searchInput")
-    ?.addEventListener("input", applyFilters);
-  document
-    .getElementById("filterStatus")
-    ?.addEventListener("change", applyFilters);
+  document.getElementById("searchInput")?.addEventListener("input", applyFilters);
+  document.getElementById("filterStatus")?.addEventListener("change", applyFilters);
 
-  document
-    .getElementById("s_f")
-    ?.addEventListener("submit", (e) => e.preventDefault());
+  document.getElementById("s_f")?.addEventListener("submit", (e) => e.preventDefault());
   document.getElementById("reset")?.addEventListener("click", (e) => {
     e.preventDefault();
     resetFilters();
   });
 
-  document
-    .getElementById("exportExcel")
-    ?.addEventListener("click", exportExcel);
+  document.getElementById("exportExcel")?.addEventListener("click", exportExcel);
   document.getElementById("exportCsv")?.addEventListener("click", exportCsv);
 
   document.getElementById("rowsPerPage")?.addEventListener("change", (e) => {
