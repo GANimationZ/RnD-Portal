@@ -1,15 +1,3 @@
-"""Excel import for the Assets page.
-
-Pure functions (no Flask / DB access) so the rules live in one place:
-
-* parse_assets_workbook(stream) -> rows read from the .xlsx (with per-row errors)
-* analyze_rows(rows, mode, existing) -> what the import would do
-* build_template_workbook() -> the downloadable template
-
-The route (routes.py) calls parse + analyze for the preview (dry run) and again
-for the real import, so what the user reviews is exactly what gets applied.
-"""
-
 import re
 from collections import OrderedDict
 from io import BytesIO
@@ -19,15 +7,12 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 NAME_MAX = 120
 MAX_ROWS = 5000
-MAX_FILE_BYTES = 3 * 1024 * 1024  # 3 MB
+MAX_FILE_BYTES = 3 * 1024 * 1024
 
-# Serial Number = 4 letters + 8 digits, no dashes or spaces (e.g. ABCD12345678)
+# Serial Number
 SERIAL_PATTERN = re.compile(r"^[A-Z]{4}[0-9]{8}$")
 SERIAL_RULE = "4 letters followed by 8 digits, without dashes or spaces (e.g. ABCD12345678)"
 
-# Header names accepted in the file (lower case). The title / subtitle rows of
-# the portal's own Excel export are skipped automatically, so an exported file
-# can be imported again.
 NAME_HEADERS = {"item name", "name", "item", "asset name", "nama barang", "nama"}
 SERIAL_HEADERS = {"serial number", "serial", "serial no", "serial no.", "serial #", "nomor seri", "no seri", "s/n", "sn"}
 HEADER_SEARCH_ROWS = 30

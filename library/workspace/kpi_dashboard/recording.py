@@ -1,18 +1,3 @@
-"""Bridges Issue Monitor activity into KPI Dashboard data.
-
-Flow:
-1. Issue created with an assignee -> record_assignment(): current week's
-   KPIRecord for that Member gets total_assigned +1, pending +1.
-2. Issue closed -> record_completion(): if the assignee was only just
-   set at close time (already_assigned=False), total_assigned is also
-   credited then; otherwise pending -1, completed +1, and
-   avg_resolution_days is recomputed.
-
-One Member has exactly one KPIRecord row per week (see the model's
-UniqueConstraint) -- rows accumulate across the week rather than one row
-per issue.
-"""
-
 from datetime import date, datetime, timedelta
 
 from library.extensions import db
@@ -20,8 +5,6 @@ from library.models import KPIRecord
 
 
 def _week_start(day=None):
-    """Monday of the week containing `day` (default today) -- used as
-    `period_date` so one week maps to one row."""
     day = day or date.today()
     return day - timedelta(days=day.weekday())
 
@@ -37,8 +20,6 @@ def _get_or_create_week_record(user_id, day=None):
 
 
 def record_assignment(user_id):
-    """Called when an issue is created/assigned: adds to that Member's
-    workload for the current week."""
     if not user_id:
         return
     record = _get_or_create_week_record(user_id)

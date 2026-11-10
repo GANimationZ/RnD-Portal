@@ -6,7 +6,7 @@ from library.auth import home_url, wants_json
 DEFAULT_JSON_MESSAGES = {
     403: "Access denied: insufficient permissions.",
     404: "The requested data or page was not found.",
-    413: "Ukuran file maksimal 10 MB.",
+    413: "Maximum file size upload up to 10 MB.",
 }
 
 _WERKZEUG_DEFAULTS = {

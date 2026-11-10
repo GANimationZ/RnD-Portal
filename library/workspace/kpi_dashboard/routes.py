@@ -1,16 +1,3 @@
-"""KPI Dashboard blueprint.
-
-- User (role="Member") + KPIRecord + BestPractice are the data source,
-  portable across SQLite/PostgreSQL.
-- All calculations (workload bar, completion rate, leaderboard, range
-  aggregation) live in metrics.py -- these routes just query the DB and
-  call metrics.py, returning ready-to-render JSON.
-- /api/* is shared by the Individual/Team panels (live) and the History
-  sub-panels, so Recent/Last Week/Last Month/Last Year stay consistent
-  everywhere. Export (per selected month) and the .xlsx snapshot history
-  are a separate, archival-only feature.
-"""
-
 import os
 import re
 from datetime import datetime

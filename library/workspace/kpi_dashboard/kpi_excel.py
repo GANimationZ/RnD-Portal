@@ -1,20 +1,3 @@
-"""KPI Dashboard -> Excel (.xlsx).
-
-Two workbooks are produced:
-
-* Individual : one sheet, "Per Employee"
-* Team       : "Team Summary" (headline numbers, leaderboard, chart) +
-               the same "Per Employee" sheet
-
-COMPATIBILITY NOTE -- the monthly archive (instance/kpi_history/YYYY-MM.xlsx)
-is written with build_individual_workbook() and read back by
-parse_employee_workbook(). The layout of the "Per Employee" sheet is therefore
-a contract: header rows 1-4, employee rows from row 5, and these 10 columns in
-this order: No, Name, Role, Total Assigned, Completed, Pending, Overdue,
-Completion, Avg Resolution (days), Avg Resolution (hours). Only the *look* was
-redesigned; keep that layout if you change anything here.
-"""
-
 from datetime import datetime
 from io import BytesIO
 
@@ -26,7 +9,7 @@ from openpyxl.utils import get_column_letter
 
 FONT_NAME = "Calibri"
 
-# ---- Palette (same hues as the status badges in the portal) ----
+# ---- Palette ----
 BRAND = "A50034"
 BRAND_DARK = "700023"
 HEADER_BG = "F4E4E9"
