@@ -225,7 +225,7 @@ select {
   border-radius: 6px;
   background: white;
   color: #a50034;
-  font-size: 400;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -266,6 +266,4 @@ select {
 
 .is-hidden {
   display: none !important;
-}
-
-/*# sourceMappingURL=style.css.map */
+}/*# sourceMappingURL=user-management.css.map */

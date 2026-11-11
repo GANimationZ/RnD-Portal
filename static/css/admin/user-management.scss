@@ -1,4 +1,4 @@
-@use "../../base" as *;
+@use "../base" as *;
 
 .main-body-content {
   padding: 0 20px;
@@ -172,7 +172,7 @@
   }
 }
 
-// ---- Add / Edit User form (inside the shared popup, css/shared/modal.css) ----
+// ---- Add / Edit User form (inside the shared popup, css/shared/modal/modal.scss) ----
 .um-form {
   gap: 15px;
 
@@ -231,7 +231,7 @@
   border-radius: 6px;
   background: white;
   color: $primary-color;
-  font-size: $ps;
+  font-size: 13px;
   font-weight: $h6w;
   cursor: pointer;
   transition: all 0.3s ease;

@@ -2,354 +2,332 @@
 {% extends "partials/top-sidebar.html" %}
 {% block title %}<title>Workspace - RnD Portal</title>{% endblock %}
 {% block styles %}
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/workspace/issue-monitor/style.css') }}"
-  />
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/workspace/issue-monitor/detail.css') }}"
-  />
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/workspace/issue-monitor/style.css') }}" />
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/workspace/issue-monitor/detail.css') }}" />
 {% endblock %}
-
 {# ---- Top Content ---- #}
 {% block content %}
-  <div class="nav__bar">
-    <span class="nav-item__left flex-1 active" data-tab="dashboard"
-      >Dashboard</span
-    >
-    <span class="nav-item__left flex-1" data-tab="list-issue">List Issue</span>
-    <span class="nav-item__left flex-1" data-tab="priority-matrix"
-      >Priority Matrix</span
-    >
-  </div>
-
-  {# ---- Main Content Panel ---- #}
-  <div class="main-body-content">
-    {# ---- Panel Dashboard ---- #}
-    <div class="body active" data-panel="dashboard">
-      <div class="preview_total">
-        <div class="ttl_issues red">
-          <span class="pv_text">TOTAL ISSUES</span
-          ><span class="pv_number" id="totalIssues">12</span>
-          {# <span class="pv_number">{{ issue.ttl_issue }}</span> #}
-        </div>
-        <div class="ttl_issues red">
-          <span class="pv_text">P1 - DO NOW</span
-          ><span class="pv_number" id="totalDoNow">9</span>
-          {# <span class="pv_number">{{ issue.now }}</span> #}
-        </div>
-        <div class="ttl_issues yellow">
-          <span class="pv_text">P2 - SCHEDULE</span
-          ><span class="pv_number" id="totalSchedule">3</span>
-          {# <span class="pv_number">{{ issue.schedule }}</span> #}
-        </div>
-        <div class="ttl_issues red">
-          <span class="pv_text">ON HOLD</span
-          ><span class="pv_number" id="totalOnHold">3</span>
-          {# <span class="pv_number">{{ issue.on_hold }}</span> #}
-        </div>
-        <div class="ttl_issues green">
-          <span class="pv_text">CLOSED</span
-          ><span class="pv_number" id="totalClosed">2</span>
-          {# <span class="pv_number">{{ issue.closed }}</span> #}
-        </div>
-        <div class="ttl_issues blue">
-          <span class="pv_text">OPEN /IN PROGRESS</span
-          ><span class="pv_number" id="totalOpen">11</span>
-          {# <span class="pv_number">{{ issue.open }}</span> #}
-        </div>
-      </div>
-      <div class="grid-container">
-        <div class="stats_grid">
-          <span class="stats_text">ISSUES BY CATEGORY</span>
-          <div class="chart-wrapper">
-            <canvas id="category"></canvas>
-          </div>
-        </div>
-
-        <div class="stats_grid">
-          <span class="stats_text">ISSUES BY EVENT</span>
-          <div class="chart-wrapper">
-            <canvas id="event"></canvas>
-          </div>
-        </div>
-
-        <div class="stats_grid">
-          <span class="stats_text">ISSUES BY STATUS</span>
-          <div class="chart-wrapper">
-            <canvas id="status"></canvas>
-          </div>
-        </div>
-
-        <div class="stats_grid">
-          <span class="stats_text">CATEGORY x EVENT DISTRIBUTION</span>
-          <div class="matrix-table-wrapper">
-            <table id="matrixTable" class="matrix-table">
-              <thead>
-                <tr>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+    <div class="nav__bar">
+        <span class="nav-item__left flex-1 active" data-tab="dashboard">Dashboard</span>
+        <span class="nav-item__left flex-1" data-tab="list-issue">List Issue</span>
+        <span class="nav-item__left flex-1" data-tab="priority-matrix">Priority Matrix</span>
     </div>
-    {# ---- Panel List Issue ---- #}
-    <div class="body" data-panel="list-issue">
-      <div class="activity-filters">
-        <div class="search_and_filters">
-          <form id="s_f" action="" method="get">
-            <label for="a_f">ACTIVE FILTERS</label>
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Search issue title"
-            />
-            <select class="priority" id="filterPriority">
-              <option value="All Priority" selected>
-                All Priority
-              </option>
-              <option value="High">High</option>
-              <option value="Mid">Mid</option>
-              <option value="Low">Low</option>
-            </select>
-            <select class="status" id="filterStatus">
-              <option value="All Status" selected>All Status</option>
-              <option value="P1 DO NOW">P1 DO NOW</option>
-              <option value="P2 SCHEDULE">P2 SCHEDULE</option>
-              <option value="ON HOLD">ON HOLD</option>
-              <option value="CLOSED">CLOSED</option>
-            </select>
-            <select class="category" id="filterCategory">
-              <option value="All Category" selected>All Category</option>
-              <option value="PCBA/SMT">PCBA/SMT</option>
-              <option value="SQA">SQA</option>
-              <option value="Line-Prod">Line-Prod</option>
-              <option value="OQA">OQA</option>
-              <option value="CSS/SVC">CSS/SVC</option>
-            </select>
-            <select class="event" id="filterEvent">
-              <option value="All Event" selected>All Event</option>
-              <option value="PV">PV</option>
-              <option value="Pre-MP">Pre-MP</option>
-              <option value="MP">MP</option>
-              <option value="Field">Field</option>
-            </select>
-            <select class="owner" id="filterAssignee">
-              <option value="All Assignees" selected>All Assignees</option>
-              <option value="__unassigned__">Unassigned</option>
-              {% for user in users %}
-                {% if user.role == "Member" %}
-                <option value="{{ user.username }}">{{ user.username }}</option>
-                {% endif %}
-              {% endfor %}
-            </select>
-          </form>
+    {# ---- Main Content Panel ---- #}
+    <div class="main-body-content">
+        {# ---- Panel Dashboard ---- #}
+        <div class="body active" data-panel="dashboard">
+            <div class="preview_total">
+                <div class="ttl_issues red">
+                    <span class="pv_text">TOTAL ISSUES</span><span class="pv_number" id="totalIssues">12</span>
+                    {# <span class="pv_number">{{ issue.ttl_issue }}</span> #}
+                </div>
+                <div class="ttl_issues red">
+                    <span class="pv_text">P1 - DO NOW</span><span class="pv_number" id="totalDoNow">9</span>
+                    {# <span class="pv_number">{{ issue.now }}</span> #}
+                </div>
+                <div class="ttl_issues yellow">
+                    <span class="pv_text">P2 - SCHEDULE</span><span class="pv_number" id="totalSchedule">3</span>
+                    {# <span class="pv_number">{{ issue.schedule }}</span> #}
+                </div>
+                <div class="ttl_issues red">
+                    <span class="pv_text">ON HOLD</span><span class="pv_number" id="totalOnHold">3</span>
+                    {# <span class="pv_number">{{ issue.on_hold }}</span> #}
+                </div>
+                <div class="ttl_issues green">
+                    <span class="pv_text">CLOSED</span><span class="pv_number" id="totalClosed">2</span>
+                    {# <span class="pv_number">{{ issue.closed }}</span> #}
+                </div>
+                <div class="ttl_issues blue">
+                    <span class="pv_text">OPEN /IN PROGRESS</span><span class="pv_number" id="totalOpen">11</span>
+                    {# <span class="pv_number">{{ issue.open }}</span> #}
+                </div>
+            </div>
+            <div class="grid-container">
+                <div class="stats_grid">
+                    <span class="stats_text">ISSUES BY CATEGORY</span>
+                    <div class="chart-wrapper">
+                        <canvas id="category"></canvas>
+                    </div>
+                </div>
+                <div class="stats_grid">
+                    <span class="stats_text">ISSUES BY EVENT</span>
+                    <div class="chart-wrapper">
+                        <canvas id="event"></canvas>
+                    </div>
+                </div>
+                <div class="stats_grid">
+                    <span class="stats_text">ISSUES BY STATUS</span>
+                    <div class="chart-wrapper">
+                        <canvas id="status"></canvas>
+                    </div>
+                </div>
+                <div class="stats_grid">
+                    <span class="stats_text">CATEGORY x EVENT DISTRIBUTION</span>
+                    <div class="matrix-table-wrapper">
+                        <table id="matrixTable" class="matrix-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="btns">
-          <button id="reset">Reset</button>
-          <div class="execute_btns">
-            {% if is_admin_or_above %}
-            <button id="openIssueRegister" type="button"><i class="bxf bx-plus"></i>Register Issue</button>
-            {% endif %}
-            <button id="exportExcel" type="button"><i class="bxf bx-arrow-to-bottom"></i>Excel</button>
-            <button id="exportCsv" type="button"><i class="bxf bx-arrow-to-bottom"></i>CSV</button>
-          </div>
-        </div>
-      </div>
-      <div class="list">
-        <table>
-          <thead>
-            <tr>
-              <th>No.</th>
-              <th>Title</th>
-              <th>Priority</th>
-              <th>Category</th>
-              <th>Event</th>
-              <th>Deadline</th>
-              <th>Assignee</th>
-              <th>Status</th>
-              <th class="center">Action</th>
-            </tr>
-          </thead>
-          <tbody id="issueTableBody">
-            <!-- baris di-generate JS -->
-          </tbody>
-        </table>
-
-        <div class="list__pagination">
-          <div class="pagination__info">
-            <span>Show</span>
-            <select id="rowsPerPage">
-              <option value="5">5</option>
-              <option value="10" selected>10</option>
-              <option value="20">20</option>
-            </select>
-            <span id="paginationSummary">Showing 1-10 of 42</span>
-          </div>
-          <div class="pagination__pages" id="paginationPages"></div>
-        </div>
-      </div>
-
-      {# ---- Detail overlay: a centered modal -- click the dark area
+        {# ---- Panel List Issue ---- #}
+        <div class="body" data-panel="list-issue">
+            <div class="activity-filters">
+                <div class="search_and_filters">
+                    <form id="s_f" action="" method="get">
+                        <label for="a_f">ACTIVE FILTERS</label>
+                        <input type="text" id="searchInput" placeholder="Search issue title" />
+                        <select class="priority" id="filterPriority">
+                            <option value="All Priority" selected>All Priority</option>
+                            <option value="High">High</option>
+                            <option value="Mid">Mid</option>
+                            <option value="Low">Low</option>
+                        </select>
+                        <select class="status" id="filterStatus">
+                            <option value="All Status" selected>All Status</option>
+                            <option value="P1 DO NOW">P1 DO NOW</option>
+                            <option value="P2 SCHEDULE">P2 SCHEDULE</option>
+                            <option value="ON HOLD">ON HOLD</option>
+                            <option value="CLOSED">CLOSED</option>
+                        </select>
+                        <select class="category" id="filterCategory">
+                            <option value="All Category" selected>All Category</option>
+                            <option value="PCBA/SMT">PCBA/SMT</option>
+                            <option value="SQA">SQA</option>
+                            <option value="Line-Prod">Line-Prod</option>
+                            <option value="OQA">OQA</option>
+                            <option value="CSS/SVC">CSS/SVC</option>
+                        </select>
+                        <select class="event" id="filterEvent">
+                            <option value="All Event" selected>All Event</option>
+                            <option value="PV">PV</option>
+                            <option value="Pre-MP">Pre-MP</option>
+                            <option value="MP">MP</option>
+                            <option value="Field">Field</option>
+                        </select>
+                        <select class="owner" id="filterAssignee">
+                            <option value="All Assignees" selected>All Assignees</option>
+                            <option value="__unassigned__">Unassigned</option>
+                            {% for user in users %}
+                                {% if user.role == "Member" %}
+                                    <option value="{{ user.username }}">{{ user.username }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+                <div class="btns">
+                    <button id="reset">Reset</button>
+                    <div class="execute_btns">
+                        {% if is_admin_or_above %}
+                            <button id="openIssueRegister"
+                                    type="button"><i class="bxf bx-plus"></i>Register Issue</button>
+                        {% endif %}
+                        <button id="exportExcel" type="button"><i class="bxf bx-arrow-to-bottom"></i>Excel</button>
+                        <button id="exportCsv" type="button"><i class="bxf bx-arrow-to-bottom"></i>CSV</button>
+                    </div>
+                </div>
+            </div>
+            <div class="list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Title</th>
+                            <th>Priority</th>
+                            <th>Category</th>
+                            <th>Event</th>
+                            <th>Deadline</th>
+                            <th>Assignee</th>
+                            <th>Status</th>
+                            <th class="center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="issueTableBody">
+                        <!-- baris di-generate JS -->
+                    </tbody>
+                </table>
+                <div class="list__pagination">
+                    <div class="pagination__info">
+                        <span>Show</span>
+                        <select id="rowsPerPage">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                        </select>
+                        <span id="paginationSummary">Showing 1-10 of 42</span>
+                    </div>
+                    <div class="pagination__pages" id="paginationPages"></div>
+                </div>
+            </div>
+            {# ---- Detail overlay: a centered modal -- click the dark area
          outside the dialog or the X button to close it. ---- #}
-      <div class="issue-inline-detail is-hidden" id="issueInlineDetail">
-        <div class="issue-inline-detail__dialog" id="issueInlineDetailDialog">
-        <div class="issue-inline-detail__head">
-          <span class="issue-inline-detail__eyebrow" id="inlineDetailEyebrow">ISSUE #-</span>
-          <button type="button" class="issue-inline-detail__close" id="inlineDetailClose" title="Close">
-            <i class="bxf bx-x"></i>
-          </button>
+            <div class="issue-inline-detail is-hidden" id="issueInlineDetail">
+                <div class="issue-inline-detail__dialog" id="issueInlineDetailDialog">
+                    <div class="issue-inline-detail__head">
+                        <span class="issue-inline-detail__eyebrow" id="inlineDetailEyebrow">ISSUE #-</span>
+                        <button type="button"
+                                class="issue-inline-detail__close"
+                                id="inlineDetailClose"
+                                title="Close">
+                            <i class="bxf bx-x"></i>
+                        </button>
+                    </div>
+                    <div class="issue-inline-detail__card">
+                        <div class="issue-inline-detail__image-wrapper"
+                             id="inlineDetailImageWrapper"></div>
+                        <div class="issue-inline-detail__body">
+                            <div class="issue-inline-detail__top">
+                                <div class="issue-inline-detail__title" id="inlineDetailTitle">-</div>
+                                <div class="issue-inline-detail__badges">
+                                    <span class="badge" id="inlineDetailPriorityBadge">-</span>
+                                    <span class="badge" id="inlineDetailStatusBadge">-</span>
+                                </div>
+                            </div>
+                            <div class="issue-inline-detail__meta">
+                                <div class="issue-inline-detail__meta-item">
+                                    <span class="issue-inline-detail__meta-label">Category</span>
+                                    <span class="issue-inline-detail__meta-value" id="inlineDetailCategory">-</span>
+                                </div>
+                                <div class="issue-inline-detail__meta-item">
+                                    <span class="issue-inline-detail__meta-label">Event</span>
+                                    <span class="issue-inline-detail__meta-value" id="inlineDetailEvent">-</span>
+                                </div>
+                                <div class="issue-inline-detail__meta-item">
+                                    <span class="issue-inline-detail__meta-label">Deadline</span>
+                                    <span class="issue-inline-detail__meta-value" id="inlineDetailDeadline">-</span>
+                                </div>
+                                <div class="issue-inline-detail__meta-item">
+                                    <span class="issue-inline-detail__meta-label">Owner</span>
+                                    <span class="issue-inline-detail__meta-value" id="inlineDetailOwner">-</span>
+                                </div>
+                                <div class="issue-inline-detail__meta-item">
+                                    <span class="issue-inline-detail__meta-label">Assignee</span>
+                                    <span class="issue-inline-detail__meta-value" id="inlineDetailAssignee">-</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="issue-inline-detail__section-title">Description</div>
+                                <p class="issue-inline-detail__description" id="inlineDetailDescription">-</p>
+                            </div>
+                            <div id="inlineDetailAttachments" class="issue-inline-detail__attachments"></div>
+                            {% if is_admin_or_above %}
+                                <div class="issue-inline-detail__actions">
+                                    <button type="button" id="inlineDetailHoldBtn">Hold Issue</button>
+                                    <div class="issue-inline-detail__close-group" id="inlineDetailCloseGroup">
+                                        <select id="inlineDetailAssigneeSelect" class="is-hidden">
+                                            <option value="">Select an assignee...</option>
+                                        </select>
+                                        <button type="button" id="inlineDetailCloseBtn">Mark Closed</button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="issue-inline-detail__card">
-          <div class="issue-inline-detail__image-wrapper" id="inlineDetailImageWrapper"></div>
-
-          <div class="issue-inline-detail__body">
-            <div class="issue-inline-detail__top">
-              <div class="issue-inline-detail__title" id="inlineDetailTitle">-</div>
-              <div class="issue-inline-detail__badges">
-                <span class="badge" id="inlineDetailPriorityBadge">-</span>
-                <span class="badge" id="inlineDetailStatusBadge">-</span>
-              </div>
+        {# ---- Panel Priority Matrix ---- #}
+        <div class="body" data-panel="priority-matrix">
+            <div class="priority-matrix__header">
+                <div>
+                    <span class="priority-matrix__title">
+                        <i class="bxf bx-crosshair"></i> Priority Matrix
+                    </span>
+                </div>
             </div>
-
-            <div class="issue-inline-detail__meta">
-              <div class="issue-inline-detail__meta-item">
-                <span class="issue-inline-detail__meta-label">Category</span>
-                <span class="issue-inline-detail__meta-value" id="inlineDetailCategory">-</span>
-              </div>
-              <div class="issue-inline-detail__meta-item">
-                <span class="issue-inline-detail__meta-label">Event</span>
-                <span class="issue-inline-detail__meta-value" id="inlineDetailEvent">-</span>
-              </div>
-              <div class="issue-inline-detail__meta-item">
-                <span class="issue-inline-detail__meta-label">Deadline</span>
-                <span class="issue-inline-detail__meta-value" id="inlineDetailDeadline">-</span>
-              </div>
-              <div class="issue-inline-detail__meta-item">
-                <span class="issue-inline-detail__meta-label">Owner</span>
-                <span class="issue-inline-detail__meta-value" id="inlineDetailOwner">-</span>
-              </div>
-              <div class="issue-inline-detail__meta-item">
-                <span class="issue-inline-detail__meta-label">Assignee</span>
-                <span class="issue-inline-detail__meta-value" id="inlineDetailAssignee">-</span>
-              </div>
+            <div class="gantt" id="ganttChart">
+                <div class="gantt__toolbar">
+                    <span class="gantt__quarter-label" id="ganttQuarterLabel">-</span>
+                    <div class="priority-matrix__legend">
+                        <span><span class="legend-dot" style="background:#e24b4a"></span>Overdue</span>
+                        <span><span class="legend-dot" style="background:#f2a623"></span>Deadline ≤ 7 days</span>
+                        <span><span class="legend-dot" style="background:#3ddc97"></span>On track</span>
+                        <span><span class="legend-dot" style="background:#4f8cff"></span>Today</span>
+                    </div>
+                </div>
+                <div class="gantt__scroll">
+                    <div class="gantt__header" id="ganttHeader"></div>
+                    <div class="gantt__body" id="ganttBody"></div>
+                </div>
+                <div class="gantt__empty is-hidden" id="ganttEmpty">No active issues to display.</div>
             </div>
-
-            <div>
-              <div class="issue-inline-detail__section-title">Description</div>
-              <p class="issue-inline-detail__description" id="inlineDetailDescription">-</p>
-            </div>
-
-            <div id="inlineDetailAttachments" class="issue-inline-detail__attachments"></div>
-
-            {% if is_admin_or_above %}
-            <div class="issue-inline-detail__actions">
-              <button type="button" id="inlineDetailHoldBtn">Hold Issue</button>
-              <div class="issue-inline-detail__close-group" id="inlineDetailCloseGroup">
-                <select id="inlineDetailAssigneeSelect" class="is-hidden">
-                  <option value="">Select an assignee...</option>
-                </select>
-                <button type="button" id="inlineDetailCloseBtn">Mark Closed</button>
-              </div>
-            </div>
-            {% endif %}
-          </div>
         </div>
-        </div>
-      </div>
     </div>
-    {# ---- Panel Priority Matrix ---- #}
-    <div class="body" data-panel="priority-matrix">
-      <div class="priority-matrix__header">
-        <div>
-          <span class="priority-matrix__title">
-            <i class="bxf bx-crosshair"></i> Priority Matrix
-          </span>
-        </div>
-        
-      </div>
-
-      <div class="gantt" id="ganttChart">
-        <div class="gantt__toolbar">
-          <span class="gantt__quarter-label" id="ganttQuarterLabel">-</span>
-          <div class="priority-matrix__legend">
-            <span><span class="legend-dot" style="background:#e24b4a"></span>Overdue</span>
-            <span><span class="legend-dot" style="background:#f2a623"></span>Deadline &le; 7 days</span>
-            <span><span class="legend-dot" style="background:#3ddc97"></span>On track</span>
-            <span><span class="legend-dot" style="background:#4f8cff"></span>Today</span>
-          </div>
-        </div>
-        <div class="gantt__scroll">
-          <div class="gantt__header" id="ganttHeader"></div>
-          <div class="gantt__body" id="ganttBody"></div>
-        </div>
-        <div class="gantt__empty is-hidden" id="ganttEmpty">No active issues to display.</div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- Popup: Register an Issue (Admin/QA & Super Admin only -- Member can
+    {# ---- Popup: Register an Issue (Admin/QA & Super Admin only -- Member can
      only view, not create issues). Opened from the "Register Issue" button
      in List Issue. ---- #}
-  {% if is_admin_or_above %}
-  <div class="app-modal is-hidden" id="issueRegisterModal">
-    <div class="app-modal__dialog app-modal__dialog--wide">
-      <div class="app-modal__head">
-        <span class="app-modal__title">Register an Issue</span>
-        <button type="button" class="app-modal__close" id="issueRegisterClose" aria-label="Close">
-          <i class="bxf bx-x"></i>
-        </button>
-      </div>
-      <form class="app-modal__form" action="" method="post" id="issueForm">
-        <input id="issueTitle" type="text" placeholder="Please insert a title for the issue" required />
-        <select id="issueCategory">
-          <option value="" selected>Please select a category</option>
-          <option value="pcba_smt">PCBA/SMT</option>
-          <option value="SQA">SQA</option>
-          <option value="Line-Prod">Line-Prod</option>
-          <option value="OQA">OQA</option>
-          <option value="css_svc">CSS/SVC</option>
-        </select>
-        <select id="issueEvent">
-          <option value="" selected>Please select an event</option>
-          <option value="pv">PV</option>
-          <option value="pre_mp">Pre-MP</option>
-          <option value="mp">MP</option>
-          <option value="field">Field</option>
-        </select>
-        {# Assignee combobox: filled via JS once Category & Event above are
+    {% if is_admin_or_above %}
+        <div class="app-modal is-hidden" id="issueRegisterModal">
+            <div class="app-modal__dialog app-modal__dialog--wide">
+                <div class="app-modal__head">
+                    <span class="app-modal__title">Register an Issue</span>
+                    <button type="button"
+                            class="app-modal__close"
+                            id="issueRegisterClose"
+                            aria-label="Close">
+                        <i class="bxf bx-x"></i>
+                    </button>
+                </div>
+                <form class="app-modal__form" action="" method="post" id="issueForm">
+                    <input id="issueTitle"
+                           type="text"
+                           placeholder="Please insert a title for the issue"
+                           required />
+                    <select id="issueCategory">
+                        <option value="" selected>Please select a category</option>
+                        <option value="pcba_smt">PCBA/SMT</option>
+                        <option value="SQA">SQA</option>
+                        <option value="Line-Prod">Line-Prod</option>
+                        <option value="OQA">OQA</option>
+                        <option value="css_svc">CSS/SVC</option>
+                    </select>
+                    <select id="issueEvent">
+                        <option value="" selected>Please select an event</option>
+                        <option value="pv">PV</option>
+                        <option value="pre_mp">Pre-MP</option>
+                        <option value="mp">MP</option>
+                        <option value="field">Field</option>
+                    </select>
+                    {# Assignee combobox: filled via JS once Category & Event above are
            both selected (see issue-monitor.js -> loadAssignableUsers()).
            Only shows Members whose scope matches the category & event (set
            on the User Management page, Super Admin only). #}
-        <select id="issueAssignee" disabled>
-          <option value="" selected>Select Category &amp; Event first</option>
-        </select>
-        <textarea id="issueDescription" placeholder="Please provide a description of the issue" required></textarea>
-        <input type="text" id="issueDate" class="date-placeholder" placeholder="Provide a deadline" required />
-        <input
-          type="file"
-          id="issueFile"
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-          multiple
-        />
-        <span class="app-modal__hint">You can attach more than one file: image, PDF, Word, Excel, or PowerPoint.</span>
-        <input type="submit" value="Register Issue" id="sub_btn" />
-      </form>
-    </div>
-  </div>
-  {% endif %}
+                    <select id="issueAssignee" disabled>
+                        <option value="" selected>Select Category &amp; Event first</option>
+                    </select>
+                    <textarea id="issueDescription"
+                              placeholder="Please provide a description of the issue"
+                              required></textarea>
+                    <input type="text"
+                           id="issueDate"
+                           class="date-placeholder"
+                           placeholder="Provide a deadline"
+                           required />
+                    <input type="file"
+                           id="issueFile"
+                           accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                           multiple />
+                    <span class="app-modal__hint">You can attach more than one file: image, PDF, Word, Excel, or PowerPoint.</span>
+                    <input type="submit" value="Register Issue" id="sub_btn" />
+                </form>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}
-
-
 {# ---- Define Script ---- #}
 {% block script %}
-  {{ super() }}
-  <script src="{{ url_for('static', filename='vendor/exceljs/exceljs.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='javascript/shared/excel-export.js') }}"></script>
-  <script src="{{ url_for('static', filename='javascript/workspace/issue-monitor.js')}}"></script>
+    {{ super() }}
+    <script src="{{ url_for('static', filename='vendor/exceljs/exceljs.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='javascript/shared/excel-export/excel-export.js') }}"></script>
+    <script src="{{ url_for('static', filename='javascript/workspace/issue-monitor.js')}}"></script>
 {% endblock %}

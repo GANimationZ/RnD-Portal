@@ -20,7 +20,6 @@
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
-
 .file-preview-dialog__head {
   display: flex;
   align-items: center;
@@ -67,7 +66,6 @@
   background: #f0f0f0;
   color: #333;
 }
-
 .file-preview-dialog__body {
   flex: 1;
   overflow: auto;
@@ -131,4 +129,4 @@
 .file-preview-unsupported p {
   font-size: 13px;
   line-height: 1.5;
-}
+}/*# sourceMappingURL=file-preview.css.map */

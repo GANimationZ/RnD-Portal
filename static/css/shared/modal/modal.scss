@@ -1,0 +1,180 @@
+@use "../../variables" as *;
+
+// ---- Shared popup (modal) ----
+%modal-button {
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+%modal-button-primary {
+  border: 1px solid $primary-color;
+  background: $primary-color;
+  color: #fff;
+
+  &:hover {
+    border-color: $primary-hover-color;
+    background: $primary-hover-color;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.app-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: $overlay-dark;
+
+  &.is-hidden,
+  .is-hidden {
+    display: none !important;
+  }
+
+  &__dialog {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 460px;
+    max-height: calc(100vh - 40px);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+
+    &--wide {
+      max-width: 680px;
+    }
+  }
+
+  // ---- Header ----
+  &__head {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid $color-border-light;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: $secondary-color;
+  }
+
+  &__close {
+    padding: 2px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: $color-text-muted;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: $tertiary-color;
+      color: $color-text;
+    }
+  }
+
+  // ---- Form ----
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+    overflow-y: auto;
+
+    label {
+      margin-bottom: -6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: $secondary-color;
+    }
+
+    input,
+    select,
+    textarea {
+      padding: 9px 12px;
+      border: 1px solid $fourtiary-color;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+      color: $color-text-soft;
+      outline-color: $primary-color;
+    }
+
+    input.is-invalid {
+      border-color: $color-danger;
+    }
+
+    input[type="file"] {
+      padding: 7px 10px;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+  }
+
+  &__hint {
+    margin: -6px 0 0;
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+
+  &__error {
+    margin: 0;
+    font-size: 12px;
+    color: $color-danger;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  // ---- Actions ----
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+
+    button {
+      @extend %modal-button;
+    }
+  }
+
+  &__form input[type="submit"] {
+    @extend %modal-button;
+  }
+
+  &__btn-secondary {
+    border: 1px solid $fourtiary-color;
+    background: #fff;
+    color: $secondary-color;
+
+    &:hover {
+      border-color: $secondary-hover-color;
+    }
+  }
+
+  &__btn-primary,
+  &__form input[type="submit"] {
+    @extend %modal-button-primary;
+  }
+}

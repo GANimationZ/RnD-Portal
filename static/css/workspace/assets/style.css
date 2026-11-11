@@ -336,7 +336,8 @@ select {
 .camera-modal__view video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  -o-object-fit: cover;
+     object-fit: cover;
 }
 .camera-modal__frame {
   position: absolute;
@@ -666,6 +667,4 @@ select {
   .main-body-content .body[data-panel=assets] .list {
     overflow-x: auto;
   }
-}
-
-/*# sourceMappingURL=style.css.map */
+}/*# sourceMappingURL=style.css.map */

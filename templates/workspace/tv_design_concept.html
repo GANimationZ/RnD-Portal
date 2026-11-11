@@ -1,74 +1,68 @@
 {% extends "partials/top-sidebar.html" %}
-
 {% block title %}<title>TV Design Concept - RnD Portal</title>{% endblock %}
-
 {% block styles %}
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/workspace/tv-design/style.css') }}"
-  />
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/workspace/tv-design/style.css') }}" />
 {% endblock %}
-
 {% block content %}
-  <div class="main-body-content">
-    {# ---- Main panel ---- #}
-    <div class="body active" data-panel="browse">
-      <div class="tv-search">
-        <div class="tv-search__box">
-          <i class="bxf bx-search"></i>
-          <input
-            type="text"
-            id="tvSearchInput"
-            placeholder="Search Serial Number, Production, or Origin..."
-          />
+    <div class="main-body-content">
+        {# ---- Main panel ---- #}
+        <div class="body active" data-panel="browse">
+            <div class="tv-search">
+                <div class="tv-search__box">
+                    <i class="bxf bx-search"></i>
+                    <input type="text"
+                           id="tvSearchInput"
+                           placeholder="Search Serial Number, Production, or Origin..." />
+                </div>
+                <div class="tv-search__right">
+                    <span class="tv-search__count" id="tvResultCount">0 entries</span>
+                    <button type="button" class="tv-search__add" id="tvAddBtn">
+                        <i class="bxf bx-plus"></i> Add New
+                    </button>
+                </div>
+            </div>
+            <div class="tv-grid" id="tvGrid"></div>
+            <div class="tv-empty is-hidden" id="tvEmpty">
+                <i class="bxf bx-folder-open"></i>
+                <p>No matching entries. Try a different keyword or add a new one.</p>
+            </div>
         </div>
-        <div class="tv-search__right">
-          <span class="tv-search__count" id="tvResultCount">0 entries</span>
-          <button type="button" class="tv-search__add" id="tvAddBtn">
-            <i class="bxf bx-plus"></i> Add New
-          </button>
+    </div>
+    {# ---- Popup: Add Design Entry (opened from the "Add New" button) ---- #}
+    <div class="app-modal is-hidden" id="tvModal">
+        <div class="app-modal__dialog">
+            <div class="app-modal__head">
+                <span class="app-modal__title">Add Design Entry</span>
+                <button type="button"
+                        class="app-modal__close"
+                        id="tvModalClose"
+                        aria-label="Close">
+                    <i class="bxf bx-x"></i>
+                </button>
+            </div>
+            <form class="app-modal__form" id="tvForm">
+                <input type="text" id="tvTitle" placeholder="Title / Model Name" required />
+                <input type="text" id="tvSerialNumber" placeholder="Serial Number" required />
+                <input type="text"
+                       id="tvProduction"
+                       placeholder="Production (e.g. Line A, Batch 12)" />
+                <input type="text"
+                       id="tvOrigin"
+                       placeholder="Origin (e.g. Vendor / Country)" />
+                <textarea id="tvNotes" placeholder="Additional notes (optional)"></textarea>
+                <input type="file"
+                       id="tvFiles"
+                       accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                       multiple />
+                <span class="app-modal__hint">You can attach more than one file: image, PDF, Word, Excel, or PowerPoint.</span>
+                <input type="submit" value="Save Entry" id="tvSubmitBtn" />
+                <span class="app-modal__error" id="tvFormMessage"></span>
+            </form>
         </div>
-      </div>
-
-      <div class="tv-grid" id="tvGrid"></div>
-      <div class="tv-empty is-hidden" id="tvEmpty">
-        <i class="bxf bx-folder-open"></i>
-        <p>No matching entries. Try a different keyword or add a new one.</p>
-      </div>
     </div>
-
-  </div>
-
-  {# ---- Popup: Add Design Entry (opened from the "Add New" button) ---- #}
-  <div class="app-modal is-hidden" id="tvModal">
-    <div class="app-modal__dialog">
-      <div class="app-modal__head">
-        <span class="app-modal__title">Add Design Entry</span>
-        <button type="button" class="app-modal__close" id="tvModalClose" aria-label="Close">
-          <i class="bxf bx-x"></i>
-        </button>
-      </div>
-      <form class="app-modal__form" id="tvForm">
-        <input type="text" id="tvTitle" placeholder="Title / Model Name" required />
-        <input type="text" id="tvSerialNumber" placeholder="Serial Number" required />
-        <input type="text" id="tvProduction" placeholder="Production (e.g. Line A, Batch 12)" />
-        <input type="text" id="tvOrigin" placeholder="Origin (e.g. Vendor / Country)" />
-        <textarea id="tvNotes" placeholder="Additional notes (optional)"></textarea>
-        <input
-          type="file"
-          id="tvFiles"
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-          multiple
-        />
-        <span class="app-modal__hint">You can attach more than one file: image, PDF, Word, Excel, or PowerPoint.</span>
-        <input type="submit" value="Save Entry" id="tvSubmitBtn" />
-        <span class="app-modal__error" id="tvFormMessage"></span>
-      </form>
-    </div>
-  </div>
 {% endblock %}
-
 {% block script %}
-  {{ super() }}
-  <script src="{{ url_for('static', filename='javascript/workspace/tv-design.js') }}"></script>
+    {{ super() }}
+    <script src="{{ url_for('static', filename='javascript/workspace/tv-design.js') }}"></script>
 {% endblock %}

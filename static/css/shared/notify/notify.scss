@@ -1,0 +1,166 @@
+@use "../../variables" as *;
+
+// ---- Toast ----
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid $color-info;
+  font-size: 13px;
+  color: $color-text;
+  animation: toastSlideIn 0.2s ease;
+
+  &--success {
+    border-left-color: $color-success;
+
+    i:first-child {
+      color: $color-success;
+    }
+  }
+
+  &--error {
+    border-left-color: $color-danger;
+
+    i:first-child {
+      color: $color-danger;
+    }
+  }
+
+  &--info i:first-child {
+    color: $color-info;
+  }
+
+  i:first-child {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  &__message {
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  &__close {
+    border: none;
+    background: none;
+    color: $color-text-muted;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    flex-shrink: 0;
+
+    &:hover {
+      color: $color-text;
+    }
+  }
+
+  &--leaving {
+    animation: toastSlideOut 0.18s ease forwards;
+  }
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastSlideOut {
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+// ---- Confirm dialog ----
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  background: $overlay-dark;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: issueOverlayFadeIn 0.15s ease;
+}
+
+.confirm-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 22px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  &__message {
+    font-size: 14px;
+    color: $color-text;
+    line-height: 1.5;
+    margin: 0 0 18px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__cancel,
+  &__confirm {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+
+  &__cancel {
+    background: #f0f1f3;
+    color: $color-text-soft;
+
+    &:hover {
+      background: #e4e7ec;
+    }
+  }
+
+  &__confirm {
+    background: $primary-color;
+    color: white;
+
+    &:hover {
+      background: #86002a;
+    }
+  }
+}
+
+@keyframes issueOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

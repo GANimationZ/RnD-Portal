@@ -1,12 +1,5 @@
 // ============================================================
 // RnD Portal - Issue Monitoring (LVT/MNT)
-// Every panel (Dashboard, List Issue, Priority Matrix) and the
-// "Register Issue" popup (opened from List Issue) share one data source: `issueData`, fetched from
-// /workspace/issue-monitor/api/issues.
-//
-// Tab switching (.nav-item__left clicks) is handled by
-// static/javascript/workspace/panel-switcher.js, loaded globally
-// via the layout -- this file has no tab logic of its own.
 // ============================================================
 
 Chart.register(ChartDataLabels);
@@ -18,17 +11,17 @@ const API_BASE = "/workspace/issue-monitor/api";
 // ------------------------------------------------------------
 const CATEGORY_META = {
   "PCBA/SMT": { color: "#b32e2e" },
-  "SQA": { color: "#dd3d3d" },
+  SQA: { color: "#dd3d3d" },
   "Line-Prod": { color: "#f18f34" },
-  "OQA": { color: "#2e92cc" },
+  OQA: { color: "#2e92cc" },
   "CSS/SVC": { color: "#2e92cc" },
 };
 
 const EVENT_META = {
-  "PV": { color: "#143820" },
+  PV: { color: "#143820" },
   "Pre-MP": { color: "#e24b4a" },
-  "MP": { color: "#2c7db3" },
-  "Field": { color: "#8a8f98" },
+  MP: { color: "#2c7db3" },
+  Field: { color: "#8a8f98" },
 };
 
 // Attachment icon per file type (see issue_monitor routes.py -> get_file_type())
@@ -103,7 +96,8 @@ function urgencyMeta(daysLeft) {
   else if (daysLeft === 0) label = "Due today";
   else label = `${daysLeft} days left`;
 
-  const color = daysLeft <= 3 ? "#e24b4a" : daysLeft <= 7 ? "#f2a623" : "#8a8f98";
+  const color =
+    daysLeft <= 3 ? "#e24b4a" : daysLeft <= 7 ? "#f2a623" : "#8a8f98";
   return { label, color };
 }
 
@@ -169,7 +163,8 @@ function computeMatrixData() {
   const events = Object.keys(EVENT_META);
   return categories.map((cat) =>
     events.map(
-      (ev) => issueData.filter((i) => i.category === cat && i.event === ev).length,
+      (ev) =>
+        issueData.filter((i) => i.category === cat && i.event === ev).length,
     ),
   );
 }
@@ -201,7 +196,12 @@ function barChartOptions(max) {
       },
     },
     scales: {
-      x: { beginAtZero: true, max, grid: { display: true }, ticks: { display: false } },
+      x: {
+        beginAtZero: true,
+        max,
+        grid: { display: true },
+        ticks: { display: false },
+      },
       y: { grid: { display: false }, ticks: { crossAlign: "far", padding: 0 } },
     },
   };
@@ -224,14 +224,16 @@ function renderCategoryChart() {
     type: "bar",
     data: {
       labels: data.map((d) => d.label),
-      datasets: [{
-        label: "Number of Issues",
-        data: data.map((d) => d.value),
-        backgroundColor: data.map((d) => d.color),
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      }],
+      datasets: [
+        {
+          label: "Number of Issues",
+          data: data.map((d) => d.value),
+          backgroundColor: data.map((d) => d.color),
+          borderRadius: 4,
+          categoryPercentage: 1.0,
+          barPercentage: 0.9,
+        },
+      ],
     },
     options: barChartOptions(max),
   });
@@ -254,21 +256,28 @@ function renderEventChart() {
     type: "bar",
     data: {
       labels: data.map((d) => d.label),
-      datasets: [{
-        label: "Number of Issues",
-        data: data.map((d) => d.value),
-        backgroundColor: data.map((d) => d.color),
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      }],
+      datasets: [
+        {
+          label: "Number of Issues",
+          data: data.map((d) => d.value),
+          backgroundColor: data.map((d) => d.color),
+          borderRadius: 4,
+          categoryPercentage: 1.0,
+          barPercentage: 0.9,
+        },
+      ],
     },
     options: barChartOptions(max),
   });
 }
 
 function statusColorFromClass(label) {
-  const map = { Open: "#2c7db3", Pending: "#f2a623", Closed: "#1e7e33", "On Hold": "#e24b4a" };
+  const map = {
+    Open: "#2c7db3",
+    Pending: "#f2a623",
+    Closed: "#1e7e33",
+    "On Hold": "#e24b4a",
+  };
   return map[label] || "#8a8f98";
 }
 
@@ -290,14 +299,16 @@ function renderStatusChart() {
     type: "bar",
     data: {
       labels: data.map((d) => d.label),
-      datasets: [{
-        label: "Number of Issues",
-        data: data.map((d) => d.value),
-        backgroundColor: colors,
-        borderRadius: 4,
-        categoryPercentage: 1.0,
-        barPercentage: 0.9,
-      }],
+      datasets: [
+        {
+          label: "Number of Issues",
+          data: data.map((d) => d.value),
+          backgroundColor: colors,
+          borderRadius: 4,
+          categoryPercentage: 1.0,
+          barPercentage: 0.9,
+        },
+      ],
     },
     options: barChartOptions(max),
   });
@@ -380,11 +391,17 @@ function renderMatrixTable() {
 
 function renderDashboardSummary() {
   const total = issueData.length;
-  const doNow = issueData.filter((i) => i.status !== "Closed" && classifyIssue(i) === "do-now").length;
-  const schedule = issueData.filter((i) => i.status !== "Closed" && classifyIssue(i) === "schedule").length;
+  const doNow = issueData.filter(
+    (i) => i.status !== "Closed" && classifyIssue(i) === "do-now",
+  ).length;
+  const schedule = issueData.filter(
+    (i) => i.status !== "Closed" && classifyIssue(i) === "schedule",
+  ).length;
   const onHold = issueData.filter((i) => i.status === "On Hold").length;
   const closed = issueData.filter((i) => i.status === "Closed").length;
-  const open = issueData.filter((i) => i.status === "Open" || i.status === "Pending").length;
+  const open = issueData.filter(
+    (i) => i.status === "Open" || i.status === "Pending",
+  ).length;
 
   setText("totalIssues", total);
   setText("totalDoNow", doNow);
@@ -420,7 +437,10 @@ async function loadAssignableUsers() {
   assigneeEl.innerHTML = `<option value="" selected>Loading...</option>`;
 
   try {
-    const params = new URLSearchParams({ category: categoryVal, event: eventVal });
+    const params = new URLSearchParams({
+      category: categoryVal,
+      event: eventVal,
+    });
     const res = await fetch(`/admin/users/api/assignable?${params}`);
     const data = await res.json();
     const users = data.users || [];
@@ -433,7 +453,11 @@ async function loadAssignableUsers() {
 
     assigneeEl.innerHTML =
       `<option value="" selected>Unassigned (optional)</option>` +
-      users.map((u) => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join("");
+      users
+        .map(
+          (u) => `<option value="${u.id}">${escapeHtml(u.username)}</option>`,
+        )
+        .join("");
     assigneeEl.disabled = false;
   } catch (err) {
     console.error(err);
@@ -482,16 +506,28 @@ function initIssueRegister() {
   const form = document.getElementById("issueForm");
   if (!form) return; // Member role: no register popup on the page
 
-  document.getElementById("openIssueRegister")?.addEventListener("click", openIssueRegister);
-  document.getElementById("issueRegisterClose")?.addEventListener("click", closeIssueRegister);
-  bindBackdropClose(document.getElementById("issueRegisterModal"), closeIssueRegister);
+  document
+    .getElementById("openIssueRegister")
+    ?.addEventListener("click", openIssueRegister);
+  document
+    .getElementById("issueRegisterClose")
+    ?.addEventListener("click", closeIssueRegister);
+  bindBackdropClose(
+    document.getElementById("issueRegisterModal"),
+    closeIssueRegister,
+  );
   document.addEventListener("keydown", (e) => {
     const modal = document.getElementById("issueRegisterModal");
-    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeIssueRegister();
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden"))
+      closeIssueRegister();
   });
 
-  document.getElementById("issueCategory")?.addEventListener("change", loadAssignableUsers);
-  document.getElementById("issueEvent")?.addEventListener("change", loadAssignableUsers);
+  document
+    .getElementById("issueCategory")
+    ?.addEventListener("change", loadAssignableUsers);
+  document
+    .getElementById("issueEvent")
+    ?.addEventListener("change", loadAssignableUsers);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -526,7 +562,9 @@ function initIssueRegister() {
       formData.append("assignee_id", assigneeEl.value);
     }
     if (fileEl && fileEl.files.length) {
-      Array.from(fileEl.files).forEach((file) => formData.append("attachments", file));
+      Array.from(fileEl.files).forEach((file) =>
+        formData.append("attachments", file),
+      );
     }
 
     const originalSubmitValue = submitBtn ? submitBtn.value : null;
@@ -536,7 +574,10 @@ function initIssueRegister() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/issues`, { method: "POST", body: formData });
+      const res = await fetch(`${API_BASE}/issues`, {
+        method: "POST",
+        body: formData,
+      });
       const data = await res.json();
 
       if (!res.ok) {
@@ -549,7 +590,10 @@ function initIssueRegister() {
       await fetchIssues();
       renderAll();
 
-      showToast(`Issue "${data.issue.title}" registered successfully.`, "success");
+      showToast(
+        `Issue "${data.issue.title}" registered successfully.`,
+        "success",
+      );
     } catch (err) {
       console.error(err);
       showToast("An error occurred while contacting the server.", "error");
@@ -590,13 +634,25 @@ function renderTable() {
       <td class="center"><span class="badge ${STATUS_CLASS[issue.status] || ""}">${escapeHtml(issue.status)}</span></td>
       <td class="center">
         <div class="action-buttons">
-          ${(window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin") && issue.status !== "Closed" ? `
+          ${
+            (window.CURRENT_ROLE === "Super Admin" ||
+              window.CURRENT_ROLE === "Admin") &&
+            issue.status !== "Closed"
+              ? `
           <button type="button" class="action-btn" data-action="hold" title="Hold"><i class="bxf bx-lock"></i></button>
-          ` : ""}
+          `
+              : ""
+          }
           <button type="button" class="action-btn" data-action="info" title="View Detail"><i class="bxf bx-info-circle"></i></button>
-          ${(window.CURRENT_ROLE === "Super Admin" || window.CURRENT_ROLE === "Admin") && issue.status !== "Closed" ? `
+          ${
+            (window.CURRENT_ROLE === "Super Admin" ||
+              window.CURRENT_ROLE === "Admin") &&
+            issue.status !== "Closed"
+              ? `
           <button type="button" class="action-btn" data-action="hand" title="Close Issue"><i class="bxf bx-hand"></i></button>
-          ` : ""}
+          `
+              : ""
+          }
         </div>
       </td>
     `;
@@ -625,7 +681,10 @@ function renderPaginationPages() {
   prevBtn.type = "button";
   prevBtn.textContent = "Prev";
   prevBtn.disabled = currentPage === 1;
-  prevBtn.addEventListener("click", () => { currentPage--; renderTable(); });
+  prevBtn.addEventListener("click", () => {
+    currentPage--;
+    renderTable();
+  });
   pagesEl.appendChild(prevBtn);
 
   for (let p = 1; p <= totalPages; p++) {
@@ -633,7 +692,10 @@ function renderPaginationPages() {
     pageBtn.type = "button";
     pageBtn.textContent = p;
     pageBtn.className = p === currentPage ? "is-active" : "";
-    pageBtn.addEventListener("click", () => { currentPage = p; renderTable(); });
+    pageBtn.addEventListener("click", () => {
+      currentPage = p;
+      renderTable();
+    });
     pagesEl.appendChild(pageBtn);
   }
 
@@ -641,7 +703,10 @@ function renderPaginationPages() {
   nextBtn.type = "button";
   nextBtn.textContent = "Next";
   nextBtn.disabled = currentPage === totalPages;
-  nextBtn.addEventListener("click", () => { currentPage++; renderTable(); });
+  nextBtn.addEventListener("click", () => {
+    currentPage++;
+    renderTable();
+  });
   pagesEl.appendChild(nextBtn);
 }
 
@@ -674,7 +739,9 @@ function toggleHold(issueId, currentStatus) {
 }
 
 function applyFilters() {
-  const searchVal = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+  const searchVal = (document.getElementById("searchInput")?.value || "")
+    .trim()
+    .toLowerCase();
   const priorityVal = document.getElementById("filterPriority")?.value || "";
   const statusVal = document.getElementById("filterStatus")?.value || "";
   const categoryVal = document.getElementById("filterCategory")?.value || "";
@@ -685,7 +752,8 @@ function applyFilters() {
     : "All Assignees";
 
   filteredData = issueData.filter((issue) => {
-    if (searchVal && !issue.title.toLowerCase().includes(searchVal)) return false;
+    if (searchVal && !issue.title.toLowerCase().includes(searchVal))
+      return false;
 
     if (priorityVal && !/all priority/i.test(priorityVal)) {
       const wanted = priorityVal === "Mid" ? "Medium" : priorityVal;
@@ -765,16 +833,42 @@ async function exportData(type) {
 
   // ---- CSV (plain data) ----
   if (type === "csv") {
-    const rows = [["No", "Title", "Priority", "Category", "Event", "Deadline", "Assignee", "Status"]];
+    const rows = [
+      [
+        "No",
+        "Title",
+        "Priority",
+        "Category",
+        "Event",
+        "Deadline",
+        "Assignee",
+        "Status",
+      ],
+    ];
     filteredData.forEach((issue, i) => {
-      rows.push([i + 1, issue.title, issue.priority, issue.category, issue.event, issue.deadline, issue.assignee_name || "-", issue.status]);
+      rows.push([
+        i + 1,
+        issue.title,
+        issue.priority,
+        issue.category,
+        issue.event,
+        issue.deadline,
+        issue.assignee_name || "-",
+        issue.status,
+      ]);
     });
     const content = rows
-      .map((r) => r.map((c) => `"${String(sanitizeCell(c)).replace(/"/g, '""')}"`).join(","))
+      .map((r) =>
+        r
+          .map((c) => `"${String(sanitizeCell(c)).replace(/"/g, '""')}"`)
+          .join(","),
+      )
       .join("\r\n");
 
     // BOM so Excel reads the CSV as UTF-8
-    const blob = new Blob(["\ufeff" + content], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\ufeff" + content], {
+      type: "text/csv;charset=utf-8",
+    });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `issue-list_${exportFileStamp()}.csv`;
@@ -814,7 +908,12 @@ async function exportData(type) {
       ]),
       colors: {
         Priority: { High: "red", Medium: "yellow", Low: "green" },
-        Status: { Open: "blue", Pending: "yellow", Closed: "green", "On Hold": "red" },
+        Status: {
+          Open: "blue",
+          Pending: "yellow",
+          Closed: "green",
+          "On Hold": "red",
+        },
       },
     });
     showToast(`${filteredData.length} issues exported to Excel.`, "success");
@@ -876,11 +975,13 @@ function showInlineDetail(issueId) {
         </button>`,
       )
       .join("");
-    attachmentsWrapper.querySelectorAll("[data-attachment-index]").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        openFilePreview(attachments[Number(chip.dataset.attachmentIndex)]);
+    attachmentsWrapper
+      .querySelectorAll("[data-attachment-index]")
+      .forEach((chip) => {
+        chip.addEventListener("click", () => {
+          openFilePreview(attachments[Number(chip.dataset.attachmentIndex)]);
+        });
       });
-    });
   }
 
   // A Closed issue is final -- hide Hold/Close once closed (backend also enforces this).
@@ -888,7 +989,8 @@ function showInlineDetail(issueId) {
   const holdBtn = document.getElementById("inlineDetailHoldBtn");
   if (holdBtn) {
     holdBtn.classList.toggle("is-hidden", isClosed);
-    holdBtn.textContent = issue.status === "On Hold" ? "Release Hold" : "Hold Issue";
+    holdBtn.textContent =
+      issue.status === "On Hold" ? "Release Hold" : "Hold Issue";
     holdBtn.onclick = () => toggleHold(issue.id, issue.status);
   }
 
@@ -907,12 +1009,18 @@ function showInlineDetail(issueId) {
       assigneeSelect.innerHTML = "";
     } else {
       assigneeSelect.classList.remove("is-hidden");
-      assigneeSelect.innerHTML = '<option value="">Loading assignees...</option>';
-      fetch(`/admin/users/api/assignable?category=${encodeURIComponent(issue.category)}&event=${encodeURIComponent(issue.event)}`)
+      assigneeSelect.innerHTML =
+        '<option value="">Loading assignees...</option>';
+      fetch(
+        `/admin/users/api/assignable?category=${encodeURIComponent(issue.category)}&event=${encodeURIComponent(issue.event)}`,
+      )
         .then((r) => r.json())
         .then((data) => {
           const options = (data.users || [])
-            .map((u) => `<option value="${u.id}">${escapeHtml(u.username)}</option>`)
+            .map(
+              (u) =>
+                `<option value="${u.id}">${escapeHtml(u.username)}</option>`,
+            )
             .join("");
           assigneeSelect.innerHTML = `<option value="">No assignee</option>${options}`;
         })
@@ -924,12 +1032,15 @@ function showInlineDetail(issueId) {
 
   if (closeBtn) {
     closeBtn.onclick = async () => {
-      const confirmed = await showConfirm(`Mark issue "${issue.title}" as Closed?`);
+      const confirmed = await showConfirm(
+        `Mark issue "${issue.title}" as Closed?`,
+      );
       if (!confirmed) return;
 
-      const chosenAssignee = assigneeSelect && !assigneeSelect.classList.contains("is-hidden")
-        ? assigneeSelect.value
-        : null;
+      const chosenAssignee =
+        assigneeSelect && !assigneeSelect.classList.contains("is-hidden")
+          ? assigneeSelect.value
+          : null;
       updateIssueStatus(issue.id, "Closed", chosenAssignee || null);
     };
   }
@@ -968,7 +1079,14 @@ function initListIssue() {
   const filterEvent = document.getElementById("filterEvent");
   const filterAssignee = document.getElementById("filterAssignee");
 
-  [searchInput, filterPriority, filterStatus, filterCategory, filterEvent, filterAssignee]
+  [
+    searchInput,
+    filterPriority,
+    filterStatus,
+    filterCategory,
+    filterEvent,
+    filterAssignee,
+  ]
     .filter(Boolean)
     .forEach((el) => {
       const evt = el.tagName === "SELECT" ? "change" : "input";
@@ -991,10 +1109,18 @@ function initListIssue() {
 
   // ---- Export ----
   const exportCsvBtn = document.getElementById("exportCsv");
-  if (exportCsvBtn) exportCsvBtn.addEventListener("click", (e) => { e.preventDefault(); exportData("csv"); });
+  if (exportCsvBtn)
+    exportCsvBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      exportData("csv");
+    });
 
   const exportExcelBtn = document.getElementById("exportExcel");
-  if (exportExcelBtn) exportExcelBtn.addEventListener("click", (e) => { e.preventDefault(); exportData("xls"); });
+  if (exportExcelBtn)
+    exportExcelBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      exportData("xls");
+    });
 
   // ---- Rows per page ----
   const rowsSelect = document.getElementById("rowsPerPage");
@@ -1033,11 +1159,16 @@ function initListIssue() {
         // assignee yet, redirect to the detail modal (it has a combobox
         // for picking the executor so it's credited on the KPI Dashboard).
         if (!issue.assignee_id) {
-          showToast("This issue has no assignee yet -- pick one on the detail page first.", "info");
+          showToast(
+            "This issue has no assignee yet -- pick one on the detail page first.",
+            "info",
+          );
           showInlineDetail(issue.id);
           return;
         }
-        const confirmed = await showConfirm(`Mark issue "${issue.title}" as Closed?`);
+        const confirmed = await showConfirm(
+          `Mark issue "${issue.title}" as Closed?`,
+        );
         if (confirmed) {
           updateIssueStatus(issue.id, "Closed");
         }
@@ -1078,7 +1209,9 @@ function ganttBarMeta(issue, rangeStart, rangeEnd) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const created = issue.created_at ? parseDeadline(issue.created_at) : rangeStart;
+  const created = issue.created_at
+    ? parseDeadline(issue.created_at)
+    : rangeStart;
   const deadline = parseDeadline(issue.deadline);
   const isOverdue = deadline < today && issue.status !== "Closed";
 
@@ -1098,7 +1231,14 @@ function ganttBarMeta(issue, rangeStart, rangeEnd) {
   if (isOverdue) color = "#e24b4a";
   else if (daysLeft <= 7) color = "#f2a623";
 
-  return { left, width, color, isOverdue, daysLeft, todayPercent: datePercent(today, rangeStart, rangeEnd) };
+  return {
+    left,
+    width,
+    color,
+    isOverdue,
+    daysLeft,
+    todayPercent: datePercent(today, rangeStart, rangeEnd),
+  };
 }
 
 function renderGanttHeader(rangeStart, rangeEnd) {
@@ -1107,7 +1247,8 @@ function renderGanttHeader(rangeStart, rangeEnd) {
   if (!header) return;
 
   const { quarterIndex, year } = currentQuarterRange();
-  if (label) label.textContent = `Q${quarterIndex + 1} ${year} (${rangeStart.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} - ${rangeEnd.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})`;
+  if (label)
+    label.textContent = `Q${quarterIndex + 1} ${year} (${rangeStart.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} - ${rangeEnd.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})`;
 
   const ticks = [];
   const cursor = new Date(rangeStart);
@@ -1119,7 +1260,10 @@ function renderGanttHeader(rangeStart, rangeEnd) {
   header.innerHTML = ticks
     .map((tick) => {
       const pct = datePercent(tick, rangeStart, rangeEnd);
-      const label = tick.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+      const label = tick.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+      });
       return `<span class="gantt__tick" style="left:${pct}%">${label}</span>`;
     })
     .join("");
@@ -1143,9 +1287,13 @@ function renderPriorityMatrix() {
   if (emptyState) emptyState.classList.add("is-hidden");
 
   const rows = activeIssues
-    .map((issue) => ({ issue, meta: ganttBarMeta(issue, rangeStart, rangeEnd) }))
+    .map((issue) => ({
+      issue,
+      meta: ganttBarMeta(issue, rangeStart, rangeEnd),
+    }))
     .sort((a, b) => {
-      if (a.meta.isOverdue !== b.meta.isOverdue) return a.meta.isOverdue ? -1 : 1;
+      if (a.meta.isOverdue !== b.meta.isOverdue)
+        return a.meta.isOverdue ? -1 : 1;
       if (a.meta.isOverdue) return a.meta.daysLeft - b.meta.daysLeft; // most overdue first
       return a.meta.daysLeft - b.meta.daysLeft; // nearest deadline first
     });
@@ -1153,7 +1301,8 @@ function renderPriorityMatrix() {
   const todayPercent = rows[0].meta.todayPercent;
 
   body.innerHTML = rows
-    .map(({ issue, meta }) => `
+    .map(
+      ({ issue, meta }) => `
       <div class="gantt__row ${meta.isOverdue ? "gantt__row--overdue" : ""}" data-issue-id="${issue.id}">
         <div class="gantt__row-label">
           <span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${escapeHtml(issue.priority)}</span>
@@ -1166,7 +1315,8 @@ function renderPriorityMatrix() {
           </div>
         </div>
       </div>
-    `)
+    `,
+    )
     .join("");
 
   body.querySelectorAll(".gantt__row").forEach((row) => {

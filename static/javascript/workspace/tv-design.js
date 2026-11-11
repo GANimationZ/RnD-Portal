@@ -17,7 +17,9 @@ let tvAssets = [];
 
 async function fetchTvAssets(query = "") {
   try {
-    const url = query ? `${TV_API_BASE}/assets?q=${encodeURIComponent(query)}` : `${TV_API_BASE}/assets`;
+    const url = query
+      ? `${TV_API_BASE}/assets?q=${encodeURIComponent(query)}`
+      : `${TV_API_BASE}/assets`;
     const res = await fetch(url);
     const data = await res.json();
     tvAssets = data.assets || [];
@@ -34,7 +36,8 @@ function renderTvGrid() {
   const count = document.getElementById("tvResultCount");
   if (!grid) return;
 
-  if (count) count.textContent = `${tvAssets.length} ${tvAssets.length === 1 ? "entry" : "entries"}`;
+  if (count)
+    count.textContent = `${tvAssets.length} ${tvAssets.length === 1 ? "entry" : "entries"}`;
 
   if (tvAssets.length === 0) {
     grid.innerHTML = "";
@@ -77,22 +80,32 @@ function renderTvGrid() {
   grid.querySelectorAll("[data-attachment-index]").forEach((chip) => {
     chip.addEventListener("click", () => {
       const asset = tvAssets.find((a) => a.id === Number(chip.dataset.assetId));
-      if (asset) openFilePreview(asset.attachments[Number(chip.dataset.attachmentIndex)]);
+      if (asset)
+        openFilePreview(
+          asset.attachments[Number(chip.dataset.attachmentIndex)],
+        );
     });
   });
 
   grid.querySelectorAll("[data-delete-id]").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      const confirmed = await showConfirm("Delete this entry along with all its attachments?");
+      const confirmed = await showConfirm(
+        "Delete this entry along with all its attachments?",
+      );
       if (!confirmed) return;
 
       try {
-        const res = await fetch(`${TV_API_BASE}/assets/${btn.dataset.deleteId}`, { method: "DELETE" });
+        const res = await fetch(
+          `${TV_API_BASE}/assets/${btn.dataset.deleteId}`,
+          { method: "DELETE" },
+        );
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Failed to delete entry.");
         showToast(data.message, "success");
-        await fetchTvAssets(document.getElementById("tvSearchInput")?.value.trim());
+        await fetchTvAssets(
+          document.getElementById("tvSearchInput")?.value.trim(),
+        );
       } catch (err) {
         showToast(err.message, "error");
       }
@@ -116,11 +129,14 @@ function closeTvModal() {
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("tvAddBtn")?.addEventListener("click", openTvModal);
-  document.getElementById("tvModalClose")?.addEventListener("click", closeTvModal);
+  document
+    .getElementById("tvModalClose")
+    ?.addEventListener("click", closeTvModal);
   bindBackdropClose(document.getElementById("tvModal"), closeTvModal);
   document.addEventListener("keydown", (e) => {
     const modal = document.getElementById("tvModal");
-    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden")) closeTvModal();
+    if (e.key === "Escape" && modal && !modal.classList.contains("is-hidden"))
+      closeTvModal();
   });
 
   const searchInput = document.getElementById("tvSearchInput");
@@ -128,7 +144,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let debounceTimer;
     searchInput.addEventListener("input", (e) => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchTvAssets(e.target.value.trim()), 250);
+      debounceTimer = setTimeout(
+        () => fetchTvAssets(e.target.value.trim()),
+        250,
+      );
     });
   }
 
@@ -142,19 +161,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const formData = new FormData();
       formData.append("title", document.getElementById("tvTitle").value.trim());
-      formData.append("serial_number", document.getElementById("tvSerialNumber").value.trim());
-      formData.append("production", document.getElementById("tvProduction").value.trim());
-      formData.append("origin", document.getElementById("tvOrigin").value.trim());
+      formData.append(
+        "serial_number",
+        document.getElementById("tvSerialNumber").value.trim(),
+      );
+      formData.append(
+        "production",
+        document.getElementById("tvProduction").value.trim(),
+      );
+      formData.append(
+        "origin",
+        document.getElementById("tvOrigin").value.trim(),
+      );
       formData.append("notes", document.getElementById("tvNotes").value.trim());
       if (filesInput.files.length) {
-        Array.from(filesInput.files).forEach((file) => formData.append("attachments", file));
+        Array.from(filesInput.files).forEach((file) =>
+          formData.append("attachments", file),
+        );
       }
 
       submitBtn.disabled = true;
       submitBtn.value = "Saving...";
 
       try {
-        const res = await fetch(`${TV_API_BASE}/assets`, { method: "POST", body: formData });
+        const res = await fetch(`${TV_API_BASE}/assets`, {
+          method: "POST",
+          body: formData,
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Failed to save entry.");
 

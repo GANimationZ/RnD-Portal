@@ -8,8 +8,6 @@ let toolView = "card";
 
 const el = (id) => document.getElementById(id);
 
-// escapeHtml() comes from shared/notify.js (also escapes quotes for attributes).
-
 async function loadItems() {
   try {
     const res = await fetch(TOOLS_API);
@@ -29,7 +27,9 @@ function populateCategories() {
   const previous = filter.value;
   filter.innerHTML =
     '<option value="All">All Categories</option>' +
-    toolCategories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    toolCategories
+      .map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`)
+      .join("");
   filter.value = toolCategories.includes(previous) ? previous : "All";
 
   el("toolCategoryOptions").innerHTML = toolCategories
@@ -43,7 +43,8 @@ function filteredItems() {
   const category = el("toolCategoryFilter").value;
 
   return toolItems.filter((item) => {
-    const haystack = `${item.name} ${item.category} ${item.description || ""}`.toLowerCase();
+    const haystack =
+      `${item.name} ${item.category} ${item.description || ""}`.toLowerCase();
     return (
       (!search || haystack.includes(search)) &&
       (kind === "All" || item.kind === kind) &&
@@ -102,7 +103,8 @@ function render() {
   const items = filteredItems();
   el("toolCount").textContent = `(${items.length})`;
 
-  const emptyMarkup = '<div class="empty-state">No tools or material match the current filter.</div>';
+  const emptyMarkup =
+    '<div class="empty-state">No tools or material match the current filter.</div>';
   if (items.length === 0) {
     el("toolCardContainer").innerHTML = emptyMarkup;
     el("toolListContainer").innerHTML = emptyMarkup;
@@ -196,14 +198,17 @@ document.addEventListener("DOMContentLoaded", () => {
   el("toolModalClose").addEventListener("click", closeModal);
   bindBackdropClose(el("toolModal"), closeModal);
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !el("toolModal").classList.contains("is-hidden")) closeModal();
+    if (e.key === "Escape" && !el("toolModal").classList.contains("is-hidden"))
+      closeModal();
   });
   el("toolForm").addEventListener("submit", submitForm);
 
-  document.querySelector(".main-body-content").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-delete-id]");
-    if (btn) handleDelete(btn.dataset.deleteId);
-  });
+  document
+    .querySelector(".main-body-content")
+    .addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-delete-id]");
+      if (btn) handleDelete(btn.dataset.deleteId);
+    });
 
   setView("card");
   loadItems();

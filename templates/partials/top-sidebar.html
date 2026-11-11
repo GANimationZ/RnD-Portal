@@ -7,15 +7,15 @@
   />
   <link
     rel="stylesheet"
-    href="{{ url_for('static', filename='css/shared/notify.css') }}"
+    href="{{ url_for('static', filename='css/shared/notify/notify.css') }}"
   />
   <link
     rel="stylesheet"
-    href="{{ url_for('static', filename='css/shared/file-preview.css') }}"
+    href="{{ url_for('static', filename='css/shared/file-preview/file-preview.css') }}"
   />
   <link
     rel="stylesheet"
-    href="{{ url_for('static', filename='css/shared/modal.css') }}"
+    href="{{ url_for('static', filename='css/shared/modal/modal.css') }}"
   />
 {% endblock %}
 
@@ -82,8 +82,8 @@
     window.ACTIVE_NAV = "{{ active_nav }}";
     window.CURRENT_ROLE = "{{ current_role or '' }}";
   </script>
-  <script src="{{ url_for('static', filename='javascript/shared/notify.js') }}"></script>
-  <script src="{{ url_for('static', filename='javascript/shared/file-preview.js') }}"></script>
+  <script src="{{ url_for('static', filename='javascript/shared/notify/notify.js') }}"></script>
+  <script src="{{ url_for('static', filename='javascript/shared/file-preview/file-preview.js') }}"></script>
   <script src="{{ url_for('static', filename='javascript/sidebar/script.js') }}"></script>
   <script src="{{ url_for('static', filename='javascript/workspace/panel-switcher.js') }}"></script>
 {% endblock %}

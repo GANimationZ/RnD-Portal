@@ -1,17 +1,26 @@
-/* ====================================================================
-   Shared popup (modal) -- dipakai oleh Register Issue, Add Design,
-   Add Asset, Add/Edit User, dll. Struktur:
+.app-modal__form input[type=submit], .app-modal__actions button {
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-   <div class="app-modal is-hidden" id="...">
-     <div class="app-modal__dialog [app-modal__dialog--wide]">
-       <div class="app-modal__head">
-         <span class="app-modal__title">Title</span>
-         <button class="app-modal__close"><i class="bxf bx-x"></i></button>
-       </div>
-       <form class="app-modal__form"> ... </form>
-     </div>
-   </div>
-   ==================================================================== */
+.app-modal__btn-primary, .app-modal__form input[type=submit] {
+  border: 1px solid #a50034;
+  background: #a50034;
+  color: #fff;
+}
+.app-modal__btn-primary:hover, .app-modal__form input[type=submit]:hover {
+  border-color: #700023;
+  background: #700023;
+}
+.app-modal__btn-primary:disabled, .app-modal__form input[type=submit]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .app-modal {
   position: fixed;
@@ -23,12 +32,10 @@
   padding: 20px;
   background: rgba(15, 15, 20, 0.55);
 }
-
 .app-modal.is-hidden,
 .app-modal .is-hidden {
   display: none !important;
 }
-
 .app-modal__dialog {
   display: flex;
   flex-direction: column;
@@ -40,11 +47,9 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
-
 .app-modal__dialog--wide {
   max-width: 680px;
 }
-
 .app-modal__head {
   display: flex;
   flex-shrink: 0;
@@ -53,13 +58,11 @@
   padding: 14px 18px;
   border-bottom: 1px solid #eceff3;
 }
-
 .app-modal__title {
   font-size: 14px;
   font-weight: 700;
   color: #6b6b6b;
 }
-
 .app-modal__close {
   padding: 2px;
   border: none;
@@ -70,12 +73,10 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .app-modal__close:hover {
   background: #f0f0f0;
   color: #333;
 }
-
 .app-modal__form {
   display: flex;
   flex-direction: column;
@@ -83,14 +84,12 @@
   padding: 18px;
   overflow-y: auto;
 }
-
 .app-modal__form label {
   margin-bottom: -6px;
   font-size: 12px;
   font-weight: 600;
   color: #6b6b6b;
 }
-
 .app-modal__form input,
 .app-modal__form select,
 .app-modal__form textarea {
@@ -102,79 +101,40 @@
   color: #444;
   outline-color: #a50034;
 }
-
 .app-modal__form input.is-invalid {
   border-color: #e24b4a;
 }
-
-.app-modal__form input[type="file"] {
+.app-modal__form input[type=file] {
   padding: 7px 10px;
 }
-
 .app-modal__form textarea {
   min-height: 110px;
   resize: vertical;
 }
-
 .app-modal__hint {
   margin: -6px 0 0;
   font-size: 11px;
   color: #8a8f98;
 }
-
 .app-modal__error {
   margin: 0;
   font-size: 12px;
   color: #e24b4a;
 }
-
 .app-modal__error:empty {
   display: none;
 }
-
 .app-modal__actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
 }
-
-.app-modal__actions button,
-.app-modal__form input[type="submit"] {
-  padding: 9px 18px;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
 .app-modal__btn-secondary {
   border: 1px solid #bfbfbf;
   background: #fff;
   color: #6b6b6b;
 }
-
 .app-modal__btn-secondary:hover {
   border-color: #525252;
-}
-
-.app-modal__btn-primary,
-.app-modal__form input[type="submit"] {
-  border: 1px solid #a50034;
-  background: #a50034;
-  color: #fff;
-}
-
-.app-modal__btn-primary:hover,
-.app-modal__form input[type="submit"]:hover {
-  border-color: #700023;
-  background: #700023;
-}
-
-.app-modal__btn-primary:disabled,
-.app-modal__form input[type="submit"]:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+}/*# sourceMappingURL=modal.css.map */
