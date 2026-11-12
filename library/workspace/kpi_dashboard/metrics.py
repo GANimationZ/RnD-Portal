@@ -106,12 +106,39 @@ def aggregate_records(records):
     }
 
 
-def build_trend_series(records):
+def build_trend_series(records, range_key=DEFAULT_RANGE):
+    """One point per calendar week from the range's start through the
+    CURRENT week, zero-filled for any week with no KPIRecord row.
+
+    A week with no activity never gets a row at all (see
+    recording._get_or_create_week_record), so plotting `records` directly
+    skips straight over it -- the line then stops at whichever week last
+    had activity and never reaches the current week, which looks like the
+    chart is "stuck" rather than correctly showing 0 for an inactive week."""
+    from .recording import _week_start
+
+    by_date = {r.period_date: r for r in records}
+    this_week = _week_start()
+    start_week = _week_start(cutoff_date(range_key))
+
+    # records_in_range() falls back to the single latest record when
+    # nothing falls in the range (e.g. a brand new member) -- that record
+    # can be older than start_week, so start from it instead of
+    # generating an all-zero series that drops the one point we have.
+    if records and all(r.period_date < start_week for r in records):
+        start_week = min(r.period_date for r in records)
+
+    weeks = []
+    week = start_week
+    while week <= this_week:
+        weeks.append(week)
+        week += timedelta(days=7)
+
     return {
-        "labels": [r.period_date.strftime("%d %b") for r in records],
-        "resolved": [r.completed for r in records],
-        "pending": [r.pending for r in records],
-        "overdue": [r.overdue for r in records],
+        "labels": [w.strftime("%d %b") for w in weeks],
+        "resolved": [by_date[w].completed if w in by_date else 0 for w in weeks],
+        "pending": [by_date[w].pending if w in by_date else 0 for w in weeks],
+        "overdue": [by_date[w].overdue if w in by_date else 0 for w in weeks],
     }
 
 
@@ -187,7 +214,7 @@ def employee_summary(employee, range_key=DEFAULT_RANGE):
         "completionRate": rate,
         "completionRateColor": rate_color(rate),
         "workload": bar,
-        "trend": build_trend_series(records),
+        "trend": build_trend_series(records, range_key),
         "bestPractices": [bp.note for bp in employee.best_practices],
     }
 

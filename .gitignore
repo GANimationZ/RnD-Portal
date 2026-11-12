@@ -5,3 +5,9 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Node tooling (prettier etc.) -- regenerate with `npm install`, never commit.
+node_modules/
+
+# Dev tool binary, not part of the app; also corrupts easily in zip transfers.
+devtunnel.exe

@@ -1,0 +1,421 @@
+@use "../../../base" as *;
+
+// Issue Monitor -- Detail
+// Dipakai 2 tampilan:
+//   .issue-detail         -> halaman detail penuh   (templates/workspace/issue_detail.html)
+//   .issue-inline-detail  -> overlay/modal detail   (templates/workspace/issue_monitor.html)
+// Base style (tabel, badge, filter, dll) ada di ../issue-main/style.scss
+
+$detail-border: #e0e0e0;
+$detail-meta-bg: #fafafa;
+$detail-meta-border: #eee;
+$detail-image-bg: #f2f2f2;
+$detail-no-image: #b0b0b0;
+$detail-label: #9a9a9a;
+$detail-chip-bg: #f5f5f7;
+$detail-chip-border: #e4e7ec;
+
+// ==================== Mixins (dipakai bersama page & overlay) ====================
+@mixin card {
+  background-color: white;
+  border: 1px solid $detail-border;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+@mixin image-wrapper($max-height) {
+  width: 100%;
+  max-height: $max-height;
+  overflow: hidden;
+  background-color: $detail-image-bg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    max-height: $max-height;
+    object-fit: contain;
+  }
+}
+
+@mixin head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@mixin badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@mixin eyebrow {
+  font-size: 12px;
+  color: $primary-color;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+@mixin meta-grid($min-width, $gap, $padding) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax($min-width, 1fr));
+  gap: $gap;
+  padding: $padding;
+  background-color: $detail-meta-bg;
+  border-radius: 6px;
+  border: 1px solid $detail-meta-border;
+}
+
+@mixin meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@mixin meta-label {
+  font-size: 11px;
+  color: $detail-label;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@mixin meta-value {
+  font-size: 14px;
+  color: $color-text;
+  font-weight: 500;
+}
+
+@mixin section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: $secondary-color;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+@mixin description {
+  white-space: pre-wrap;
+  color: $color-text-soft;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@mixin actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  button {
+    padding: 9px 16px;
+    border-radius: 6px;
+    border: 1px solid $primary-color;
+    background-color: white;
+    color: $primary-color;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: $primary-color;
+      color: white;
+    }
+  }
+}
+
+// ==================== Halaman Detail (issue_detail.html) ====================
+.issue-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 15px 0;
+  max-width: 900px;
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    color: $secondary-color;
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  &__card {
+    @include card;
+  }
+
+  &__image-wrapper {
+    @include image-wrapper(420px);
+  }
+
+  &__no-image {
+    padding: 40px;
+    color: $detail-no-image;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  &__body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  &__head {
+    @include head-row;
+  }
+
+  &__eyebrow {
+    @include eyebrow;
+  }
+
+  &__title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #262626;
+    margin-top: 4px;
+  }
+
+  &__badges {
+    @include badges;
+  }
+
+  &__meta {
+    @include meta-grid(160px, 16px, 16px);
+  }
+
+  &__meta-item {
+    @include meta-item;
+  }
+
+  &__meta-label {
+    @include meta-label;
+  }
+
+  &__meta-value {
+    @include meta-value;
+  }
+
+  &__section-title {
+    @include section-title;
+  }
+
+  &__description {
+    @include description;
+  }
+
+  &__actions {
+    @include actions;
+
+    button.is-active {
+      background-color: $primary-color;
+      color: white;
+    }
+  }
+}
+
+// ==================== Overlay Detail (dulu inline, sekarang modal) ====================
+.issue-inline-detail {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  background: $overlay-dark;
+  overflow-y: auto;
+  animation: issueOverlayFadeIn 0.15s ease;
+
+  &.is-hidden {
+    display: none;
+  }
+
+  &__dialog {
+    width: 100%;
+    max-width: 720px;
+    background: transparent;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  &__eyebrow {
+    @include eyebrow;
+  }
+
+  &__close {
+    border: none;
+    background: transparent;
+    color: $color-text-muted;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: $tertiary-color;
+      color: $color-text;
+    }
+  }
+
+  &__card {
+    @include card;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+
+  &__image-wrapper {
+    @include image-wrapper(360px);
+
+    .issue-inline-detail__no-image {
+      padding: 32px;
+      color: $detail-no-image;
+      font-size: 13px;
+    }
+  }
+
+  &__body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__top {
+    @include head-row;
+  }
+
+  &__title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #262626;
+  }
+
+  &__badges {
+    @include badges;
+  }
+
+  &__meta {
+    @include meta-grid(150px, 14px, 14px);
+  }
+
+  &__meta-item {
+    @include meta-item;
+  }
+
+  &__meta-label {
+    @include meta-label;
+  }
+
+  &__meta-value {
+    @include meta-value;
+  }
+
+  &__section-title {
+    @include section-title;
+    margin-bottom: 4px;
+  }
+
+  &__description {
+    @include description;
+  }
+
+  &__actions {
+    @include actions;
+  }
+
+  // Lampiran & assign-saat-tutup
+  &__attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  &__close-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    select {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid $detail-chip-border;
+      font-size: 12px;
+
+      &.is-hidden {
+        display: none;
+      }
+    }
+  }
+}
+
+@keyframes issueOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: $detail-chip-bg;
+  border: 1px solid $detail-chip-border;
+  font-size: 12px;
+  color: $color-text;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    background: $color-border-light;
+  }
+
+  i {
+    font-size: 14px;
+    color: $primary-color;
+  }
+}
+
+// ==================== List Issue: baris bisa diklik buat buka detail ====================
+.main-body-content .body .list {
+  .action-buttons .action-btn[data-action="detail"] {
+    color: $primary-color;
+  }
+
+  tbody tr {
+    cursor: pointer;
+
+    &:hover {
+      background-color: $detail-meta-bg;
+    }
+  }
+}

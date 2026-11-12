@@ -1,3 +1,20 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+html,
+body {
+  font-family: "Poppins", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: #a50034 #bfbfbf;
+}
+
+input,
+button,
+textarea,
+select {
+  font-family: inherit;
+}
+
 .issue-detail {
   display: flex;
   flex-direction: column;
@@ -5,7 +22,6 @@
   margin: 15px 0;
   max-width: 900px;
 }
-
 .issue-detail__back {
   display: inline-flex;
   align-items: center;
@@ -19,14 +35,12 @@
 .issue-detail__back:hover {
   color: #a50034;
 }
-
 .issue-detail__card {
   background-color: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   overflow: hidden;
 }
-
 .issue-detail__image-wrapper {
   width: 100%;
   max-height: 420px;
@@ -47,14 +61,12 @@
   font-size: 13px;
   text-align: center;
 }
-
 .issue-detail__body {
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
-
 .issue-detail__head {
   display: flex;
   flex-wrap: wrap;
@@ -62,27 +74,23 @@
   justify-content: space-between;
   gap: 12px;
 }
-
 .issue-detail__eyebrow {
   font-size: 12px;
   color: #a50034;
   font-weight: 600;
   letter-spacing: 0.03em;
 }
-
 .issue-detail__title {
   font-size: 22px;
   font-weight: 700;
   color: #262626;
   margin-top: 4px;
 }
-
 .issue-detail__badges {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
-
 .issue-detail__meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -108,7 +116,6 @@
   color: #333;
   font-weight: 500;
 }
-
 .issue-detail__section-title {
   font-size: 13px;
   font-weight: 700;
@@ -116,14 +123,12 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-
 .issue-detail__description {
   white-space: pre-wrap;
   color: #444;
   font-size: 14px;
   line-height: 1.6;
 }
-
 .issue-detail__actions {
   display: flex;
   gap: 10px;
@@ -148,7 +153,6 @@
   color: white;
 }
 
-/* ==================== Detail Overlay (dulu inline, sekarang modal) ==================== */
 .issue-inline-detail {
   position: fixed;
   inset: 0;
@@ -169,11 +173,6 @@
   max-width: 720px;
   background: transparent;
 }
-@keyframes issueOverlayFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .issue-inline-detail__head {
   display: flex;
   align-items: center;
@@ -201,7 +200,6 @@
   background: #f0f0f0;
   color: #333;
 }
-
 .issue-inline-detail__card {
   background-color: white;
   border: 1px solid #e0e0e0;
@@ -211,7 +209,6 @@
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
-
 .issue-inline-detail__image-wrapper {
   width: 100%;
   max-height: 360px;
@@ -231,14 +228,12 @@
   color: #b0b0b0;
   font-size: 13px;
 }
-
 .issue-inline-detail__body {
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-
 .issue-inline-detail__top {
   display: flex;
   flex-wrap: wrap;
@@ -256,7 +251,6 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-
 .issue-inline-detail__meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -282,7 +276,6 @@
   color: #333;
   font-weight: 500;
 }
-
 .issue-inline-detail__section-title {
   font-size: 13px;
   font-weight: 700;
@@ -297,7 +290,6 @@
   font-size: 14px;
   line-height: 1.6;
 }
-
 .issue-inline-detail__actions {
   display: flex;
   gap: 10px;
@@ -317,20 +309,6 @@
   background-color: #a50034;
   color: white;
 }
-
-.main-body-content .body .list .action-buttons .action-btn[data-action="detail"] {
-  color: #a50034;
-}
-
-/* Baris tabel List Issue bisa diklik buat buka detail inline */
-.main-body-content .body .list tbody tr {
-  cursor: pointer;
-}
-.main-body-content .body .list tbody tr:hover {
-  background-color: #fafafa;
-}
-
-/* ==================== Lampiran & assign-saat-tutup ==================== */
 .issue-inline-detail__attachments {
   display: flex;
   flex-wrap: wrap;
@@ -339,6 +317,29 @@
 }
 .issue-inline-detail__attachments:empty {
   display: none;
+}
+.issue-inline-detail__close-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.issue-inline-detail__close-group select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e4e7ec;
+  font-size: 12px;
+}
+.issue-inline-detail__close-group select.is-hidden {
+  display: none;
+}
+
+@keyframes issueOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .attachment-chip {
   display: inline-flex;
@@ -362,17 +363,14 @@
   color: #a50034;
 }
 
-.issue-inline-detail__close-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.main-body-content .body .list .action-buttons .action-btn[data-action=detail] {
+  color: #a50034;
 }
-.issue-inline-detail__close-group select {
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #e4e7ec;
-  font-size: 12px;
+.main-body-content .body .list tbody tr {
+  cursor: pointer;
 }
-.issue-inline-detail__close-group select.is-hidden {
-  display: none;
+.main-body-content .body .list tbody tr:hover {
+  background-color: #fafafa;
 }
+
+/*# sourceMappingURL=style.css.map */

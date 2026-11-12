@@ -29,6 +29,12 @@ def wants_json():
 
 
 def _load_live_session_user():
+    """Re-check the session against the DB on every request, so a
+    deactivated/demoted/deleted account is caught immediately instead of
+    staying valid until the session naturally expires. Cached on flask.g
+    since @login_required + @roles_required can both run in one request.
+    Keeps session["role"] in sync, or clears the session and returns None
+    if the account is gone/inactive."""
     if "_live_session_user" in g:
         return g._live_session_user
 
@@ -42,7 +48,6 @@ def _load_live_session_user():
     session["role"] = user.role
     g._live_session_user = user
     return user
-from flask import jsonify, redirect, request, session, url_for
 
 
 def login_required(f):
@@ -60,9 +65,10 @@ def login_required(f):
 
 
 def roles_required(*roles):
-    """Use after @login_required. Redirects HTML page requests back to the
-    dashboard, but returns 403 JSON for API/fetch requests so the frontend
-    can show a proper error instead of an unexpected HTML response."""
+    """Use after @login_required. abort(403) is handled centrally by
+    library/errors.py, which already returns JSON for API/fetch requests
+    and the 403 page for plain browser navigation -- no need to
+    special-case that here too."""
 
     def decorator(f):
         @wraps(f)
@@ -75,16 +81,6 @@ def roles_required(*roles):
 
             if session.get("role") not in roles:
                 abort(403)
-            if session.get("role") not in roles:
-                wants_json = (
-                    request.is_json
-                    or request.path.startswith("/admin/users/api")
-                    or request.path.rstrip("/").endswith("/api")
-                    or "/api/" in request.path
-                )
-                if wants_json:
-                    return jsonify({"message": "Akses ditolak: hak akses tidak mencukupi."}), 403
-                return redirect(url_for("main.kpi_dashboard"))
 
             return f(*args, **kwargs)
 

@@ -8,8 +8,14 @@
     "sass": "^1.104.1"
   },
   "dependencies": {
-    "chart.js": "^4.4.0",
+    "@e965/xlsx": "^0.20.3",
+    "chart.js": "^4.6.1",
+    "chartjs": "^0.3.24",
     "chartjs-plugin-datalabels": "^2.2.0",
     "flatpickr": "^4.6.13"
+  },
+  "allowScripts": {
+    "chartjs-plugin-datalabels@2.2.0": true,
+    "@parcel/watcher@2.6.0": true
   }
 }
