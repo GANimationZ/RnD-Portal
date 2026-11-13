@@ -1,5 +1,35 @@
 @use "../../base" as *;
 
+// Integrated Tools -- kumpulan pintasan ke situs eksternal (tool & material).
+// Semua entri dibuka di tab baru, jadi kartu menampilkan host tujuannya.
+
+$line: #e4e7ec;
+$list-columns: 28px minmax(0, 1fr) 90px 150px;
+$list-columns-narrow: 28px minmax(0, 1fr) 92px;
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+@mixin kind-icon($size, $font) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $size;
+  height: $size;
+  border-radius: 8px;
+  background: rgba($primary-color, 0.1);
+  color: $primary-color;
+  flex-shrink: 0;
+
+  i {
+    font-size: $font;
+  }
+}
+
 .main-body-content {
   padding: 0 20px;
 
@@ -14,62 +44,92 @@
     // ---- Filter bar ----
     .activity-filters {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      align-items: center;
       margin: 15px 0;
-      padding: 15px;
-      gap: 10px;
+      padding: 14px 15px;
+      gap: 10px 16px;
       width: 100%;
       background-color: white;
       border-radius: 12px;
       border: 1px solid $primary-color;
 
       .search_and_filters {
+        flex: 1 1 420px;
+        min-width: 0;
+
         form {
           display: flex;
-          flex: 1;
-          justify-content: center;
+          flex-wrap: wrap;
           align-items: center;
           gap: 10px;
 
-          label {
-            color: $primary-color;
-            font-size: 12px;
+          .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
             white-space: nowrap;
           }
 
           input,
           select {
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid $fourtiary-color;
             border-radius: 6px;
-            outline-color: $primary-color;
-            width: 100%;
+            background: white;
+            font-family: $font-poppins;
+            font-size: 13px;
+            color: $color-text;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+            &:focus {
+              border-color: $primary-color;
+              box-shadow: 0 0 0 3px rgba($primary-color, 0.12);
+            }
+          }
+
+          input {
+            flex: 1 1 220px;
+            min-width: 0;
+          }
+
+          select {
+            flex: 0 1 190px;
+            min-width: 0;
           }
         }
       }
 
       .btns {
         display: flex;
-        justify-content: space-between;
         gap: 8px;
 
         button {
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 6px;
+          height: 36px;
+          padding: 0 18px;
           background-color: white;
-          border: 1px solid $tertiary-color;
+          border: 1px solid $fourtiary-color;
           border-radius: 6px;
-          padding: 0 20px;
           flex-shrink: 0;
           white-space: nowrap;
-          justify-content: center;
           color: $secondary-color;
-          font-size: $ps;
-          font-weight: $h6w;
+          font-family: $font-poppins;
+          font-size: 13px;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
+          @include focus-ring;
 
           &:hover {
-            border: 1px solid $secondary-hover-color;
+            border-color: $secondary-hover-color;
           }
 
           &.btns__primary {
@@ -95,9 +155,16 @@
 
       &__header {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        margin-bottom: 12px;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      &__title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
 
         .header {
           font-size: 16px;
@@ -106,8 +173,13 @@
 
           .count {
             font-weight: 400;
-            color: #8a8f98;
+            color: $color-text-muted;
           }
+        }
+
+        .hint {
+          font-size: 12px;
+          color: $color-text-muted;
         }
       }
 
@@ -117,84 +189,131 @@
         justify-content: center;
         width: 32px;
         height: 32px;
+        flex-shrink: 0;
         border: 1px solid $primary-color;
         border-radius: 6px;
         background: white;
         color: $primary-color;
         cursor: pointer;
         transition: all 0.2s ease;
+        @include focus-ring;
 
         i {
           font-size: 16px;
         }
 
         &:hover {
-          background-color: rgba($color: $primary-color, $alpha: 0.08);
+          background-color: rgba($primary-color, 0.08);
           border-color: $primary-hover-color;
           color: $primary-hover-color;
         }
       }
 
       .empty-state {
-        padding: 30px 10px;
+        padding: 36px 10px;
         text-align: center;
         font-size: 13px;
-        color: #8a8f98;
+        color: $color-text-muted;
+
+        p {
+          margin: 0;
+        }
+
+        &__action {
+          margin-top: 12px;
+          height: 34px;
+          padding: 0 16px;
+          border: 1px solid $primary-color;
+          border-radius: 6px;
+          background: white;
+          color: $primary-color;
+          font-family: $font-poppins;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          @include focus-ring;
+
+          &:hover {
+            background: $primary-color;
+            color: white;
+          }
+        }
       }
 
-      // ---- Card grid ----
+      // ---- Card view: dikelompokkan per kategori ----
       .card-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .tool-group {
+        &__title {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          margin: 0 0 10px;
+          font-size: 13px;
+          font-weight: 600;
+          color: $secondary-color;
+        }
+
+        &__count {
+          font-weight: 400;
+          color: $color-text-muted;
+        }
+
+        &__grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 12px;
+        }
       }
 
       .tool-card {
         position: relative;
-        border-radius: 8px;
-        overflow: hidden;
+        display: flex;
 
         &__link {
           display: flex;
-          align-items: flex-start;
-          gap: 12px;
+          flex-direction: column;
+          gap: 10px;
+          flex: 1;
+          min-width: 0;
           padding: 14px;
-          border: 1px solid #e4e7ec;
+          border: 1px solid $line;
           border-radius: 8px;
-          background: #f7f8fa;
+          background: white;
           text-decoration: none;
-          transition: all 0.2s ease;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          @include focus-ring;
 
-          &:hover {
+          &:hover,
+          &:focus-visible {
             border-color: $primary-color;
-            background: $primary-hover-color;
+            box-shadow: 0 2px 10px rgba($primary-color, 0.12);
 
             .tool-card__go {
-              opacity: 1;
+              color: $primary-color;
             }
           }
         }
 
-        &__icon {
+        &__top {
           display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
-          background: rgba($color: $primary-color, $alpha: 0.1);
-          color: $primary-color;
-          flex-shrink: 0;
+          align-items: flex-start;
+          gap: 12px;
+        }
 
-          i {
-            font-size: 18px;
-          }
+        &__icon {
+          @include kind-icon(36px, 18px);
         }
 
         &__body {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 1px;
           flex: 1;
           min-width: 0;
         }
@@ -202,137 +321,228 @@
         &__name {
           font-size: 13px;
           font-weight: 700;
-          color: $secondary-color;
+          line-height: 1.35;
+          color: $color-text;
+          overflow-wrap: anywhere;
         }
 
-        &__meta {
+        &__host {
           font-size: 11px;
-          color: $primary-color;
-          font-weight: 600;
-        }
-
-        &__desc {
-          font-size: 11px;
-          color: #8a8f98;
-          margin-top: 2px;
+          color: $color-text-muted;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         &__go {
           font-size: 14px;
-          color: #8a8f98;
+          color: $fourtiary-color;
           flex-shrink: 0;
-          opacity: 0;
-          transition: opacity 0.2s ease;
+          transition: color 0.15s ease;
+        }
+
+        &__desc {
+          font-size: 12px;
+          line-height: 1.5;
+          color: $color-text-soft;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          overflow: hidden;
+        }
+
+        &__foot {
+          display: flex;
+          align-items: center;
+          min-height: 24px;
+          margin-top: auto;
+        }
+
+        &__kind {
+          padding: 2px 8px;
+          border-radius: 999px;
+          background: rgba($primary-color, 0.08);
+          font-size: 11px;
+          font-weight: 600;
+          color: $primary-color;
         }
       }
 
+      // Tombol hapus: muncul saat kartu/baris di-hover atau difokus,
+      // selalu tampil di layar sentuh.
       .tool-delete {
         position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 24px;
-        height: 24px;
+        right: 10px;
+        bottom: 10px;
+        width: 26px;
+        height: 26px;
         border: none;
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.9);
-        color: #b3b7be;
+        background: transparent;
+        color: $color-text-muted;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
+        opacity: 0;
+        transition: all 0.15s ease;
+        @include focus-ring;
 
         &:hover {
-          background: rgba(226, 75, 74, 0.1);
-          color: #e24b4a;
+          background: rgba($color-danger, 0.1);
+          color: $color-danger;
         }
       }
 
-      // ---- Menu list ----
+      .tool-card:hover .tool-delete,
+      .tool-card:focus-within .tool-delete,
+      .tool-list-item:hover .tool-delete,
+      .tool-list-item:focus-within .tool-delete {
+        opacity: 1;
+      }
+
+      @media (hover: none) {
+        .tool-delete {
+          opacity: 1;
+        }
+      }
+
+      // ---- List view ----
       .menu-list__container {
         display: flex;
         flex-direction: column;
-        border: 1px solid #e4e7ec;
+        border: 1px solid $line;
         border-radius: 8px;
         overflow: hidden;
       }
 
+      .tool-list-head {
+        display: grid;
+        grid-template-columns: $list-columns;
+        gap: 12px;
+        padding: 10px 76px 10px 14px;
+        background: $color-surface-muted;
+        border-bottom: 1px solid $line;
+        font-size: 12px;
+        font-weight: 600;
+        color: $secondary-color;
+      }
+
       .tool-list-item {
         position: relative;
-        border-bottom: 1px solid #e4e7ec;
+        border-bottom: 1px solid $line;
+        transition: background-color 0.15s ease;
 
         &:last-child {
           border-bottom: none;
         }
 
-        &:nth-child(even) {
-          background: #f7f8fa;
-        }
-
         &:hover {
-          background: $primary-hover-color;
+          background: $color-surface-muted;
+
+          .tool-list-item__name {
+            color: $primary-color;
+          }
 
           .tool-list-item__go {
-            opacity: 1;
+            color: $primary-color;
           }
         }
 
         &__link {
-          display: flex;
+          display: grid;
+          grid-template-columns: $list-columns;
           align-items: center;
           gap: 12px;
-          padding: 12px 40px 12px 14px;
+          padding: 10px 76px 10px 14px;
           text-decoration: none;
+          @include focus-ring;
         }
 
         &__icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 28px;
-          height: 28px;
+          @include kind-icon(28px, 14px);
           border-radius: 6px;
-          background: rgba($color: $primary-color, $alpha: 0.1);
-          color: $primary-color;
-          flex-shrink: 0;
+        }
 
-          i {
-            font-size: 14px;
-          }
+        &__main {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
         }
 
         &__name {
           font-size: 13px;
           font-weight: 600;
-          color: $secondary-color;
-          flex: 1;
-          min-width: 0;
+          color: $color-text;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          transition: color 0.15s ease;
+        }
+
+        &__host {
+          font-size: 11px;
+          color: $color-text-muted;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         &__type {
           font-size: 12px;
-          color: #8a8f98;
-          width: 90px;
+          color: $color-text-muted;
         }
 
         &__category {
           font-size: 12px;
-          color: $primary-color;
           font-weight: 600;
-          width: 140px;
+          color: $primary-color;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         &__go {
-          color: #8a8f98;
+          position: absolute;
+          right: 46px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: $fourtiary-color;
           font-size: 14px;
-          opacity: 0;
-          transition: opacity 0.2s ease;
+          transition: color 0.15s ease;
         }
       }
 
       .menu-list__container .tool-delete {
         top: 50%;
+        bottom: auto;
+        right: 12px;
         transform: translateY(-50%);
+      }
+
+      @media (max-width: 720px) {
+        .tool-list-head,
+        .tool-list-item__link {
+          grid-template-columns: $list-columns-narrow;
+          padding-right: 44px;
+        }
+
+        .tool-list-head span:nth-child(3),
+        .tool-list-item__type,
+        .tool-list-item__go {
+          display: none;
+        }
+
+        // Nama boleh turun ke baris kedua agar tidak terpotong di layar sempit.
+        .tool-list-item__name {
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+
+        .menu-list__container .tool-delete {
+          right: 8px;
+        }
       }
     }
   }
@@ -404,14 +614,15 @@
       padding: 9px 12px;
       border: 1px solid $fourtiary-color;
       border-radius: 6px;
-      font-size: $ps;
+      font-size: 13px;
       font-family: $font-poppins;
       color: $secondary-color;
-      outline-color: $primary-color;
-      transition: transform 0.2s ease;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
       &:focus {
-        transform: scale(1.02);
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.12);
       }
     }
 
@@ -430,13 +641,11 @@
 
       &:hover {
         background-color: $primary-hover-color;
-        transform: scale(1.02);
       }
 
       &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-        transform: none;
       }
     }
   }

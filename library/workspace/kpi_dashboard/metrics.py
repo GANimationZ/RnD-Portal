@@ -1,22 +1,19 @@
-"""All KPI calculations (workload color, completion rate, leaderboard
-ranking, range aggregation) live here. kpi-dashboard.js just fetches
-/api/* and renders the ready-made fields -- no math on the client side
-beyond what Chart.js itself requires."""
-
+from calendar import monthrange
+from collections import defaultdict
 from datetime import date, timedelta
 
-# ---- Ranges: Recent / Last Week / Last Month / Last Year ----
-# All ranges are relative to today via KPIRecord.period_date, so adding a
-# new range later is a single line here.
-RANGE_WINDOW_DAYS = {
-    "recent": 14,   # default panel view, last ~2 weeks
-    "week": 7,
-    "month": 30,
-    "year": 365,
-}
+from library.issue_lifecycle import (
+    STAGE_AVAILABLE,
+    STAGE_CLOSED,
+    STAGE_OVERDUE,
+    STAGE_PENDING,
+    stage_on,
+)
+from library.models import Issue
 
+# ---- Ranges: This Month / Last Week / Last Month / Last Year ----
 RANGE_LABELS = {
-    "recent": "Recent",
+    "recent": "This Month",
     "week": "Last Week",
     "month": "Last Month",
     "year": "Last Year",
@@ -72,102 +69,190 @@ def initials(name):
     return "".join(parts)[:2].upper()
 
 
-def cutoff_date(range_key):
-    days = RANGE_WINDOW_DAYS.get(range_key, RANGE_WINDOW_DAYS[DEFAULT_RANGE])
-    return date.today() - timedelta(days=days)
+# ==================== Time windows ====================
+
+def _month_start_offset(day, months_back):
+    index = day.year * 12 + (day.month - 1) - months_back
+    return date(index // 12, index % 12 + 1, 1)
 
 
-def records_in_range(employee, range_key):
-    cutoff = cutoff_date(range_key)
-    in_range = [r for r in employee.kpi_records if r.period_date >= cutoff]
-    # If nothing falls in range (e.g. a brand new member), still show the
-    # latest single record so the panel isn't completely empty.
-    if in_range:
-        return in_range
-    return employee.kpi_records[-1:]
-
-
-def aggregate_records(records):
-    if not records:
-        return {"totalAssigned": 0, "completed": 0, "pending": 0, "overdue": 0, "avgResolutionDays": 0}
-
-    total_assigned = sum(r.total_assigned for r in records)
-    completed = sum(r.completed for r in records)
-    pending = sum(r.pending for r in records)
-    overdue = sum(r.overdue for r in records)
-    avg_days = round(sum(r.avg_resolution_days for r in records) / len(records), 2)
-
+def month_window(year, month):
+    """A whole calendar month, day 1 through its last day."""
+    last_day = monthrange(year, month)[1]
+    start = date(year, month, 1)
     return {
-        "totalAssigned": total_assigned,
+        "key": f"{year}-{month:02d}",
+        "range": f"{year}-{month:02d}",
+        "label": start.strftime("%B %Y"),
+        "rangeLabel": start.strftime("%B %Y"),
+        "start": start,
+        "end": date(year, month, last_day),
+        "step": "day",
+        "compact_labels": True,   # x axis shows 1, 2, 3 ... (month is in the title)
+    }
+
+
+def range_window(range_key, today=None):
+    today = today or date.today()
+    if range_key not in RANGE_LABELS:
+        range_key = DEFAULT_RANGE
+
+    if range_key == "recent":
+        window = month_window(today.year, today.month)
+    elif range_key == "month":
+        previous = _month_start_offset(today, 1)
+        window = month_window(previous.year, previous.month)
+    elif range_key == "week":
+        start = today - timedelta(days=6)
+        window = {
+            "start": start, "end": today, "step": "day", "compact_labels": False,
+            "label": f"{start.strftime('%d %b')} - {today.strftime('%d %b %Y')}",
+        }
+    else:  # year
+        start = _month_start_offset(today, 11)
+        window = {
+            "start": start, "end": today, "step": "month", "compact_labels": False,
+            "label": f"{start.strftime('%b %Y')} - {today.strftime('%b %Y')}",
+        }
+
+    window["range"] = range_key
+    window["rangeLabel"] = RANGE_LABELS[range_key]
+    window["key"] = None
+    return window
+
+
+def _points(window, today):
+    """[(label, evaluate_on_day, is_future)] -- one per day (or per month)
+    from the window's first day to its last, so the chart always spans the
+    whole period even though the future part has no data yet."""
+    points = []
+    start, end = window["start"], window["end"]
+
+    if window["step"] == "day":
+        day = start
+        while day <= end:
+            label = str(day.day) if window["compact_labels"] else day.strftime("%d %b")
+            points.append((label, min(day, today), day > today))
+            day += timedelta(days=1)
+        return points
+
+    month_start = start.replace(day=1)
+    while month_start <= end:
+        month_end = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
+        points.append((month_start.strftime("%b %y"), min(month_end, end, today), month_start > today))
+        month_start = month_end + timedelta(days=1)
+    return points
+
+
+# ==================== Issue-derived counts ====================
+
+def issues_by_assignee():
+    grouped = defaultdict(list)
+    for issue in Issue.query.filter(Issue.assignee_id.isnot(None)).all():
+        grouped[issue.assignee_id].append(issue)
+    return grouped
+
+
+def _in_window(issue, window_start):
+    """Not closed before the window began (otherwise it belongs to the past)."""
+    return issue.closed_at is None or issue.closed_at.date() >= window_start
+
+
+def _counts_on(issues, window_start, day, today):
+    counts = {STAGE_CLOSED: 0, STAGE_AVAILABLE: 0, STAGE_PENDING: 0, STAGE_OVERDUE: 0}
+    for issue in issues:
+        if not _in_window(issue, window_start):
+            continue
+        stage = stage_on(issue, day, today)
+        if stage is not None:
+            counts[stage] += 1
+    return counts
+
+
+def _avg_resolution_days(issues, window, as_of):
+    durations = [
+        (issue.closed_at - issue.created_at).total_seconds() / 86400
+        for issue in issues
+        if issue.closed_at is not None
+        and issue.created_at is not None
+        and window["start"] <= issue.closed_at.date() <= as_of
+    ]
+    return round(sum(durations) / len(durations), 2) if durations else 0
+
+
+def aggregate(issues, window, today=None):
+    """Card numbers for one employee in `window`, taken at the window's last
+    day that has already happened."""
+    today = today or date.today()
+    as_of = min(window["end"], today)
+    counts = _counts_on(issues, window["start"], as_of, today)
+    completed = counts[STAGE_CLOSED]
+    available, pending, overdue = (
+        counts[STAGE_AVAILABLE], counts[STAGE_PENDING], counts[STAGE_OVERDUE]
+    )
+    return {
+        "totalAssigned": completed + available + pending + overdue,
         "completed": completed,
+        "available": available,
         "pending": pending,
         "overdue": overdue,
-        "avgResolutionDays": avg_days,
+        "avgResolutionDays": _avg_resolution_days(issues, window, as_of),
     }
 
 
-def build_trend_series(records, range_key=DEFAULT_RANGE):
-    """One point per calendar week from the range's start through the
-    CURRENT week, zero-filled for any week with no KPIRecord row.
+def build_trend_series(issues, window, today=None):
+    """One point per day from the first to the last day of the window.
+    Days that have not happened yet are None, so the line stops at today but
+    the axis still runs to the end of the month."""
+    today = today or date.today()
+    series = {"labels": [], "resolved": [], "available": [], "pending": [], "overdue": []}
 
-    A week with no activity never gets a row at all (see
-    recording._get_or_create_week_record), so plotting `records` directly
-    skips straight over it -- the line then stops at whichever week last
-    had activity and never reaches the current week, which looks like the
-    chart is "stuck" rather than correctly showing 0 for an inactive week."""
-    from .recording import _week_start
+    for label, day, is_future in _points(window, today):
+        series["labels"].append(label)
+        if is_future:
+            counts = None
+        else:
+            counts = _counts_on(issues, window["start"], day, today)
+        series["resolved"].append(counts[STAGE_CLOSED] if counts else None)
+        series["available"].append(counts[STAGE_AVAILABLE] if counts else None)
+        series["pending"].append(counts[STAGE_PENDING] if counts else None)
+        series["overdue"].append(counts[STAGE_OVERDUE] if counts else None)
 
-    by_date = {r.period_date: r for r in records}
-    this_week = _week_start()
-    start_week = _week_start(cutoff_date(range_key))
+    series["title"] = window["label"]
+    return series
 
-    # records_in_range() falls back to the single latest record when
-    # nothing falls in the range (e.g. a brand new member) -- that record
-    # can be older than start_week, so start from it instead of
-    # generating an all-zero series that drops the one point we have.
-    if records and all(r.period_date < start_week for r in records):
-        start_week = min(r.period_date for r in records)
 
-    weeks = []
-    week = start_week
-    while week <= this_week:
-        weeks.append(week)
-        week += timedelta(days=7)
+def _employee_row(emp, issues, window, today, with_detail=False):
+    totals = aggregate(issues, window, today)
+    avg_hours = round(totals["avgResolutionDays"] * 24, 1)
+    rate = completion_rate(totals["totalAssigned"], totals["completed"])
 
-    return {
-        "labels": [w.strftime("%d %b") for w in weeks],
-        "resolved": [by_date[w].completed if w in by_date else 0 for w in weeks],
-        "pending": [by_date[w].pending if w in by_date else 0 for w in weeks],
-        "overdue": [by_date[w].overdue if w in by_date else 0 for w in weeks],
+    row = {
+        "id": emp.id,
+        "name": emp.username,
+        "role": emp.job_title or "Member",
+        "team": ", ".join(emp.categories) if emp.categories else "-",
+        "initials": initials(emp.username),
+        **totals,
+        "avgResolutionHours": avg_hours,
+        "completionRate": rate,
+        "completionRateColor": rate_color(rate),
+        "workload": workload_bar(avg_hours),
     }
+    if with_detail:
+        row["range"] = window["range"]
+        row["rangeLabel"] = window["rangeLabel"]
+        row["trend"] = build_trend_series(issues, window, today)
+        row["bestPractices"] = [bp.note for bp in emp.best_practices]
+    return row
 
 
-def employee_list_summary(employees, range_key=DEFAULT_RANGE):
+def employee_list_summary(employees, window, today=None):
     """Per-employee summary for tables/lists (no trend/notes, to keep
     the payload small) -- used by the Individual list and Team panel."""
-    result = []
-    for emp in employees:
-        records = records_in_range(emp, range_key)
-        totals = aggregate_records(records)
-        avg_hours = round(totals["avgResolutionDays"] * 24, 1)
-        bar = workload_bar(avg_hours)
-        rate = completion_rate(totals["totalAssigned"], totals["completed"])
-
-        result.append(
-            {
-                "id": emp.id,
-                "name": emp.username,
-                "role": emp.job_title or "Member",
-                "team": ", ".join(emp.categories) if emp.categories else "-",
-                "initials": initials(emp.username),
-                **totals,
-                "avgResolutionHours": avg_hours,
-                "completionRate": rate,
-                "completionRateColor": rate_color(rate),
-                "workload": bar,
-            }
-        )
-    return result
+    today = today or date.today()
+    grouped = issues_by_assignee()
+    return [_employee_row(emp, grouped.get(emp.id, []), window, today) for emp in employees]
 
 
 def employee_insights(per_employee):
@@ -191,41 +276,23 @@ def employee_insights(per_employee):
     }
 
 
-def employee_summary(employee, range_key=DEFAULT_RANGE):
+def employee_summary(employee, window, today=None):
     """Full detail for one employee: stat cards, trend chart, best
     practices. Used by both the live Individual panel and the History
     Individual sub-panel so they stay consistent."""
-    records = records_in_range(employee, range_key)
-    totals = aggregate_records(records)
-    avg_hours = round(totals["avgResolutionDays"] * 24, 1)
-    bar = workload_bar(avg_hours)
-    rate = completion_rate(totals["totalAssigned"], totals["completed"])
-
-    return {
-        "id": employee.id,
-        "name": employee.username,
-        "role": employee.job_title or "Member",
-        "team": ", ".join(employee.categories) if employee.categories else "-",
-        "initials": initials(employee.username),
-        "range": range_key,
-        "rangeLabel": RANGE_LABELS.get(range_key, range_key),
-        **totals,
-        "avgResolutionHours": avg_hours,
-        "completionRate": rate,
-        "completionRateColor": rate_color(rate),
-        "workload": bar,
-        "trend": build_trend_series(records, range_key),
-        "bestPractices": [bp.note for bp in employee.best_practices],
-    }
+    today = today or date.today()
+    issues = issues_by_assignee().get(employee.id, [])
+    return _employee_row(employee, issues, window, today, with_detail=True)
 
 
-def team_summary(employees, range_key=DEFAULT_RANGE):
+def team_summary(employees, window, today=None):
     """Team totals, per-person comparison chart, and completion-rate leaderboard."""
-    per_employee = employee_list_summary(employees, range_key)
+    per_employee = employee_list_summary(employees, window, today)
 
     totals = {
         "totalAssigned": sum(e["totalAssigned"] for e in per_employee),
         "completed": sum(e["completed"] for e in per_employee),
+        "available": sum(e["available"] for e in per_employee),
         "pending": sum(e["pending"] for e in per_employee),
         "overdue": sum(e["overdue"] for e in per_employee),
     }
@@ -238,13 +305,14 @@ def team_summary(employees, range_key=DEFAULT_RANGE):
     chart = {
         "labels": [e["name"] for e in per_employee],
         "completed": [e["completed"] for e in per_employee],
+        "available": [e["available"] for e in per_employee],
         "pending": [e["pending"] for e in per_employee],
         "overdue": [e["overdue"] for e in per_employee],
     }
 
     return {
-        "range": range_key,
-        "rangeLabel": RANGE_LABELS.get(range_key, range_key),
+        "range": window["range"],
+        "rangeLabel": window["rangeLabel"],
         "totals": totals,
         "completionRate": rate,
         "completionRateColor": rate_color(rate),

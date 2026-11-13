@@ -61,7 +61,7 @@
     const lastCol = colLetter(colCount);
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = "RnD Portal";
+    wb.creator = "R&D Portal";
     wb.created = new Date();
 
     const ws = wb.addWorksheet((sheetName || "Sheet1").slice(0, 31), {
@@ -74,7 +74,7 @@
         fitToHeight: 0,
         margins: { left: 0.4, right: 0.4, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 },
       },
-      headerFooter: { oddFooter: "&L&8RnD Portal&C&8Page &P of &N&R&8&D" },
+      headerFooter: { oddFooter: "&L&8R&&D Portal&C&8Page &P of &N&R&8&D" },
     });
 
     ws.columns = columns.map((c) => ({ width: c.width || 16 }));

@@ -1,25 +1,13 @@
-"""KPI Dashboard blueprint.
-
-- User (role="Member") + KPIRecord + BestPractice are the data source,
-  portable across SQLite/PostgreSQL.
-- All calculations (workload bar, completion rate, leaderboard, range
-  aggregation) live in metrics.py -- these routes just query the DB and
-  call metrics.py, returning ready-to-render JSON.
-- /api/* is shared by the Individual/Team panels (live) and the History
-  sub-panels, so Recent/Last Week/Last Month/Last Year stay consistent
-  everywhere. Export (per selected month) and the .xlsx snapshot history
-  are a separate, archival-only feature.
-"""
-
 import os
 import re
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, current_app, jsonify, request, send_file
 
 from library.auth import login_required
 from library.extensions import db
-from library.models import BestPractice, User
+from library.issue_lifecycle import refresh_issues
+from library.models import BestPractice, Issue, User
 
 from .kpi_excel import (
     build_individual_workbook,
@@ -34,6 +22,8 @@ from .metrics import (
     employee_insights,
     employee_list_summary,
     employee_summary,
+    month_window,
+    range_window,
     team_summary,
 )
 
@@ -55,36 +45,51 @@ def _restrict_kpi_dashboard():
     if session.get("role") == "Admin":
         abort(403, description="QA (Admin) has no access to KPI Dashboard.")
 
-MONTH_LABELS_EN = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-]
+@kpi_dashboard_bp.before_request
+def _refresh_issue_stages():
+    """Available -> Pending and the automatic priority only change with the
+    calendar, so bring every issue up to date before any KPI is read."""
+    refresh_issues()
+    db.session.commit()
+
 
 MONTH_KEY_PATTERN = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
 
 VALID_RANGES = set(RANGE_LABELS.keys())
-EXPORT_RANGE = "month"  # a monthly snapshot represents the last 30 days
+MAX_ARCHIVE_MONTHS = 120
 
 
-def _range_param():
+def _window_param():
+    """Time window of a request: ?month=YYYY-MM (History, one whole calendar
+    month) takes priority over ?range= (live panels)."""
+    month_value = request.args.get("month")
+    if month_value:
+        month_value = month_value.strip()
+        if month_value.endswith(".xlsx"):
+            month_value = month_value[: -len(".xlsx")]
+        match = MONTH_KEY_PATTERN.match(month_value)
+        if match:
+            return month_window(int(match.group(1)), int(match.group(2)))
+
     value = request.args.get("range", DEFAULT_RANGE)
-    return value if value in VALID_RANGES else DEFAULT_RANGE
+    return range_window(value if value in VALID_RANGES else DEFAULT_RANGE)
 
 
 def _all_employees():
     return User.query.filter_by(role="Member").order_by(User.id).all()
 
 
-def get_employees_for_export(range_key=EXPORT_RANGE):
+def get_employees_for_export(window):
     """Flat dicts (name/role/totalAssigned/...) for kpi_excel.py to write
     into .xlsx -- sourced from the real DB, not a static dummy list."""
-    summaries = employee_list_summary(_all_employees(), range_key)
+    summaries = employee_list_summary(_all_employees(), window)
     return [
         {
             "name": s["name"],
             "role": s["role"],
             "totalAssigned": s["totalAssigned"],
             "completed": s["completed"],
+            "available": s["available"],
             "pending": s["pending"],
             "overdue": s["overdue"],
             "avgResolutionDays": s["avgResolutionDays"],
@@ -114,18 +119,59 @@ def _snapshot_path(filename):
     return path
 
 
-def _ensure_current_month_snapshot():
-    """Rebuild (overwrite) THIS month's snapshot every time History is
-    opened, so it stays current instead of freezing on day-1 data.
-    Past months use a different filename and are never touched."""
-    now = datetime.now()
-    filename = f"{now.year}-{now.month:02d}.xlsx"
-    filepath = _snapshot_path(filename)
+def _month_key(day):
+    return f"{day.year}-{day.month:02d}"
 
-    wb = build_individual_workbook(get_employees_for_export())
-    wb.save(filepath)
 
-    return filepath
+def _archive_months():
+    """Every month from the first one with data up to the current month,
+    newest first ("YYYY-MM"). A month without any activity is still listed
+    (it simply shows zeros) so the archive never has holes."""
+    today = date.today()
+    earliest = today.replace(day=1)
+
+    first_issue = (
+        db.session.query(db.func.min(Issue.created_at))
+        .filter(Issue.assignee_id.isnot(None))
+        .scalar()
+    )
+    if first_issue is not None:
+        earliest = min(earliest, first_issue.date().replace(day=1))
+
+    for filename in os.listdir(_history_dir()):
+        match = SNAPSHOT_NAME_PATTERN.match(filename)
+        if match:
+            archived = date(int(match.group(1)), int(match.group(2)), 1)
+            if archived <= today:
+                earliest = min(earliest, archived)
+
+    months = []
+    cursor = today.replace(day=1)
+    while cursor >= earliest and len(months) < MAX_ARCHIVE_MONTHS:
+        months.append(_month_key(cursor))
+        cursor = (cursor.replace(day=1) - timedelta(days=1)).replace(day=1)
+    return months
+
+
+def _derived_rows(month_key):
+    year, month = (int(part) for part in month_key.split("-"))
+    return get_employees_for_export(month_window(year, month))
+
+
+def _ensure_snapshots(month_keys):
+    """Keep one .xlsx per month in kpi_history.
+
+    The current month is rebuilt every time (it keeps changing). A finished
+    month is written once -- the first time it is missing -- and left alone
+    afterwards, so it stays the archived record of that month. This also
+    backfills months nobody opened History in."""
+    current = _month_key(date.today())
+    for month_key in month_keys:
+        filepath = _snapshot_path(f"{month_key}.xlsx")
+        if month_key != current and os.path.exists(filepath):
+            continue
+        wb = build_individual_workbook(_derived_rows(month_key), period_label_from_key(month_key))
+        wb.save(filepath)
 
 
 # ==================== API: shared by Individual/Team panels & History ====================
@@ -134,14 +180,14 @@ def _ensure_current_month_snapshot():
 def api_employees():
     """Employee summary list for a given range. Used by the Individual
     panel table (live) and the History Individual sub-panel."""
-    range_key = _range_param()
+    window = _window_param()
     employees = _all_employees()
-    summaries = employee_list_summary(employees, range_key)
+    summaries = employee_list_summary(employees, window)
 
     return jsonify(
         {
-            "range": range_key,
-            "rangeLabel": RANGE_LABELS[range_key],
+            "range": window["range"],
+            "rangeLabel": window["rangeLabel"],
             "ranges": [{"key": k, "label": v} for k, v in RANGE_LABELS.items()],
             "employees": summaries,
             "insights": employee_insights(summaries),
@@ -152,20 +198,20 @@ def api_employees():
 
 @kpi_dashboard_bp.route("/api/employees/<int:employee_id>")
 def api_employee_detail(employee_id):
-    """Single employee detail (stat card, trend chart, best practices)
-    for a given range."""
-    range_key = _range_param()
+    """Single employee detail (stat card, daily trend chart, best practices)
+    for a given range or month."""
+    window = _window_param()
     employee = User.query.filter_by(id=employee_id, role="Member").first_or_404()
-    return jsonify(employee_summary(employee, range_key))
+    return jsonify(employee_summary(employee, window))
 
 
 @kpi_dashboard_bp.route("/api/team")
 def api_team():
     """Team summary (totals, comparison chart, leaderboard) for a given
-    range. Used by the Team panel (live) and History Team sub-panel."""
-    range_key = _range_param()
+    range or month. Used by the Team panel (live) and History Team sub-panel."""
+    window = _window_param()
     employees = _all_employees()
-    return jsonify(team_summary(employees, range_key))
+    return jsonify(team_summary(employees, window))
 
 
 @kpi_dashboard_bp.route("/api/employees/<int:employee_id>/best-practices", methods=["GET"])
@@ -257,15 +303,19 @@ def _employees_for_month(month_key):
     """Rows to export for one month.
 
     - Current month: live data from the DB, so the export is never stale.
-    - Past months: the archived monthly snapshot (.xlsx) for that month.
-    Returns None if there is no archive for that month."""
+    - Past months: the archived monthly snapshot (.xlsx) when it exists,
+      otherwise the same numbers recomputed from the issues.
+    Returns None for a month that is not in the archive (before the first
+    issue, or in the future)."""
     if month_key == _current_month_key():
-        return get_employees_for_export()
+        return _derived_rows(month_key)
+    if month_key not in _archive_months():
+        return None
 
     filepath = _snapshot_path(f"{month_key}.xlsx")
-    if filepath is None or not os.path.exists(filepath):
-        return None
-    return parse_employee_workbook(filepath)
+    if filepath is not None and os.path.exists(filepath):
+        return parse_employee_workbook(filepath)
+    return _derived_rows(month_key)
 
 
 def _export_month(xlsx_builder, pdf_builder_name, prefix):
@@ -326,20 +376,17 @@ def export_team():
 
 @kpi_dashboard_bp.route("/history")
 def history():
-    _ensure_current_month_snapshot()
+    month_keys = _archive_months()
+    _ensure_snapshots(month_keys)
 
     snapshots = []
-    for filename in sorted(os.listdir(_history_dir()), reverse=True):
-        match = SNAPSHOT_NAME_PATTERN.match(filename)
-        if not match:
-            continue  # ignore any stray file in the archive folder
-        year, month = match.groups()
+    for month_key in month_keys:  # newest first
+        filename = f"{month_key}.xlsx"
         stat = os.stat(_snapshot_path(filename))
-
         snapshots.append(
             {
                 "filename": filename,
-                "label": f"{MONTH_LABELS_EN[int(month) - 1]} {year}",
+                "label": period_label_from_key(month_key),
                 "createdAt": datetime.fromtimestamp(stat.st_mtime).strftime("%d %b %Y"),
                 "sizeBytes": stat.st_size,
             }

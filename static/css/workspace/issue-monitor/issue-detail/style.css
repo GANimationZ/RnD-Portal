@@ -26,6 +26,7 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  width: -moz-fit-content;
   width: fit-content;
   color: #6b6b6b;
   font-size: 13px;
@@ -53,7 +54,8 @@ select {
 .issue-detail__image-wrapper img {
   width: 100%;
   max-height: 420px;
-  object-fit: contain;
+  -o-object-fit: contain;
+     object-fit: contain;
 }
 .issue-detail__no-image {
   padding: 40px;
@@ -221,7 +223,8 @@ select {
 .issue-inline-detail__image-wrapper img {
   width: 100%;
   max-height: 360px;
-  object-fit: contain;
+  -o-object-fit: contain;
+     object-fit: contain;
 }
 .issue-inline-detail__image-wrapper .issue-inline-detail__no-image {
   padding: 32px;
@@ -371,6 +374,4 @@ select {
 }
 .main-body-content .body .list tbody tr:hover {
   background-color: #fafafa;
-}
-
-/*# sourceMappingURL=style.css.map */
+}/*# sourceMappingURL=style.css.map */

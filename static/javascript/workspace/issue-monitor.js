@@ -1,5 +1,5 @@
 // ============================================================
-// RnD Portal - Issue Monitoring (LVT/MNT)
+// R&D Portal - Issue Monitoring (LVT/MNT)
 // ============================================================
 
 Chart.register(ChartDataLabels);

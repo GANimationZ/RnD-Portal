@@ -109,6 +109,12 @@ class UserEventScope(db.Model):
 
 
 class KPIRecord(db.Model):
+    """Legacy weekly KPI rows. No longer written or read: the KPI Dashboard is
+    now computed straight from the Issue table (see
+    library/workspace/kpi_dashboard/metrics.py), which allows per-day charts
+    and exact per-month archives. The table is kept so existing databases
+    keep working."""
+
     __tablename__ = "kpi_records"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -146,7 +152,7 @@ class Issue(db.Model):
     description = db.Column(db.Text, nullable=False, default="")
     category = db.Column(db.String(80), nullable=False)
     event = db.Column(db.String(80), nullable=False)
-    priority = db.Column(db.String(20), nullable=False, default="Medium")
+    priority = db.Column(db.String(20), nullable=False, default="Low")  # automatic, see library/issue_lifecycle.py
     status = db.Column(db.String(20), nullable=False, default="Open")
     deadline = db.Column(db.Date, nullable=False)
     image_filename = db.Column(db.String(255), nullable=True)
@@ -271,7 +277,10 @@ class ToolLink(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False, index=True)
-    kind = db.Column(db.String(20), nullable=False, default="Tool")  # "Tool" | "Material"
+    # Legacy column: older databases have it as NOT NULL, so it stays (always
+    # "Tool"). It is no longer exposed in the UI or API -- these are website
+    # tools, not physical items.
+    kind = db.Column(db.String(20), nullable=False, default="Tool")
     category = db.Column(db.String(80), nullable=False, index=True)
     url = db.Column(db.String(1000), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -284,7 +293,6 @@ class ToolLink(db.Model):
         return {
             "id": self.id,
             "name": self.name,
-            "kind": self.kind,
             "category": self.category,
             "url": self.url,
             "description": self.description,
@@ -294,7 +302,7 @@ class ToolLink(db.Model):
         }
 
     def __repr__(self):
-        return f"<ToolLink {self.kind}: {self.name}>"
+        return f"<ToolLink {self.name}>"
 
 
 class PvAsset(db.Model):

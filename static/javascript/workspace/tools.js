@@ -1,7 +1,5 @@
 const TOOLS_API = "/workspace/tools/api/items";
 
-const KIND_ICON = { Tool: "bx-cog", Material: "bx-package" };
-
 let toolItems = [];
 let toolCategories = [];
 let toolView = "card";
@@ -39,7 +37,6 @@ function populateCategories() {
 
 function filteredItems() {
   const search = el("toolSearch").value.trim().toLowerCase();
-  const kind = el("toolKindFilter").value;
   const category = el("toolCategoryFilter").value;
 
   return toolItems.filter((item) => {
@@ -47,7 +44,6 @@ function filteredItems() {
       `${item.name} ${item.category} ${item.description || ""}`.toLowerCase();
     return (
       (!search || haystack.includes(search)) &&
-      (kind === "All" || item.kind === kind) &&
       (category === "All" || item.category === category)
     );
   });
@@ -66,10 +62,10 @@ function renderCards(items) {
       (item) => `
     <div class="tool-card">
       <a class="tool-card__link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
-        <span class="tool-card__icon"><i class="bxf ${KIND_ICON[item.kind] || "bx-link"}"></i></span>
+        <span class="tool-card__icon"><i class="bxf bx-cog"></i></span>
         <div class="tool-card__body">
           <span class="tool-card__name">${escapeHtml(item.name)}</span>
-          <span class="tool-card__meta">${escapeHtml(item.kind)} &middot; ${escapeHtml(item.category)}</span>
+          <span class="tool-card__meta">${escapeHtml(item.category)}</span>
           ${item.description ? `<span class="tool-card__desc">${escapeHtml(item.description)}</span>` : ""}
         </div>
         <i class="bxf bx-link-alt tool-card__go"></i>
@@ -87,9 +83,8 @@ function renderList(items) {
       (item) => `
     <div class="tool-list-item">
       <a class="tool-list-item__link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
-        <span class="tool-list-item__icon"><i class="bxf ${KIND_ICON[item.kind] || "bx-link"}"></i></span>
+        <span class="tool-list-item__icon"><i class="bxf bx-cog"></i></span>
         <span class="tool-list-item__name">${escapeHtml(item.name)}</span>
-        <span class="tool-list-item__type">${escapeHtml(item.kind)}</span>
         <span class="tool-list-item__category">${escapeHtml(item.category)}</span>
         <i class="bxf bx-link-alt tool-list-item__go"></i>
       </a>
@@ -104,7 +99,7 @@ function render() {
   el("toolCount").textContent = `(${items.length})`;
 
   const emptyMarkup =
-    '<div class="empty-state">No tools or material match the current filter.</div>';
+    '<div class="empty-state">No tools match the current filter.</div>';
   if (items.length === 0) {
     el("toolCardContainer").innerHTML = emptyMarkup;
     el("toolListContainer").innerHTML = emptyMarkup;
@@ -142,7 +137,6 @@ async function submitForm(e) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        kind: el("toolFormKind").value,
         name: el("toolFormName").value,
         category: el("toolFormCategory").value,
         url: el("toolFormUrl").value,
@@ -179,13 +173,12 @@ async function handleDelete(id) {
 
 document.addEventListener("DOMContentLoaded", () => {
   ["toolSearch"].forEach((id) => el(id).addEventListener("input", render));
-  ["toolKindFilter", "toolCategoryFilter"].forEach((id) =>
+  ["toolCategoryFilter"].forEach((id) =>
     el(id).addEventListener("change", render),
   );
 
   el("toolReset").addEventListener("click", () => {
     el("toolSearch").value = "";
-    el("toolKindFilter").value = "All";
     el("toolCategoryFilter").value = "All";
     render();
   });

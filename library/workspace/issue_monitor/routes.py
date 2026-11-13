@@ -6,26 +6,13 @@ from library.auth import login_required, roles_required
 from library.extensions import db
 from library.files import is_allowed, get_file_type, save_upload
 from library.models import CATEGORY_CHOICES, EVENT_CHOICES, Issue, IssueAttachment, User
-from library.workspace.kpi_dashboard.recording import (
-    record_assignment,
-    record_completion,
-    sync_overdue_flags,
-)
+from library.issue_lifecycle import refresh_issues
 
 issue_monitor_bp = Blueprint(
     "issue_monitor", __name__, url_prefix="/workspace/issue-monitor"
 )
 
 VALID_STATUS = {"Open", "Pending", "Closed", "On Hold"}
-
-def _auto_mark_stale_as_pending():
-    now = datetime.utcnow()
-    open_issues = Issue.query.filter(Issue.status == "Open").all()
-    for issue in open_issues:
-        deadline_dt = datetime.combine(issue.deadline, datetime.min.time())
-        midpoint = issue.created_at + (deadline_dt - issue.created_at) / 2
-        if now >= midpoint:
-            issue.status = "Pending"
 
 
 # ==================== Pages ====================
@@ -45,7 +32,7 @@ def index():
 @issue_monitor_bp.route("/<int:issue_id>", methods=["GET"])
 @login_required
 def detail(issue_id):
-    _auto_mark_stale_as_pending()
+    refresh_issues()
     db.session.commit()
     issue = Issue.query.get_or_404(issue_id)
     return render_template(
@@ -61,8 +48,7 @@ def detail(issue_id):
 @issue_monitor_bp.route("/api/issues", methods=["GET"])
 @login_required
 def api_list_issues():
-    _auto_mark_stale_as_pending()
-    sync_overdue_flags()
+    refresh_issues()
     db.session.commit()
     issues = Issue.query.order_by(Issue.id.desc()).all()
     return jsonify({"issues": [i.to_dict() for i in issues]})
@@ -117,7 +103,7 @@ def api_create_issue():
         deadline=deadline,
         owner_name=session.get("username", "Admin"),
         assignee_id=assignee_id,
-        priority="Medium",
+        priority="Low",  # automatic from here on, see library/issue_lifecycle.py
         status="Open",
     )
     db.session.add(issue)
@@ -136,9 +122,6 @@ def api_create_issue():
         if issue.image_filename is None and get_file_type(file.filename) == "image":
             issue.image_filename = filename
 
-    if assignee_id:
-        record_assignment(assignee_id)
-
     db.session.commit()
 
     return jsonify({"message": "Issue registered successfully.", "issue": issue.to_dict()}), 201
@@ -148,6 +131,7 @@ def api_create_issue():
 @login_required
 @roles_required("Super Admin", "Admin")
 def api_update_status(issue_id):
+    refresh_issues()  # so a closing issue keeps its up-to-date priority
     issue = Issue.query.get_or_404(issue_id)
     data = request.get_json(silent=True) or {}
     status = data.get("status")
@@ -159,8 +143,6 @@ def api_update_status(issue_id):
     if issue.status == "Closed":
         return jsonify({"message": "This issue is already closed and can no longer be changed."}), 400
 
-    was_assigned_before = issue.assignee_id is not None
-
     if assignee_id_raw and not issue.assignee_id:
         candidate = User.query.get(assignee_id_raw)
         if not candidate or candidate.role != "Member" or not candidate.covers(issue.category, issue.event):
@@ -171,8 +153,8 @@ def api_update_status(issue_id):
 
     if status == "Closed":
         issue.closed_at = datetime.utcnow()
-        if issue.assignee_id:
-            record_completion(issue.assignee_id, issue.created_at, already_assigned=was_assigned_before)
+    else:
+        refresh_issues()  # e.g. releasing a hold after the midpoint -> Pending
 
     db.session.commit()
 

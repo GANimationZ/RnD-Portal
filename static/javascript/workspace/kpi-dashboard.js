@@ -18,7 +18,7 @@ async function fetchJSON(url) {
   return response.json();
 }
 
-// ==================== Component: Range Tabs (Recent/Last Week/Last Month/Last Year) ====================
+// ==================== Component: Range Tabs (This Month/Last Week/Last Month/Last Year) ====================
 
 function setupRangeTabs(scope, onChange) {
   const group = document.querySelector(
@@ -39,11 +39,19 @@ function setupRangeTabs(scope, onChange) {
 
 // ==================== Panel: Individual (used live & in History) ====================
 
-function createEmployeePanelController(ids, rangeScope) {
+// `getMonth` is only given by the History panels: it returns the archive month
+// ("YYYY-MM") chosen in the Archive Month dropdown. Without it (live panels)
+// the range tabs decide the period.
+function createEmployeePanelController(ids, rangeScope, getMonth) {
   let chart = null;
   let employees = [];
   let activeId = null;
   let range = "recent";
+
+  function periodQuery() {
+    const month = getMonth ? getMonth() : "";
+    return month ? `month=${month}` : `range=${range}`;
+  }
 
   function renderTable() {
     const tbody = el(ids.tableBody);
@@ -110,46 +118,53 @@ function createEmployeePanelController(ids, rangeScope) {
     if (!canvas) return;
     if (chart) chart.destroy();
 
+    // Every day of the period is on the axis (1 .. last day of the month);
+    // days that have not happened yet are null, so the line stops at today.
+    const line = (label, data, color, extra = {}) => ({
+      label,
+      data,
+      borderColor: color,
+      backgroundColor: color,
+      fill: false,
+      tension: 0,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+      spanGaps: false,
+      ...extra,
+    });
+
     chart = new Chart(canvas, {
       type: "line",
       data: {
         labels: trend.labels,
         datasets: [
-          {
-            label: "Resolved",
-            data: trend.resolved,
-            borderColor: "#4f8cff",
-            backgroundColor: "rgba(79, 140, 255, 0.12)",
-            fill: false,
-            tension: 0,
-            pointRadius: 3,
-          },
-          {
-            label: "Pending",
-            data: trend.pending,
-            borderColor: "#f2a623",
-            backgroundColor: "rgba(242, 166, 35, 0.12)",
-            fill: false,
-            tension: 0,
-            pointRadius: 3,
-          },
-          {
-            label: "Overdue",
-            data: trend.overdue,
-            borderColor: "#e24b4a",
-            backgroundColor: "rgba(226, 75, 74, 0.12)",
-            fill: false,
-            tension: 0,
-            pointRadius: 3,
-            borderDash: [4, 3],
-          },
+          line("Resolved", trend.resolved, "#3ddc97"),
+          line("Available", trend.available, "#4f8cff"),
+          line("Pending", trend.pending, "#f2a623"),
+          line("Overdue", trend.overdue, "#e24b4a", { borderDash: [4, 3] }),
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: "bottom" } },
-        scales: { y: { beginAtZero: true } },
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              title: (items) =>
+                items.length ? `${items[0].label} \u00b7 ${trend.title}` : "",
+            },
+          },
+        },
+        scales: {
+          x: {
+            title: { display: true, text: trend.title },
+            ticks: { autoSkip: trend.labels.length > 31, maxRotation: 0 },
+            grid: { display: false },
+          },
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+        },
       },
     });
   }
@@ -169,6 +184,7 @@ function createEmployeePanelController(ids, rangeScope) {
       <div class="emp-stats">
         <div class="emp-stat"><span class="emp-stat__label">Total Assigned</span><span class="emp-stat__value">${detail.totalAssigned}</span></div>
         <div class="emp-stat"><span class="emp-stat__label">Completed</span><span class="emp-stat__value">${detail.completed}</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Available</span><span class="emp-stat__value">${detail.available}</span></div>
         <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${detail.pending}</span></div>
         <div class="emp-stat ${detail.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${detail.overdue}</span></div>
         <div class="emp-stat"><span class="emp-stat__label">Completion Rate</span><span class="emp-stat__value">${detail.completionRate}%</span></div>
@@ -185,7 +201,7 @@ function createEmployeePanelController(ids, rangeScope) {
     if (activeId == null) return;
     try {
       const detail = await fetchJSON(
-        `${EMPLOYEE_DETAIL_ENDPOINT}/${activeId}?range=${range}`,
+        `${EMPLOYEE_DETAIL_ENDPOINT}/${activeId}?${periodQuery()}`,
       );
       renderChart(detail.trend);
       renderContent(detail);
@@ -196,7 +212,7 @@ function createEmployeePanelController(ids, rangeScope) {
 
   async function load() {
     try {
-      const data = await fetchJSON(`${EMPLOYEES_ENDPOINT}?range=${range}`);
+      const data = await fetchJSON(`${EMPLOYEES_ENDPOINT}?${periodQuery()}`);
       employees = data.employees || [];
       if (activeId == null || !employees.some((e) => e.id === activeId)) {
         activeId = data.activeEmployeeId;
@@ -219,9 +235,14 @@ function createEmployeePanelController(ids, rangeScope) {
 
 // ==================== Panel: Team (used live & in History) ====================
 
-function createTeamPanelController(ids, rangeScope) {
+function createTeamPanelController(ids, rangeScope, getMonth) {
   let chart = null;
   let range = "recent";
+
+  function periodQuery() {
+    const month = getMonth ? getMonth() : "";
+    return month ? `month=${month}` : `range=${range}`;
+  }
 
   function renderSummary(totals, rate) {
     const container = el(ids.summary);
@@ -231,6 +252,7 @@ function createTeamPanelController(ids, rangeScope) {
       <div class="emp-stats emp-stats--team">
         <div class="emp-stat"><span class="emp-stat__label">Total Assigned</span><span class="emp-stat__value">${totals.totalAssigned}</span></div>
         <div class="emp-stat"><span class="emp-stat__label">Completed</span><span class="emp-stat__value">${totals.completed}</span></div>
+        <div class="emp-stat"><span class="emp-stat__label">Available</span><span class="emp-stat__value">${totals.available}</span></div>
         <div class="emp-stat"><span class="emp-stat__label">Pending</span><span class="emp-stat__value">${totals.pending}</span></div>
         <div class="emp-stat ${totals.overdue > 0 ? "emp-stat--danger" : ""}"><span class="emp-stat__label">Overdue</span><span class="emp-stat__value">${totals.overdue}</span></div>
         <div class="emp-stat"><span class="emp-stat__label">Team Completion Rate</span><span class="emp-stat__value">${rate}%</span></div>
@@ -252,6 +274,12 @@ function createTeamPanelController(ids, rangeScope) {
             label: "Completed",
             data: chartData.completed,
             backgroundColor: "#3ddc97",
+            borderRadius: 4,
+          },
+          {
+            label: "Available",
+            data: chartData.available,
+            backgroundColor: "#4f8cff",
             borderRadius: 4,
           },
           {
@@ -309,7 +337,7 @@ function createTeamPanelController(ids, rangeScope) {
 
   async function load() {
     try {
-      const data = await fetchJSON(`${TEAM_ENDPOINT}?range=${range}`);
+      const data = await fetchJSON(`${TEAM_ENDPOINT}?${periodQuery()}`);
       renderSummary(data.totals, data.completionRate);
       renderLeaderboard(data.leaderboard);
       renderChart(data.chart);
@@ -327,6 +355,13 @@ function createTeamPanelController(ids, rangeScope) {
 }
 
 // ==================== Controller instances ====================
+
+// Archive month chosen in History ("2026-11"), or "" before the list has loaded.
+function selectedHistoryMonth() {
+  const select = el("historyMonthSelect");
+  return select && select.value ? select.value.replace(".xlsx", "") : "";
+}
+
 const individualPanel = createEmployeePanelController(
   {
     tableBody: "employeeTableBody",
@@ -354,6 +389,7 @@ const historyIndividualPanel = createEmployeePanelController(
     content: "historyEmpContent",
   },
   "history-individual",
+  selectedHistoryMonth,
 );
 
 const historyTeamPanel = createTeamPanelController(
@@ -363,6 +399,7 @@ const historyTeamPanel = createTeamPanelController(
     leaderboard: "historyTeamLeaderboard",
   },
   "history-team",
+  selectedHistoryMonth,
 );
 
 // ==================== Monthly Excel archive (Export per selected month) ====================
@@ -456,8 +493,22 @@ function selectHistoryMonthByIndex(index) {
   if (!select || historySnapshots[index] == null) return;
 
   select.value = historySnapshots[index].filename;
+  onHistoryMonthChanged();
+}
+
+// A different archive month: refresh export links, arrows AND the data shown.
+function onHistoryMonthChanged() {
   updateExportLinks();
   updateHistoryNavButtons();
+  reloadHistoryPanels();
+}
+
+function reloadHistoryPanels() {
+  if (historySubtab === "team") {
+    historyTeamPanel.load();
+  } else {
+    historyIndividualPanel.load();
+  }
 }
 
 function updateHistoryNavButtons() {
@@ -511,23 +562,17 @@ function setHistorySubtab(subtab) {
   }
 }
 
-// ==================== Global summary cards (independent of active tab) ====================
-
-async function loadKpiOverview() {
-  try {
-    const data = await fetchJSON(`${TEAM_ENDPOINT}?range=recent`);
-    el("ovAssigned").textContent = data.totals.totalAssigned;
-    el("ovCompleted").textContent = data.totals.completed;
-    el("ovPending").textContent = data.totals.pending;
-    el("ovOverdue").textContent = data.totals.overdue;
-    el("ovRate").textContent = `${data.completionRate}%`;
-    el("ovCaption").textContent = data.rangeLabel;
-  } catch (err) {
-    console.error(err);
-  }
-}
-
 // ==================== Wire up to panel-switcher.js ====================
+
+// The month list must be loaded first: the panels below it show the month
+// that is selected in the dropdown.
+async function openHistory() {
+  if (!historyMonthsLoaded) {
+    historyMonthsLoaded = true;
+    await loadHistoryMonths();
+  }
+  reloadHistoryPanels();
+}
 
 document.addEventListener("panel:show", (e) => {
   const panel = e.detail.panel;
@@ -541,28 +586,16 @@ document.addEventListener("panel:show", (e) => {
   }
 
   if (panel === "history") {
-    if (!historyMonthsLoaded) {
-      loadHistoryMonths();
-      historyMonthsLoaded = true;
-    }
-    if (historySubtab === "team") {
-      historyTeamPanel.load();
-    } else {
-      historyIndividualPanel.load();
-    }
+    openHistory();
   }
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadKpiOverview();
   initExportMenu();
 
   const monthSelect = el("historyMonthSelect");
   if (monthSelect) {
-    monthSelect.addEventListener("change", (e) => {
-      updateExportLinks();
-      updateHistoryNavButtons();
-    });
+    monthSelect.addEventListener("change", onHistoryMonthChanged);
   }
 
   const prevBtn = el("historyPrevBtn");

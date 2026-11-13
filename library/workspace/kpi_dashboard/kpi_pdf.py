@@ -75,7 +75,7 @@ def _completion_tone(value):
 
 def _subtitle(period_label, count):
     return (
-        f"Period: {period_label} (last 30 days)   |   "
+        f"Period: {period_label}   |   "
         f"Generated: {datetime.now().strftime('%d-%m-%Y %H:%M')}   |   "
         f"{count} employee{'s' if count != 1 else ''}"
     )
@@ -96,7 +96,7 @@ def _title_bar(title, subtitle):
 
 
 class _NumberedCanvas(canvas.Canvas):
-    """Footer on every page: 'RnD Portal | Page x of y | date'."""
+    """Footer on every page: 'R&D Portal | Page x of y | date'."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -118,7 +118,7 @@ class _NumberedCanvas(canvas.Canvas):
         self.setFont("Helvetica", 8)
         self.setFillColor(MUTED)
         y = 8 * mm
-        self.drawString(MARGIN, y, "RnD Portal")
+        self.drawString(MARGIN, y, "R&D Portal")
         self.drawCentredString(PAGE[0] / 2, y, f"Page {self._pageNumber} of {total}")
         self.drawRightString(PAGE[0] - MARGIN, y, datetime.now().strftime("%d-%m-%Y"))
         self.setStrokeColor(GRID)
@@ -129,7 +129,7 @@ def _render(story, title):
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer, pagesize=PAGE, leftMargin=MARGIN, rightMargin=MARGIN,
-        topMargin=12 * mm, bottomMargin=16 * mm, title=title, author="RnD Portal",
+        topMargin=12 * mm, bottomMargin=16 * mm, title=title, author="R&D Portal",
     )
     doc.build(story, canvasmaker=_NumberedCanvas)
     buffer.seek(0)
@@ -138,15 +138,15 @@ def _render(story, title):
 
 # ---------------------------------------------------------------- tables
 def _employee_table(employees):
-    head1 = ["No", "Name", "Role", "Total\nAssigned", "Completed", "Pending", "Overdue", "Completion", "Avg. Resolution Time", ""]
-    head2 = ["", "", "", "", "", "", "", "", "Days", "Hours"]
+    head1 = ["No", "Name", "Role", "Total\nAssigned", "Completed", "Available", "Pending", "Overdue", "Completion", "Avg. Resolution Time", ""]
+    head2 = ["", "", "", "", "", "", "", "", "", "Days", "Hours"]
     data = [head1, head2]
 
     for i, emp in enumerate(employees, start=1):
         avg_days = emp["avgResolutionDays"] or 0
         data.append([
             str(i), emp["name"], emp["role"], emp["totalAssigned"], emp["completed"],
-            emp["pending"], emp["overdue"], _completion_text(_completion(emp)),
+            emp.get("available", 0), emp["pending"], emp["overdue"], _completion_text(_completion(emp)),
             f"{avg_days:.1f}", f"{avg_days * 24:.1f}",
         ])
 
@@ -154,11 +154,12 @@ def _employee_table(employees):
     completed = sum(e["completed"] for e in employees)
     rate = (completed / total_assigned) if total_assigned else None
     data.append([
-        "", "TOTAL", "", total_assigned, completed, sum(e["pending"] for e in employees),
+        "", "TOTAL", "", total_assigned, completed, sum(e.get("available", 0) for e in employees),
+        sum(e["pending"] for e in employees),
         sum(e["overdue"] for e in employees), _completion_text(rate), "", "",
     ])
 
-    widths = [11, 55, 36, 26, 26, 22, 22, 28, 24, 24]
+    widths = [11, 52, 34, 24, 24, 22, 22, 22, 26, 22, 22]
     scale = CONTENT_WIDTH / (sum(widths) * mm)
     table = Table(data, colWidths=[w * mm * scale for w in widths], repeatRows=2)
 
@@ -179,8 +180,8 @@ def _employee_table(employees):
         ("TEXTCOLOR", (0, 0), (-1, 1), BRAND_DARK),
         ("FONTNAME", (0, 0), (-1, 1), "Helvetica-Bold"),
         ("LINEBELOW", (0, 1), (-1, 1), 1.4, BRAND),
-        ("SPAN", (8, 0), (9, 0)),
-        *[("SPAN", (c, 0), (c, 1)) for c in range(0, 8)],
+        ("SPAN", (9, 0), (10, 0)),
+        *[("SPAN", (c, 0), (c, 1)) for c in range(0, 9)],
         # names in bold
         ("FONTNAME", (1, 2), (1, last - 1), "Helvetica-Bold"),
         # total row
@@ -197,10 +198,10 @@ def _employee_table(employees):
         tone = _completion_tone(_completion(emp))
         if tone:
             bg, fg = TONE[tone]
-            style += [("BACKGROUND", (7, r), (7, r), bg), ("TEXTCOLOR", (7, r), (7, r), fg), ("FONTNAME", (7, r), (7, r), "Helvetica-Bold")]
+            style += [("BACKGROUND", (8, r), (8, r), bg), ("TEXTCOLOR", (8, r), (8, r), fg), ("FONTNAME", (8, r), (8, r), "Helvetica-Bold")]
         if emp["overdue"] > 0:
             bg, fg = TONE["red"]
-            style += [("BACKGROUND", (6, r), (6, r), bg), ("TEXTCOLOR", (6, r), (6, r), fg), ("FONTNAME", (6, r), (6, r), "Helvetica-Bold")]
+            style += [("BACKGROUND", (7, r), (7, r), bg), ("TEXTCOLOR", (7, r), (7, r), fg), ("FONTNAME", (7, r), (7, r), "Helvetica-Bold")]
 
     table.setStyle(TableStyle(style))
     return table
@@ -211,6 +212,8 @@ def _legend_note():
         "<b>How to read this:</b> Completion = Completed / Total Assigned "
         f"(green &ge; {int(GOOD_COMPLETION * 100)}%, yellow {int(OK_COMPLETION * 100)}-{int(GOOD_COMPLETION * 100) - 1}%, "
         f"red &lt; {int(OK_COMPLETION * 100)}%). Overdue above 0 is highlighted in red. "
+        "Available = open, before the midpoint of its time window; Pending = past the midpoint; "
+        "Overdue = past the deadline and not closed. "
         "Avg. Resolution Time = average time to close an issue. \"-\" = nothing assigned in this period.",
         S_NOTE,
     )
@@ -238,6 +241,7 @@ def _stat_cards(employees):
     cards = [
         ("TOTAL ASSIGNED", total_assigned, "blue"),
         ("COMPLETED", completed, "green"),
+        ("AVAILABLE", sum(e.get("available", 0) for e in employees), "blue"),
         ("PENDING", sum(e["pending"] for e in employees), "yellow"),
         ("OVERDUE", sum(e["overdue"] for e in employees), "red"),
         ("TEAM COMPLETION RATE", _completion_text(rate), "brand"),
@@ -321,6 +325,7 @@ def _stacked_chart(employees):
     chart.width, chart.height = width - 90, height - 52
     chart.data = [
         [e["completed"] for e in employees],
+        [e.get("available", 0) for e in employees],
         [e["pending"] for e in employees],
         [e["overdue"] for e in employees],
     ]
@@ -343,7 +348,10 @@ def _stacked_chart(employees):
 
     chart.groupSpacing = 6
     chart.barWidth = 10
-    series_colors = [colors.HexColor("#12B76A"), colors.HexColor("#F79009"), colors.HexColor("#F04438")]
+    series_colors = [
+        colors.HexColor("#12B76A"), colors.HexColor("#4F8CFF"),
+        colors.HexColor("#F79009"), colors.HexColor("#F04438"),
+    ]
     for i, color in enumerate(series_colors):
         chart.bars[i].fillColor = color
         chart.bars[i].strokeColor = colors.white
@@ -351,7 +359,7 @@ def _stacked_chart(employees):
     drawing.add(chart)
 
     legend = Legend()
-    legend.x, legend.y = width / 2 - 90, 6
+    legend.x, legend.y = width / 2 - 130, 6
     legend.alignment = "right"
     legend.fontName = "Helvetica"
     legend.fontSize = 8.5
@@ -359,7 +367,7 @@ def _stacked_chart(employees):
     legend.deltax = 70
     legend.dxTextSpace = 4
     legend.boxAnchor = "sw"
-    legend.colorNamePairs = list(zip(series_colors, ["Completed", "Pending", "Overdue"]))
+    legend.colorNamePairs = list(zip(series_colors, ["Completed", "Available", "Pending", "Overdue"]))
     drawing.add(legend)
     return drawing
 
@@ -371,7 +379,7 @@ def build_team_pdf(employees, period_label):
 
     if employees:
         story.append(KeepTogether([
-            Paragraph("Completed vs Pending vs Overdue per Person", S_H2),
+            Paragraph("Completed vs Available vs Pending vs Overdue per Person", S_H2),
             _stacked_chart(employees),
         ]))
         story.append(Spacer(1, 4 * mm))

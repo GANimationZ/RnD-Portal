@@ -1,5 +1,5 @@
 {% extends "partials/top-sidebar.html" %}
-{% block title %}<title>Integrated Tools - RnD Portal</title>{% endblock %}
+{% block title %}<title>Integrated Tools - R&amp;D Portal</title>{% endblock %}
 {% block styles %}
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/workspace/tools/style.css') }}" />
@@ -11,13 +11,7 @@
                 <div class="search_and_filters">
                     <form id="toolFilters" onsubmit="return false;">
                         <label for="toolSearch">ACTIVE FILTERS</label>
-                        <input type="text" id="toolSearch" placeholder="Search tools or material..." />
-                        <select id="toolKindFilter">
-                            <option value="All">All (Tools &amp; Material)</option>
-                            {% for kind in kind_choices %}
-                                <option value="{{ kind }}">{{ kind }}{{ "s" if kind == "Tool" else "" }}</option>
-                            {% endfor %}
-                        </select>
+                        <input type="text" id="toolSearch" placeholder="Search tools..." />
                         <select id="toolCategoryFilter">
                             <option value="All">All Categories</option>
                         </select>
@@ -32,7 +26,7 @@
             </div>
             <div class="main-container">
                 <div class="main-container__header">
-                    <span class="header">Find the tool or material you need <span class="count"
+                    <span class="header">Find the tool you need <span class="count"
                                                                                   id="toolCount"></span></span>
                     <button type="button"
                             class="switcher"
@@ -54,7 +48,7 @@
     <div class="tool-modal is-hidden" id="toolModal">
         <div class="tool-modal__dialog">
             <div class="tool-modal__head">
-                <span class="tool-modal__title">Add Tool / Material</span>
+                <span class="tool-modal__title">Add Tool</span>
                 <button type="button"
                         class="tool-modal__close"
                         id="toolModalClose"
@@ -63,11 +57,6 @@
                 </button>
             </div>
             <form class="tool-modal__form" id="toolForm">
-                <select id="toolFormKind" required>
-                    {% for kind in kind_choices %}
-                        <option value="{{ kind }}">{{ kind }}</option>
-                    {% endfor %}
-                </select>
                 <input type="text" id="toolFormName" placeholder="Name" required />
                 <input type="text"
                        id="toolFormCategory"

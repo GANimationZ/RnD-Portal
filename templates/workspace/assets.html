@@ -1,305 +1,286 @@
 {# ---- Define / Extends ---- #}
 {% extends "partials/top-sidebar.html" %}
-{% block title %}<title>Assets - RnD Portal</title>{% endblock %}
+{% block title %}<title>Assets - R&amp;D Portal</title>{% endblock %}
 {% block styles %}
-  {# Issue Monitor stylesheet is reused (table, filters, badges, pagination) #}
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/workspace/issue-monitor/issue-main/style.css') }}"
-  />
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/workspace/assets/style.css') }}"
-  />
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/workspace/issue-monitor/issue-main/style.css') }}" />
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/workspace/assets/style.css') }}" />
 {% endblock %}
-
 {# ---- Main Content ---- #}
 {% block content %}
-  <div class="main-body-content">
-    <div class="body active" data-panel="assets">
-      {# ---- Summary ---- #}
-      <div class="preview_total">
-        <div class="ttl_issues blue">
-          <span class="pv_text">TOTAL PV ASSETS</span
-          ><span class="pv_number" id="totalAssets">0</span>
-        </div>
-        <div class="ttl_issues green">
-          <span class="pv_text">VERIFIED</span
-          ><span class="pv_number" id="totalMatched">0</span>
-        </div>
-        <div class="ttl_issues yellow">
-          <span class="pv_text">NOT CHECKED</span
-          ><span class="pv_number" id="totalPending">0</span>
-        </div>
-        <div class="ttl_issues red">
-          <span class="pv_text">MISMATCH / NOT PV</span
-          ><span class="pv_number" id="totalRejected">0</span>
-        </div>
-      </div>
-
-      {# ---- Scanner ---- #}
-      <section class="asset-scan">
-        <div class="asset-scan__head">
-          <span class="asset-scan__title"
-            ><i class="bxf bx-scan-barcode"></i> Scan Asset</span
-          >
-          <span class="asset-scan__hint"
-            >Point the scanner at the Serial Number barcode (it presses Enter
-            automatically), or type it manually.</span
-          >
-        </div>
-
-        <form class="asset-scan__form" id="scanForm" autocomplete="off">
-          <input
-            type="text"
-            id="scanSerial"
-            placeholder="Scan / type Serial Number (e.g. ABCD12345678)"
-            autocomplete="off"
-            spellcheck="false"
-            required
-          />
-          <input
-            type="text"
-            id="scanName"
-            placeholder="Item Name (optional, to check for a match)"
-            autocomplete="off"
-          />
-          <button type="submit" class="asset-scan__submit" id="scanSubmit">
-            <i class="bxf bx-search"></i> Check Asset
-          </button>
-          <button type="button" class="asset-scan__camera" id="cameraBtn">
-            <i class="bxf bx-camera"></i> Camera
-          </button>
-        </form>
-
-        <div class="scan-result is-idle" id="scanResult" aria-live="polite">
-          <div class="scan-result__icon"><i class="bxf bx-scan-barcode"></i></div>
-          <div class="scan-result__body">
-            <div class="scan-result__status" id="scanStatus">
-              Waiting for scan...
+    <div class="main-body-content">
+        <div class="body active" data-panel="assets">
+            {# ---- Summary ---- #}
+            <div class="preview_total">
+                <div class="ttl_issues blue">
+                    <span class="pv_text">TOTAL PV ASSETS</span><span class="pv_number" id="totalAssets">0</span>
+                </div>
+                <div class="ttl_issues green">
+                    <span class="pv_text">VERIFIED</span><span class="pv_number" id="totalMatched">0</span>
+                </div>
+                <div class="ttl_issues yellow">
+                    <span class="pv_text">NOT CHECKED</span><span class="pv_number" id="totalPending">0</span>
+                </div>
+                <div class="ttl_issues red">
+                    <span class="pv_text">MISMATCH / NOT PV</span><span class="pv_number" id="totalRejected">0</span>
+                </div>
             </div>
-            <div class="scan-result__message" id="scanMessage">
-              The asset check result will appear here.
+            {# ---- Scanner ---- #}
+            <section class="asset-scan">
+                <div class="asset-scan__head">
+                    <span class="asset-scan__title"><i class="bxf bx-scan-barcode"></i> Scan Asset</span>
+                    <span class="asset-scan__hint">Point the scanner at the Serial Number barcode (it presses Enter
+                    automatically), or type it manually.</span>
+                </div>
+                <form class="asset-scan__form" id="scanForm" autocomplete="off">
+                    <input type="text"
+                           id="scanSerial"
+                           placeholder="Scan / type Serial Number (e.g. ABCD12345678)"
+                           autocomplete="off"
+                           spellcheck="false"
+                           required />
+                    <input type="text"
+                           id="scanName"
+                           placeholder="Item Name (optional, to check for a match)"
+                           autocomplete="off" />
+                    <button type="submit" class="asset-scan__submit" id="scanSubmit">
+                        <i class="bxf bx-search"></i> Check Asset
+                    </button>
+                    <button type="button" class="asset-scan__camera" id="cameraBtn">
+                        <i class="bxf bx-camera"></i> Camera
+                    </button>
+                </form>
+                <div class="scan-result is-idle" id="scanResult" aria-live="polite">
+                    <div class="scan-result__icon">
+                        <i class="bxf bx-scan-barcode"></i>
+                    </div>
+                    <div class="scan-result__body">
+                        <div class="scan-result__status" id="scanStatus">Waiting for scan...</div>
+                        <div class="scan-result__message" id="scanMessage">
+                            The asset check result will appear here.
+                        </div>
+                        <div class="scan-result__meta is-hidden" id="scanMeta">
+                            <div>
+                                <span class="scan-result__label">Item Name</span>
+                                <span class="scan-result__value" id="scanResultName">-</span>
+                            </div>
+                            <div>
+                                <span class="scan-result__label">Serial Number</span>
+                                <span class="scan-result__value" id="scanResultSerial">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="scan-history is-hidden" id="scanHistoryWrap">
+                    <span class="scan-history__title">Recent scans</span>
+                    <ul class="scan-history__list" id="scanHistory">
+                    </ul>
+                </div>
+            </section>
+            {# ---- Filters & Export ---- #}
+            <div class="activity-filters">
+                <div class="search_and_filters">
+                    <form id="s_f" action="" method="get">
+                        <label for="searchInput">ACTIVE FILTERS</label>
+                        <input type="text"
+                               id="searchInput"
+                               placeholder="Search item name or serial number" />
+                        <select class="status" id="filterStatus">
+                            <option value="all" selected>All Status</option>
+                            <option value="pending">Not Checked</option>
+                            <option value="match">Verified</option>
+                            <option value="mismatch">Name Mismatch</option>
+                        </select>
+                    </form>
+                </div>
+                <div class="btns">
+                    <button id="reset" type="button">Reset</button>
+                    <div class="execute_btns">
+                        <button id="importBtn" type="button">
+                            <i class="bxf bx-arrow-to-top"></i>Import
+                        </button>
+                        <button id="addAssetBtn" type="button">
+                            <i class="bxf bx-plus"></i>Add Asset
+                        </button>
+                        <button id="exportExcel" type="button">
+                            <i class="bxf bx-arrow-to-bottom"></i>Excel
+                        </button>
+                        <button id="exportCsv" type="button">
+                            <i class="bxf bx-arrow-to-bottom"></i>CSV
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="scan-result__meta is-hidden" id="scanMeta">
-              <div>
-                <span class="scan-result__label">Item Name</span>
-                <span class="scan-result__value" id="scanResultName">-</span>
-              </div>
-              <div>
-                <span class="scan-result__label">Serial Number</span>
-                <span class="scan-result__value" id="scanResultSerial">-</span>
-              </div>
+            {# ---- Asset Table ---- #}
+            <div class="list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Item Name</th>
+                            <th>Serial Number</th>
+                            <th class="center">Scan Status</th>
+                            <th class="center">Scanned At</th>
+                            <th>Scanned By</th>
+                            <th class="center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assetTableBody">
+                        <!-- rows are generated by JS -->
+                    </tbody>
+                </table>
+                <div class="list__pagination">
+                    <div class="pagination__info">
+                        <span>Show</span>
+                        <select id="rowsPerPage">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                        </select>
+                        <span id="paginationSummary">Showing 0-0 of 0</span>
+                    </div>
+                    <div class="pagination__pages" id="paginationPages"></div>
+                </div>
             </div>
-          </div>
         </div>
-
-        <div class="scan-history is-hidden" id="scanHistoryWrap">
-          <span class="scan-history__title">Recent scans</span>
-          <ul class="scan-history__list" id="scanHistory"></ul>
-        </div>
-      </section>
-
-      {# ---- Filters & Export ---- #}
-      <div class="activity-filters">
-        <div class="search_and_filters">
-          <form id="s_f" action="" method="get">
-            <label for="searchInput">ACTIVE FILTERS</label>
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Search item name or serial number"
-            />
-            <select class="status" id="filterStatus">
-              <option value="all" selected>All Status</option>
-              <option value="pending">Not Checked</option>
-              <option value="match">Verified</option>
-              <option value="mismatch">Name Mismatch</option>
-            </select>
-          </form>
-        </div>
-        <div class="btns">
-          <button id="reset" type="button">Reset</button>
-          <div class="execute_btns">
-            <button id="importBtn" type="button">
-              <i class="bxf bx-arrow-to-top"></i>Import
-            </button>
-            <button id="addAssetBtn" type="button">
-              <i class="bxf bx-plus"></i>Add Asset
-            </button>
-            <button id="exportExcel" type="button">
-              <i class="bxf bx-arrow-to-bottom"></i>Excel
-            </button>
-            <button id="exportCsv" type="button">
-              <i class="bxf bx-arrow-to-bottom"></i>CSV
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {# ---- Asset Table ---- #}
-      <div class="list">
-        <table>
-          <thead>
-            <tr>
-              <th>No.</th>
-              <th>Item Name</th>
-              <th>Serial Number</th>
-              <th class="center">Scan Status</th>
-              <th class="center">Scanned At</th>
-              <th>Scanned By</th>
-              <th class="center">Action</th>
-            </tr>
-          </thead>
-          <tbody id="assetTableBody">
-            <!-- rows are generated by JS -->
-          </tbody>
-        </table>
-
-        <div class="list__pagination">
-          <div class="pagination__info">
-            <span>Show</span>
-            <select id="rowsPerPage">
-              <option value="5">5</option>
-              <option value="10" selected>10</option>
-              <option value="20">20</option>
-            </select>
-            <span id="paginationSummary">Showing 0-0 of 0</span>
-          </div>
-          <div class="pagination__pages" id="paginationPages"></div>
-        </div>
-      </div>
     </div>
-  </div>
-
-  {# ---- Popup: Add / Edit Asset ---- #}
-  <div class="app-modal is-hidden" id="addAssetModal">
-    <div class="app-modal__dialog">
-      <div class="app-modal__head">
-        <span class="app-modal__title" id="assetModalTitle">Add Asset</span>
-        <button type="button" class="app-modal__close" id="addAssetClose" aria-label="Close">
-          <i class="bxf bx-x"></i>
-        </button>
-      </div>
-      <form class="app-modal__form" id="addAssetForm" autocomplete="off" novalidate>
-        <input type="hidden" id="editingAssetId" value="" />
-        <label for="newAssetName">Item Name</label>
-        <input type="text" id="newAssetName" maxlength="120" placeholder="e.g. Digital Multimeter Fluke 87V" />
-        <label for="newAssetSerial">Serial Number</label>
-        <input type="text" id="newAssetSerial" maxlength="12" spellcheck="false" placeholder="e.g. ABCD12345678" />
-        <span class="app-modal__hint">4 letters followed by 8 digits, without dashes or spaces.</span>
-        <p class="app-modal__error" id="addAssetError"></p>
-        <div class="app-modal__actions">
-          <button type="button" class="app-modal__btn-secondary" id="addAssetCancel">Cancel</button>
-          <button type="submit" class="app-modal__btn-primary" id="addAssetSave">Save Asset</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  {# ---- Popup: Import assets from Excel (2 steps: choose file + mode, then review) ---- #}
-  <div class="app-modal is-hidden" id="importModal">
-    <div class="app-modal__dialog app-modal__dialog--wide">
-      <div class="app-modal__head">
-        <span class="app-modal__title" id="importTitle">Import Assets from Excel</span>
-        <button type="button" class="app-modal__close" id="importClose" aria-label="Close">
-          <i class="bxf bx-x"></i>
-        </button>
-      </div>
-
-      {# Step 1: file + mode #}
-      <form class="app-modal__form" id="importSelectForm" novalidate>
-        <label for="importFile">Excel file (.xlsx)</label>
-        <input type="file" id="importFile" accept=".xlsx" />
-        <span class="app-modal__hint">
-          Needs the columns <b>Item Name</b> and <b>Serial Number</b> (4 letters + 8 digits, no dashes).
-          <a href="/workspace/assets/api/assets/import/template" id="importTemplateLink">Download template</a>
-        </span>
-
-        <label>What should happen to the current data?</label>
-        <div class="import-modes">
-          <label class="import-mode">
-            <input type="radio" name="importMode" value="merge" checked />
-            <span class="import-mode__body">
-              <span class="import-mode__title"><i class="bxf bx-git-merge"></i> Merge</span>
-              <span class="import-mode__desc">Keep the current assets and combine them with the file. New assets are added; if a Serial Number already exists with a different name you choose which one to keep.</span>
-            </span>
-          </label>
-          <label class="import-mode import-mode--danger">
-            <input type="radio" name="importMode" value="replace" />
-            <span class="import-mode__body">
-              <span class="import-mode__title"><i class="bxf bx-refresh-cw"></i> Replace</span>
-              <span class="import-mode__desc">Delete ALL current assets and their scan results, then use only the data from the file.</span>
-            </span>
-          </label>
-        </div>
-
-        <p class="app-modal__error" id="importError"></p>
-        <div class="app-modal__actions">
-          <button type="button" class="app-modal__btn-secondary" id="importCancel">Cancel</button>
-          <button type="submit" class="app-modal__btn-primary" id="importCheck">Check File</button>
-        </div>
-      </form>
-
-      {# Step 2: review #}
-      <div class="import-review is-hidden" id="importReview">
-        <div class="import-review__scroll">
-          <div class="import-stats" id="importStats"></div>
-          <div class="import-warning is-hidden" id="importReplaceWarning"></div>
-
-          <div class="import-section is-hidden" id="importConflictsWrap">
-            <div class="import-section__head">
-              <span class="import-section__title" id="importConflictsTitle">Conflicts</span>
-              <span class="import-bulk">
-                <button type="button" id="importKeepAll">Keep current / first for all</button>
-                <button type="button" id="importUseAllNew">Use file version for all</button>
-              </span>
+    {# ---- Popup: Add / Edit Asset ---- #}
+    <div class="app-modal is-hidden" id="addAssetModal">
+        <div class="app-modal__dialog">
+            <div class="app-modal__head">
+                <span class="app-modal__title" id="assetModalTitle">Add Asset</span>
+                <button type="button"
+                        class="app-modal__close"
+                        id="addAssetClose"
+                        aria-label="Close">
+                    <i class="bxf bx-x"></i>
+                </button>
             </div>
-            <p class="import-section__hint">The same Serial Number appears with different names. For each one, choose the name to keep, or type a new name.</p>
-            <div id="importConflicts"></div>
-          </div>
-
-          <div class="import-section is-hidden" id="importInvalidWrap">
-            <div class="import-section__head">
-              <span class="import-section__title" id="importInvalidTitle">Rows with errors</span>
+            <form class="app-modal__form"
+                  id="addAssetForm"
+                  autocomplete="off"
+                  novalidate>
+                <input type="hidden" id="editingAssetId" value="" />
+                <label for="newAssetName">Item Name</label>
+                <input type="text"
+                       id="newAssetName"
+                       maxlength="120"
+                       placeholder="e.g. Digital Multimeter Fluke 87V" />
+                <label for="newAssetSerial">Serial Number</label>
+                <input type="text"
+                       id="newAssetSerial"
+                       maxlength="12"
+                       spellcheck="false"
+                       placeholder="e.g. ABCD12345678" />
+                <span class="app-modal__hint">4 letters followed by 8 digits, without dashes or spaces.</span>
+                <p class="app-modal__error" id="addAssetError"></p>
+                <div class="app-modal__actions">
+                    <button type="button" class="app-modal__btn-secondary" id="addAssetCancel">Cancel</button>
+                    <button type="submit" class="app-modal__btn-primary" id="addAssetSave">Save Asset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {# ---- Popup: Import assets from Excel (2 steps: choose file + mode, then review) ---- #}
+    <div class="app-modal is-hidden" id="importModal">
+        <div class="app-modal__dialog app-modal__dialog--wide">
+            <div class="app-modal__head">
+                <span class="app-modal__title" id="importTitle">Import Assets from Excel</span>
+                <button type="button"
+                        class="app-modal__close"
+                        id="importClose"
+                        aria-label="Close">
+                    <i class="bxf bx-x"></i>
+                </button>
             </div>
-            <p class="import-section__hint">These rows will be skipped. Fix them in Excel and import again if you need them.</p>
-            <div class="import-invalid" id="importInvalid"></div>
-          </div>
+            {# Step 1: file + mode #}
+            <form class="app-modal__form" id="importSelectForm" novalidate>
+                <label for="importFile">Excel file (.xlsx)</label>
+                <input type="file" id="importFile" accept=".xlsx" />
+                <span class="app-modal__hint">
+                    Needs the columns <b>Item Name</b> and <b>Serial Number</b> (4 letters + 8 digits, no dashes).
+                    <a href="/workspace/assets/api/assets/import/template"
+                       id="importTemplateLink">Download template</a>
+                </span>
+                <label>What should happen to the current data?</label>
+                <div class="import-modes">
+                    <label class="import-mode">
+                        <input type="radio" name="importMode" value="merge" checked />
+                        <span class="import-mode__body">
+                            <span class="import-mode__title"><i class="bxf bx-git-merge"></i> Merge</span>
+                            <span class="import-mode__desc">Keep the current assets and combine them with the file. New assets are added; if a Serial Number already exists with a different name you choose which one to keep.</span>
+                        </span>
+                    </label>
+                    <label class="import-mode import-mode--danger">
+                        <input type="radio" name="importMode" value="replace" />
+                        <span class="import-mode__body">
+                            <span class="import-mode__title"><i class="bxf bx-refresh-cw"></i> Replace</span>
+                            <span class="import-mode__desc">Delete ALL current assets and their scan results, then use only the data from the file.</span>
+                        </span>
+                    </label>
+                </div>
+                <p class="app-modal__error" id="importError"></p>
+                <div class="app-modal__actions">
+                    <button type="button" class="app-modal__btn-secondary" id="importCancel">Cancel</button>
+                    <button type="submit" class="app-modal__btn-primary" id="importCheck">Check File</button>
+                </div>
+            </form>
+            {# Step 2: review #}
+            <div class="import-review is-hidden" id="importReview">
+                <div class="import-review__scroll">
+                    <div class="import-stats" id="importStats"></div>
+                    <div class="import-warning is-hidden" id="importReplaceWarning"></div>
+                    <div class="import-section is-hidden" id="importConflictsWrap">
+                        <div class="import-section__head">
+                            <span class="import-section__title" id="importConflictsTitle">Conflicts</span>
+                            <span class="import-bulk">
+                                <button type="button" id="importKeepAll">Keep current / first for all</button>
+                                <button type="button" id="importUseAllNew">Use file version for all</button>
+                            </span>
+                        </div>
+                        <p class="import-section__hint">The same Serial Number appears with different names. For each one, choose the name to keep, or type a new name.</p>
+                        <div id="importConflicts"></div>
+                    </div>
+                    <div class="import-section is-hidden" id="importInvalidWrap">
+                        <div class="import-section__head">
+                            <span class="import-section__title" id="importInvalidTitle">Rows with errors</span>
+                        </div>
+                        <p class="import-section__hint">These rows will be skipped. Fix them in Excel and import again if you need them.</p>
+                        <div class="import-invalid" id="importInvalid"></div>
+                    </div>
+                </div>
+                <p class="app-modal__error import-review__error" id="importReviewError"></p>
+                <div class="app-modal__actions import-review__actions">
+                    <button type="button" class="app-modal__btn-secondary" id="importBack">Back</button>
+                    <button type="button" class="app-modal__btn-secondary" id="importAbort">Cancel Import</button>
+                    <button type="button" class="app-modal__btn-primary" id="importApply">Import</button>
+                </div>
+            </div>
         </div>
-
-        <p class="app-modal__error import-review__error" id="importReviewError"></p>
-        <div class="app-modal__actions import-review__actions">
-          <button type="button" class="app-modal__btn-secondary" id="importBack">Back</button>
-          <button type="button" class="app-modal__btn-secondary" id="importAbort">Cancel Import</button>
-          <button type="button" class="app-modal__btn-primary" id="importApply">Import</button>
+    </div>
+    {# ---- Popup: scan with camera ---- #}
+    <div class="camera-modal is-hidden" id="cameraModal">
+        <div class="camera-modal__dialog">
+            <div class="camera-modal__head">
+                <span>Scan with Camera</span>
+                <button type="button" id="cameraClose" title="Close">
+                    <i class="bxf bx-x"></i>
+                </button>
+            </div>
+            <div class="camera-modal__view">
+                <video id="cameraVideo" playsinline muted>
+                </video>
+                <div class="camera-modal__frame"></div>
+            </div>
+            <p class="camera-modal__hint" id="cameraHint">Starting camera...</p>
         </div>
-      </div>
     </div>
-  </div>
-
-  {# ---- Popup: scan with camera ---- #}
-  <div class="camera-modal is-hidden" id="cameraModal">
-    <div class="camera-modal__dialog">
-      <div class="camera-modal__head">
-        <span>Scan with Camera</span>
-        <button type="button" id="cameraClose" title="Close">
-          <i class="bxf bx-x"></i>
-        </button>
-      </div>
-      <div class="camera-modal__view">
-        <video id="cameraVideo" playsinline muted></video>
-        <div class="camera-modal__frame"></div>
-      </div>
-      <p class="camera-modal__hint" id="cameraHint">Starting camera...</p>
-    </div>
-  </div>
 {% endblock %}
-
 {# ---- Define Script ---- #}
 {% block script %}
-  {{ super() }}
-  <script src="{{ url_for('static', filename='vendor/exceljs/exceljs.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='javascript/shared/excel-export/excel-export.js') }}"></script>
-  <script src="{{ url_for('static', filename='javascript/workspace/assets.js') }}"></script>
+    {{ super() }}
+    <script src="{{ url_for('static', filename='vendor/exceljs/exceljs.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='javascript/shared/excel-export/excel-export.js') }}"></script>
+    <script src="{{ url_for('static', filename='javascript/workspace/assets.js') }}"></script>
 {% endblock %}

@@ -8,8 +8,6 @@ from library.models import ToolLink
 
 tools_bp = Blueprint("tools", __name__, url_prefix="/workspace/tools")
 
-KIND_CHOICES = ["Tool", "Material"]
-
 
 def _is_valid_url(value):
     parsed = urlparse(value)
@@ -31,7 +29,6 @@ def index():
         "workspace/tools.html",
         active_nav="tools",
         username=session.get("username"),
-        kind_choices=KIND_CHOICES,
     )
 
 
@@ -52,21 +49,17 @@ def api_create_item():
     data = request.get_json(silent=True) or {}
 
     name = (data.get("name") or "").strip()
-    kind = (data.get("kind") or "").strip()
     category = (data.get("category") or "").strip()
     url = (data.get("url") or "").strip()
     description = (data.get("description") or "").strip()
 
     if not name or not category or not url:
         return jsonify({"message": "Name, category, and link are required."}), 400
-    if kind not in KIND_CHOICES:
-        return jsonify({"message": "Type must be Tool or Material."}), 400
     if not _is_valid_url(url):
         return jsonify({"message": "Link must be a valid http(s) URL."}), 400
 
     item = ToolLink(
         name=name,
-        kind=kind,
         category=category,
         url=url,
         description=description or None,
@@ -75,7 +68,7 @@ def api_create_item():
     db.session.add(item)
     db.session.commit()
 
-    return jsonify({"message": f"{kind} added successfully.", "item": _serialize(item)}), 201
+    return jsonify({"message": "Tool added successfully.", "item": _serialize(item)}), 201
 
 
 @tools_bp.route("/api/items/<int:item_id>", methods=["DELETE"])

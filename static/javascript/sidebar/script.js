@@ -213,7 +213,7 @@ function updateTopbar() {
   const pathEl = document.getElementById("topbarPath");
   const titleEl = document.getElementById("topbarTitle");
 
-  pathEl.textContent = `RnD Portal > ${found.group.label}`;
+  pathEl.textContent = `R&D Portal > ${found.group.label}`;
   titleEl.textContent = found.item.label;
 }
 

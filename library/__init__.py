@@ -27,11 +27,7 @@ def _configure(app):
     app.config["SECRET_KEY"] = _get_or_create_secret_key(app)
     app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
-    # To migrate SQLite -> PostgreSQL, just set DATABASE_URL (see MIGRATION.md).
-    database_url = os.environ.get("DATABASE_URL", "sqlite:///database.db")
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-
+    database_url = os.environ.get("DATABASE_URL", "postgresql+psycopg2://postgres:furryfandom649@localhost:5432/rnd_portal")
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 
