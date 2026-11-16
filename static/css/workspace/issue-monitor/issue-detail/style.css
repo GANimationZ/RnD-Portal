@@ -57,6 +57,12 @@ select {
   -o-object-fit: contain;
      object-fit: contain;
 }
+.issue-detail__gallery {
+  padding: 20px 24px 0;
+}
+.issue-detail__gallery:empty {
+  display: none;
+}
 .issue-detail__no-image {
   padding: 40px;
   color: #b0b0b0;
@@ -313,9 +319,7 @@ select {
   color: white;
 }
 .issue-inline-detail__attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: block;
   margin-top: 4px;
 }
 .issue-inline-detail__attachments:empty {

@@ -26,15 +26,6 @@ const EVENT_META = {
 
 // Attachment icon per file type (see issue_monitor routes.py -> get_file_type())
 // -- restricted to boxicons class names that actually exist in vendor/boxicons.
-const ATTACHMENT_ICON = {
-  image: "bx-image",
-  pdf: "bx-file",
-  word: "bx-file",
-  excel: "bx-file",
-  ppt: "bx-slideshow",
-  other: "bx-file",
-};
-
 const PRIORITY_CLASS = {
   High: "badge-red",
   Medium: "badge-yellow",
@@ -991,35 +982,12 @@ function showInlineDetail(issueId) {
     statusBadge.className = `badge ${STATUS_CLASS[issue.status] || ""}`;
   }
 
-  // Image (if any) -- backend sends `image_url`, not `image`
-  const imgWrapper = document.getElementById("inlineDetailImageWrapper");
-  if (imgWrapper) {
-    imgWrapper.innerHTML = issue.image_url
-      ? `<img src="${escapeHtml(issue.image_url)}" alt="${escapeHtml(issue.title)}" />`
-      : "";
-  }
-
-  // Attachments (Word/Excel/PPT/PDF/image, can be more than one) -- click
-  // to preview; the small button in the corner downloads directly.
-  const attachmentsWrapper = document.getElementById("inlineDetailAttachments");
-  if (attachmentsWrapper) {
-    const attachments = issue.attachments || [];
-    attachmentsWrapper.innerHTML = attachments
-      .map(
-        (att, idx) => `
-        <button type="button" class="attachment-chip" data-attachment-index="${idx}">
-          <i class="bxf ${ATTACHMENT_ICON[att.type] || "bx-file"}"></i> ${escapeHtml(att.name)}
-        </button>`,
-      )
-      .join("");
-    attachmentsWrapper
-      .querySelectorAll("[data-attachment-index]")
-      .forEach((chip) => {
-        chip.addEventListener("click", () => {
-          openFilePreview(attachments[Number(chip.dataset.attachmentIndex)]);
-        });
-      });
-  }
+  // Attachments: image, video, PDF, Word, Excel, PowerPoint, ... (more than
+  // one allowed) shown as a gallery; click a tile to preview it.
+  renderAttachmentGallery(
+    document.getElementById("inlineDetailAttachments"),
+    issue.attachments || [],
+  );
 
   // A Closed issue is final -- hide Hold/Close once closed (backend also enforces this).
   const isClosed = issue.status === "Closed";

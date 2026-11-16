@@ -2,11 +2,12 @@ from flask import Response, jsonify, render_template, request, session, url_for
 from werkzeug.exceptions import Forbidden, NotFound, RequestEntityTooLarge
 
 from library.auth import home_url, wants_json
+from library.files import MAX_UPLOAD_SIZE_MB
 
 DEFAULT_JSON_MESSAGES = {
     403: "Access denied: insufficient permissions.",
     404: "The requested data or page was not found.",
-    413: "Maximum file upload up to 10 MB.",
+    413: f"Maximum file upload up to {MAX_UPLOAD_SIZE_MB} MB.",
 }
 
 _WERKZEUG_DEFAULTS = {

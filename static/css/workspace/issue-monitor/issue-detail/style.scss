@@ -151,6 +151,14 @@ $detail-chip-border: #e4e7ec;
     @include image-wrapper(420px);
   }
 
+  &__gallery {
+    padding: 20px 24px 0;
+
+    &:empty {
+      display: none;
+    }
+  }
+
   &__no-image {
     padding: 40px;
     color: $detail-no-image;
@@ -338,9 +346,7 @@ $detail-chip-border: #e4e7ec;
 
   // Lampiran & assign-saat-tutup
   &__attachments {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    display: block;
     margin-top: 4px;
 
     &:empty {

@@ -6,7 +6,7 @@ from flask_scss import Scss
 
 from library.errors import register_error_handlers
 from library.extensions import db
-from library.files import MAX_FILES_PER_UPLOAD
+from library.files import MAX_FILES_PER_UPLOAD, MAX_UPLOAD_SIZE_MB, UPLOAD_HELP, upload_accept
 
 
 def create_app():
@@ -20,8 +20,6 @@ def create_app():
     register_error_handlers(app)
 
     return app
-
-MAX_UPLOAD_SIZE_MB = 10
 
 
 def _configure(app):
@@ -89,6 +87,8 @@ def _register_context_processors(app):
             "current_user_avatar": _current_user_avatar_url(),
             "max_upload_files": MAX_FILES_PER_UPLOAD,
             "max_upload_mb": MAX_UPLOAD_SIZE_MB,
+            "upload_accept": upload_accept(),
+            "upload_help": UPLOAD_HELP,
         }
 
 

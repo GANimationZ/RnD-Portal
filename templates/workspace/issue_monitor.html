@@ -183,8 +183,6 @@
                         </button>
                     </div>
                     <div class="issue-inline-detail__card">
-                        <div class="issue-inline-detail__image-wrapper"
-                             id="inlineDetailImageWrapper"></div>
                         <div class="issue-inline-detail__body">
                             <div class="issue-inline-detail__top">
                                 <div class="issue-inline-detail__title" id="inlineDetailTitle">-</div>
@@ -316,11 +314,11 @@
                            required />
                     <input type="file"
                            id="issueFile"
-                           accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                           accept="{{ upload_accept }}"
                            multiple
                            data-max-files="{{ max_upload_files }}"
                            data-max-total-mb="{{ max_upload_mb }}" />
-                    <span class="app-modal__hint">Up to {{ max_upload_files }} files per upload (max {{ max_upload_mb }} MB in total): image, PDF, Word, Excel, or PowerPoint.</span>
+                    <span class="app-modal__hint">Up to {{ max_upload_files }} files per upload (max {{ max_upload_mb }} MB in total): {{ upload_help }}.</span>
                     <input type="submit" value="Register Issue" id="sub_btn" />
                 </form>
             </div>

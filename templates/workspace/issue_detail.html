@@ -15,14 +15,7 @@
             <i class="bxf bx-arrow-back"></i> Back to Issue Monitor
         </a>
         <div class="issue-detail__card">
-            <div class="issue-detail__image-wrapper">
-                {% if issue.image_filename %}
-                    <img src="{{ url_for('static', filename='assets/upload/' ~ issue.image_filename) }}"
-                         alt="Issue #{{ issue.id }} attachment" />
-                {% else %}
-                    <div class="issue-detail__no-image">No image attached</div>
-                {% endif %}
-            </div>
+            <div class="issue-detail__gallery" id="issueAttachmentGallery"></div>
             <div class="issue-detail__body">
                 <div class="issue-detail__head">
                     <div>
@@ -75,6 +68,11 @@
 {% block script %}
     {{ super() }}
     <script>
+      // Attachments (images, videos, documents, ...) as a clickable gallery.
+      renderAttachmentGallery(
+        document.getElementById("issueAttachmentGallery"),
+        {{ issue.to_dict()["attachments"] | tojson }},
+      );
     // Quick actions on the detail page: toggle Hold / mark Closed via the API
     // that the List Issue panel also uses (PATCH /api/issues/<id>/status).
     (function () {
