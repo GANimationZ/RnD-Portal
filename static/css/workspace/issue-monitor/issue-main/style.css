@@ -750,4 +750,21 @@ select {
 
 .gantt__empty.is-hidden {
   display: none;
-}/*# sourceMappingURL=style.css.map */
+}
+
+.issue-assignee-hint {
+  display: block;
+  margin: -4px 0 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(226, 75, 74, 0.08);
+  border: 1px solid rgba(226, 75, 74, 0.25);
+  color: #b3302f;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.issue-assignee-hint.is-hidden {
+  display: none;
+}
+
+/*# sourceMappingURL=style.css.map */

@@ -6,6 +6,7 @@ from flask_scss import Scss
 
 from library.errors import register_error_handlers
 from library.extensions import db
+from library.files import MAX_FILES_PER_UPLOAD
 
 
 def create_app():
@@ -86,6 +87,8 @@ def _register_context_processors(app):
             "is_super_admin": role == "Super Admin",
             "is_admin_or_above": role in ("Super Admin", "Admin"),
             "current_user_avatar": _current_user_avatar_url(),
+            "max_upload_files": MAX_FILES_PER_UPLOAD,
+            "max_upload_mb": MAX_UPLOAD_SIZE_MB,
         }
 
 

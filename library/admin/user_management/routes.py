@@ -1,8 +1,11 @@
 from flask import Blueprint, jsonify, render_template, request, session
 
+from library.assignment import assignable_members
 from library.auth import login_required, roles_required
 from library.extensions import db
 from library.models import (
+    BEST_PRACTICE_MAX_LENGTH,
+    BEST_PRACTICE_MAX_NOTES,
     CATEGORY_CHOICES,
     EVENT_CHOICES,
     ROLE_CHOICES,
@@ -63,6 +66,8 @@ def index():
         role_choices=ROLE_CHOICES,
         category_choices=CATEGORY_CHOICES,
         event_choices=EVENT_CHOICES,
+        note_max_count=BEST_PRACTICE_MAX_NOTES,
+        note_max_length=BEST_PRACTICE_MAX_LENGTH,
     )
 
 
@@ -197,18 +202,7 @@ def api_assignable_users():
     category = (request.args.get("category") or "").strip()
     event = (request.args.get("event") or "").strip()
 
-    if not category or not event:
-        return jsonify({"users": []})
-
-    candidates = (
-        User.query.filter_by(role="Member", is_active=True)
-        .join(UserCategoryScope)
-        .filter(UserCategoryScope.category == category)
-        .join(UserEventScope, UserEventScope.user_id == User.id)
-        .filter(UserEventScope.event == event)
-        .order_by(User.username)
-        .all()
-    )
+    candidates = assignable_members(category, event)
 
     return jsonify({
         "users": [{"id": u.id, "username": u.username} for u in candidates]

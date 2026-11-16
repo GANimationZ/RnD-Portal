@@ -134,6 +134,11 @@ class KPIRecord(db.Model):
         return f"<KPIRecord user={self.user_id} {self.period_date}>"
 
 
+# Limits for a Member's Best Practice notes (enforced by the API and the UI).
+BEST_PRACTICE_MAX_NOTES = 5
+BEST_PRACTICE_MAX_LENGTH = 200  # characters per note
+
+
 class BestPractice(db.Model):
     __tablename__ = "best_practices"
 

@@ -4,7 +4,7 @@ from library.auth import login_required
 from library.extensions import db
 import os
 
-from library.files import get_upload_dir, is_allowed, save_upload, get_file_type
+from library.files import get_upload_dir, get_file_type, save_upload, validate_uploads
 from library.models import TvDesignAsset, TvDesignAttachment
 
 tv_design_bp = Blueprint("tv_design", __name__, url_prefix="/workspace/tv-design-concept")
@@ -54,12 +54,9 @@ def api_create_asset():
     if not title or not serial_number:
         return jsonify({"message": "Title and Serial Number are required."}), 400
 
-    for file in files:
-        if file and file.filename and not is_allowed(file.filename):
-            return jsonify({
-                "message": f'File "{file.filename}" has an unsupported format. '
-                           "Use an image, PDF, Word, Excel, or PowerPoint file."
-            }), 400
+    upload_error = validate_uploads(files)
+    if upload_error:
+        return jsonify({"message": upload_error}), 400
 
     asset = TvDesignAsset(
         title=title,

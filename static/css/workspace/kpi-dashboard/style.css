@@ -562,6 +562,7 @@ select {
   font-size: 13px;
   color: #444;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .insight {

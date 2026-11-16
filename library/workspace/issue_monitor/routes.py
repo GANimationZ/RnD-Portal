@@ -2,9 +2,10 @@ from datetime import date, datetime, timedelta
 
 from flask import Blueprint, jsonify, render_template, request, session
 
+from library.assignment import assignable_members, find_assignable_member
 from library.auth import login_required, roles_required
 from library.extensions import db
-from library.files import is_allowed, get_file_type, save_upload
+from library.files import get_file_type, save_upload, validate_uploads
 from library.models import CATEGORY_CHOICES, EVENT_CHOICES, Issue, IssueAttachment, User
 from library.issue_lifecycle import refresh_issues
 
@@ -81,19 +82,26 @@ def api_create_issue():
     if deadline < date.today() + timedelta(days=MIN_DEADLINE_DAYS):
         return jsonify({"message": f"Deadline must be at least {MIN_DEADLINE_DAYS} days from today."}), 400
 
+    # An issue needs someone who can own it. Without a registered Member for
+    # this Category + Event it cannot be created yet; once at least one exists
+    # the assignee may still be left empty and chosen later (at closing time).
+    if not assignable_members(category, event):
+        return jsonify({
+            "message": f"No Member is registered for {category} / {event} yet. "
+                       "Register a Member with this Category & Event in "
+                       "User Management first, then create the issue."
+        }), 400
+
     assignee_id = None
     if assignee_id_raw:
-        candidate = User.query.get(assignee_id_raw)
-        if not candidate or candidate.role != "Member" or not candidate.covers(category, event):
+        candidate = find_assignable_member(assignee_id_raw, category, event)
+        if candidate is None:
             return jsonify({"message": "Invalid assignee for this category/event."}), 400
         assignee_id = candidate.id
 
-    for file in files:
-        if file and file.filename and not is_allowed(file.filename):
-            return jsonify({
-                "message": f'File "{file.filename}" has an unsupported format. '
-                           "Use an image, PDF, Word, Excel, or PowerPoint file."
-            }), 400
+    upload_error = validate_uploads(files)
+    if upload_error:
+        return jsonify({"message": upload_error}), 400
 
     issue = Issue(
         title=title,
@@ -144,10 +152,18 @@ def api_update_status(issue_id):
         return jsonify({"message": "This issue is already closed and can no longer be changed."}), 400
 
     if assignee_id_raw and not issue.assignee_id:
-        candidate = User.query.get(assignee_id_raw)
-        if not candidate or candidate.role != "Member" or not candidate.covers(issue.category, issue.event):
+        candidate = find_assignable_member(assignee_id_raw, issue.category, issue.event)
+        if candidate is None:
             return jsonify({"message": "Invalid assignee for this issue's category/event."}), 400
         issue.assignee_id = candidate.id
+
+    # Closing credits the work to someone on the KPI Dashboard, so an issue
+    # nobody is assigned to cannot be closed (not even by Super Admin / Admin).
+    if status == "Closed" and not issue.assignee_id:
+        return jsonify({
+            "message": "This issue has no assignee yet. Choose the Member who "
+                       "handled it before closing the issue."
+        }), 400
 
     issue.status = status
 

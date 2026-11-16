@@ -166,6 +166,8 @@ function hideBestPracticeSection() {
   if (list) list.innerHTML = "";
   const input = document.getElementById("umNewNote");
   if (input) input.value = "";
+  applyNoteLimit(0);
+  updateNoteChars();
 }
 
 async function showBestPracticeSection(memberId) {
@@ -174,9 +176,51 @@ async function showBestPracticeSection(memberId) {
   await fetchAndRenderNotes(memberId);
 }
 
+// Limits come from the server through data attributes on the section.
+function noteLimits() {
+  const section = document.getElementById("umBestPracticeSection");
+  return {
+    maxNotes: Number(section?.dataset.maxNotes) || 5,
+    maxLength: Number(section?.dataset.maxLength) || 200,
+  };
+}
+
+let currentNoteCount = 0;
+
+function updateNoteChars() {
+  const input = document.getElementById("umNewNote");
+  const counter = document.getElementById("umNoteChars");
+  if (!input || !counter) return;
+  counter.textContent = `${input.value.length}/${noteLimits().maxLength}`;
+}
+
+// Shows "n/5" and locks the input once the Member already has 5 notes.
+function applyNoteLimit(count) {
+  currentNoteCount = count;
+  const { maxNotes } = noteLimits();
+  const full = count >= maxNotes;
+
+  const countEl = document.getElementById("umNotesCount");
+  if (countEl) {
+    countEl.textContent = `${count}/${maxNotes}`;
+    countEl.classList.toggle("is-full", full);
+  }
+
+  const input = document.getElementById("umNewNote");
+  const addBtn = document.getElementById("umAddNoteBtn");
+  if (input) {
+    input.disabled = full;
+    input.placeholder = full
+      ? `Limit of ${maxNotes} notes reached - delete one to add another`
+      : "Write a new Best Practice note...";
+  }
+  if (addBtn) addBtn.disabled = full;
+}
+
 function renderNotesList(notes) {
   const list = document.getElementById("umNotesList");
   if (!list) return;
+  applyNoteLimit(notes.length);
 
   if (notes.length === 0) {
     list.innerHTML = `<li class="um-notes-empty">No notes yet.</li>`;
@@ -187,7 +231,7 @@ function renderNotesList(notes) {
     .map(
       (n) => `
     <li data-note-id="${n.id}">
-      <span>${escapeHtml(n.note)}</span>
+      <span class="um-notes-text">${escapeHtml(n.note)}</span>
       <button type="button" class="um-notes-delete" data-note-id="${n.id}" title="Delete note">
         <i class="bxf bx-trash"></i>
       </button>
@@ -221,8 +265,17 @@ function initBestPracticeSection() {
 
   addBtn.addEventListener("click", async () => {
     const note = input.value.trim();
+    const { maxNotes, maxLength } = noteLimits();
     if (!note) {
       showToast("Note cannot be empty.", "error");
+      return;
+    }
+    if (note.length > maxLength) {
+      showToast(`A note can be at most ${maxLength} characters.`, "error");
+      return;
+    }
+    if (currentNoteCount >= maxNotes) {
+      showToast(`A Member can have at most ${maxNotes} notes.`, "error");
       return;
     }
     if (!editingId) return; // section is hidden in create mode, but guard anyway
@@ -240,16 +293,18 @@ function initBestPracticeSection() {
         return;
       }
       input.value = "";
+      updateNoteChars();
       await fetchAndRenderNotes(editingId);
       showToast(data.message || "Note added.", "success");
     } catch (err) {
       console.error(err);
       showToast("An error occurred while contacting the server.", "error");
     } finally {
-      addBtn.disabled = false;
+      addBtn.disabled = currentNoteCount >= noteLimits().maxNotes;
     }
   });
 
+  input.addEventListener("input", updateNoteChars);
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();

@@ -264,6 +264,89 @@ select {
   border-color: #525252;
 }
 
+.um-form__scope-group {
+  min-width: 0;
+}
+
+.um-notes-count {
+  margin-left: 6px;
+  font-weight: 500;
+  color: #8a8f98;
+}
+.um-notes-count.is-full {
+  color: #e24b4a;
+}
+
+.um-notes-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.um-notes-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #bfbfbf;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #444;
+}
+
+.um-notes-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.um-notes-empty {
+  color: #9aa0aa;
+  font-style: italic;
+}
+
+.um-notes-delete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #9aa0aa;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.um-notes-delete:hover {
+  color: #e24b4a;
+}
+
+.um-notes-add {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.um-notes-add input {
+  flex: 1;
+  min-width: 0;
+}
+.um-notes-add button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.um-notes-hint {
+  margin: 6px 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .is-hidden {
   display: none !important;
 }/*# sourceMappingURL=user-management.css.map */

@@ -418,6 +418,22 @@ function renderDashboardSummary() {
 // ---- Assignee combobox: refetched whenever Category & Event change,
 // pulling Members whose scope (set in /admin/users) covers BOTH values.
 // The endpoint returns [] if either field isn't selected yet. ----
+// An issue cannot be registered while no Member is registered for its
+// Category + Event (the server refuses it too). Shows why and locks the
+// submit button; passing an empty message lifts the lock again.
+let registerBlockedMessage = "";
+
+function setRegisterBlocked(message) {
+  registerBlockedMessage = message || "";
+  const hint = document.getElementById("issueAssigneeHint");
+  const submitBtn = document.getElementById("sub_btn");
+  if (hint) {
+    hint.textContent = registerBlockedMessage;
+    hint.classList.toggle("is-hidden", !registerBlockedMessage);
+  }
+  if (submitBtn) submitBtn.disabled = Boolean(registerBlockedMessage);
+}
+
 async function loadAssignableUsers() {
   const categoryEl = document.getElementById("issueCategory");
   const eventEl = document.getElementById("issueEvent");
@@ -430,6 +446,7 @@ async function loadAssignableUsers() {
   if (!categoryEl.value || !eventEl.value) {
     assigneeEl.disabled = true;
     assigneeEl.innerHTML = `<option value="" selected>Select Category & Event first</option>`;
+    setRegisterBlocked("");
     return;
   }
 
@@ -445,11 +462,24 @@ async function loadAssignableUsers() {
     const data = await res.json();
     const users = data.users || [];
 
+    // Ignore an answer that arrives after the user already changed the selection.
+    if (
+      (CATEGORY_VALUE_MAP[categoryEl.value] || categoryEl.value) !== categoryVal ||
+      (EVENT_VALUE_MAP[eventEl.value] || eventEl.value) !== eventVal
+    ) {
+      return;
+    }
+
     if (users.length === 0) {
       assigneeEl.innerHTML = `<option value="" selected>No Member matches this combination</option>`;
       assigneeEl.disabled = true;
+      setRegisterBlocked(
+        `No Member is registered for ${categoryVal} / ${eventVal} yet. ` +
+          "Register a Member with this Category & Event in User Management first.",
+      );
       return;
     }
+    setRegisterBlocked("");
 
     assigneeEl.innerHTML =
       `<option value="" selected>Unassigned (optional)</option>` +
@@ -463,6 +493,7 @@ async function loadAssignableUsers() {
     console.error(err);
     assigneeEl.innerHTML = `<option value="" selected>Failed to load Member list</option>`;
     assigneeEl.disabled = true;
+    setRegisterBlocked("");
   }
 }
 
@@ -478,6 +509,7 @@ function resetIssueForm() {
     assigneeEl.disabled = true;
     assigneeEl.innerHTML = `<option value="" selected>Select Category & Event first</option>`;
   }
+  setRegisterBlocked("");
 }
 
 function openIssueRegister() {
@@ -540,6 +572,11 @@ function initIssueRegister() {
     const dateEl = document.getElementById("issueDate");
     const fileEl = document.getElementById("issueFile");
     const submitBtn = document.getElementById("sub_btn");
+
+    if (registerBlockedMessage) {
+      showToast(registerBlockedMessage, "error");
+      return;
+    }
 
     const title = titleEl.value.trim();
     const categoryVal = categoryEl.value;
@@ -1003,6 +1040,12 @@ function showInlineDetail(issueId) {
   const assigneeSelect = document.getElementById("inlineDetailAssigneeSelect");
   const closeBtn = document.getElementById("inlineDetailCloseBtn");
 
+  // An issue can only be closed once someone is assigned to it.
+  if (closeBtn) {
+    closeBtn.disabled = false;
+    closeBtn.title = "";
+  }
+
   if (assigneeSelect) {
     if (issue.assignee_id) {
       assigneeSelect.classList.add("is-hidden");
@@ -1011,18 +1054,32 @@ function showInlineDetail(issueId) {
       assigneeSelect.classList.remove("is-hidden");
       assigneeSelect.innerHTML =
         '<option value="">Loading assignees...</option>';
+      if (closeBtn) closeBtn.disabled = true;
       fetch(
         `/admin/users/api/assignable?category=${encodeURIComponent(issue.category)}&event=${encodeURIComponent(issue.event)}`,
       )
         .then((r) => r.json())
         .then((data) => {
-          const options = (data.users || [])
-            .map(
-              (u) =>
-                `<option value="${u.id}">${escapeHtml(u.username)}</option>`,
-            )
-            .join("");
-          assigneeSelect.innerHTML = `<option value="">No assignee</option>${options}`;
+          const users = data.users || [];
+          if (users.length === 0) {
+            assigneeSelect.innerHTML =
+              '<option value="">No Member registered for this category/event</option>';
+            if (closeBtn) {
+              closeBtn.disabled = true;
+              closeBtn.title =
+                "Register a Member for this Category & Event in User Management first.";
+            }
+            return;
+          }
+          assigneeSelect.innerHTML =
+            '<option value="">Select an assignee...</option>' +
+            users
+              .map(
+                (u) =>
+                  `<option value="${u.id}">${escapeHtml(u.username)}</option>`,
+              )
+              .join("");
+          if (closeBtn) closeBtn.disabled = false;
         })
         .catch(() => {
           assigneeSelect.innerHTML = '<option value="">Failed to load</option>';
@@ -1032,15 +1089,19 @@ function showInlineDetail(issueId) {
 
   if (closeBtn) {
     closeBtn.onclick = async () => {
+      const needsAssignee =
+        assigneeSelect && !assigneeSelect.classList.contains("is-hidden");
+      const chosenAssignee = needsAssignee ? assigneeSelect.value : null;
+      if (needsAssignee && !chosenAssignee) {
+        showToast("Choose the assignee who handled this issue first.", "error");
+        return;
+      }
+
       const confirmed = await showConfirm(
         `Mark issue "${issue.title}" as Closed?`,
       );
       if (!confirmed) return;
 
-      const chosenAssignee =
-        assigneeSelect && !assigneeSelect.classList.contains("is-hidden")
-          ? assigneeSelect.value
-          : null;
       updateIssueStatus(issue.id, "Closed", chosenAssignee || null);
     };
   }

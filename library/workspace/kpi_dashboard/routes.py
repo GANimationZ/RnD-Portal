@@ -7,7 +7,13 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from library.auth import login_required
 from library.extensions import db
 from library.issue_lifecycle import refresh_issues
-from library.models import BestPractice, Issue, User
+from library.models import (
+    BEST_PRACTICE_MAX_LENGTH,
+    BEST_PRACTICE_MAX_NOTES,
+    BestPractice,
+    Issue,
+    User,
+)
 
 from .kpi_excel import (
     build_individual_workbook,
@@ -228,7 +234,11 @@ def api_list_best_practices(employee_id):
         return jsonify({"message": "Access denied."}), 403
 
     notes = [{"id": bp.id, "note": bp.note} for bp in employee.best_practices]
-    return jsonify({"notes": notes})
+    return jsonify({
+        "notes": notes,
+        "maxNotes": BEST_PRACTICE_MAX_NOTES,
+        "maxLength": BEST_PRACTICE_MAX_LENGTH,
+    })
 
 
 @kpi_dashboard_bp.route("/api/employees/<int:employee_id>/best-practices", methods=["POST"])
@@ -252,7 +262,19 @@ def api_add_best_practice(employee_id):
         return jsonify({"message": "Note cannot be empty."}), 400
     note = note.strip()
 
+    if len(note) > BEST_PRACTICE_MAX_LENGTH:
+        return jsonify({
+            "message": f"A note can be at most {BEST_PRACTICE_MAX_LENGTH} characters "
+                       f"(yours is {len(note)})."
+        }), 400
+
     order = BestPractice.query.filter_by(user_id=employee.id).count()
+    if order >= BEST_PRACTICE_MAX_NOTES:
+        return jsonify({
+            "message": f"A Member can have at most {BEST_PRACTICE_MAX_NOTES} notes. "
+                       "Delete one before adding another."
+        }), 400
+
     db.session.add(BestPractice(user_id=employee.id, note=note, sort_order=order))
     db.session.commit()
 
