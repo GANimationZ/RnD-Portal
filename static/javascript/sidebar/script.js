@@ -4,7 +4,7 @@ const icons = {
   concept: "bx-monitor-wallpaper",
   issue: "bx-alert-triangle",
   tool: "bx-spanner",
-  asset: "bx-scan-barcode",
+  asset: "bx-qr-scan",
   pin: "bx-location-pin",
   dollar: "bx-dollar-circle",
   chevron: "bx-chevron-down",

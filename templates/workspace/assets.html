@@ -29,8 +29,8 @@
             {# ---- Scanner ---- #}
             <section class="asset-scan">
                 <div class="asset-scan__head">
-                    <span class="asset-scan__title"><i class="bxf bx-scan-barcode"></i> Scan Asset</span>
-                    <span class="asset-scan__hint">Point the scanner at the Serial Number barcode (it presses Enter
+                    <span class="asset-scan__title"><i class="bxf bx-qr-scan"></i> Scan Asset</span>
+                    <span class="asset-scan__hint">Point the scanner at the Serial Number QR code (it presses Enter
                     automatically), or type it manually.</span>
                 </div>
                 <form class="asset-scan__form" id="scanForm" autocomplete="off">
@@ -47,13 +47,10 @@
                     <button type="submit" class="asset-scan__submit" id="scanSubmit">
                         <i class="bxf bx-search"></i> Check Asset
                     </button>
-                    <button type="button" class="asset-scan__camera" id="cameraBtn">
-                        <i class="bxf bx-camera"></i> Camera
-                    </button>
                 </form>
                 <div class="scan-result is-idle" id="scanResult" aria-live="polite">
                     <div class="scan-result__icon">
-                        <i class="bxf bx-scan-barcode"></i>
+                        <i class="bxf bx-qr-scan"></i>
                     </div>
                     <div class="scan-result__body">
                         <div class="scan-result__status" id="scanStatus">Waiting for scan...</div>
@@ -257,23 +254,6 @@
                     <button type="button" class="app-modal__btn-primary" id="importApply">Import</button>
                 </div>
             </div>
-        </div>
-    </div>
-    {# ---- Popup: scan with camera ---- #}
-    <div class="camera-modal is-hidden" id="cameraModal">
-        <div class="camera-modal__dialog">
-            <div class="camera-modal__head">
-                <span>Scan with Camera</span>
-                <button type="button" id="cameraClose" title="Close">
-                    <i class="bxf bx-x"></i>
-                </button>
-            </div>
-            <div class="camera-modal__view">
-                <video id="cameraVideo" playsinline muted>
-                </video>
-                <div class="camera-modal__frame"></div>
-            </div>
-            <p class="camera-modal__hint" id="cameraHint">Starting camera...</p>
         </div>
     </div>
 {% endblock %}

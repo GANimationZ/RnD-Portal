@@ -874,86 +874,6 @@ function initImport() {
 }
 
 // ============================================================
-// ---- Scan with camera (BarcodeDetector) ---- //
-// ============================================================
-let cameraStream = null;
-let cameraTimer = null;
-
-async function openCamera() {
-  const modal = document.getElementById("cameraModal");
-  const video = document.getElementById("cameraVideo");
-  const hint = document.getElementById("cameraHint");
-  if (!modal || !video) return;
-
-  if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
-    showToast(
-      "This browser does not support camera scanning. Use a barcode scanner or type the Serial Number.",
-      "info",
-    );
-    return;
-  }
-
-  modal.classList.remove("is-hidden");
-  hint.textContent = "Starting camera...";
-
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-      audio: false,
-    });
-    video.srcObject = cameraStream;
-    await video.play();
-    hint.textContent =
-      "Point the camera at the Serial Number barcode / QR code.";
-
-    const detector = new BarcodeDetector();
-    cameraTimer = setInterval(async () => {
-      try {
-        const codes = await detector.detect(video);
-        if (codes.length) {
-          const value = codes[0].rawValue;
-          closeCamera();
-          processScan(value, document.getElementById("scanName")?.value);
-        }
-      } catch (err) {
-        // frame not ready yet -- try again on the next tick
-      }
-    }, 300);
-  } catch (err) {
-    console.error(err);
-    closeCamera();
-    showToast(
-      "Cannot access the camera. Check the camera permission in your browser.",
-      "error",
-    );
-  }
-}
-
-function closeCamera() {
-  clearInterval(cameraTimer);
-  cameraTimer = null;
-  if (cameraStream) {
-    cameraStream.getTracks().forEach((t) => t.stop());
-    cameraStream = null;
-  }
-  const video = document.getElementById("cameraVideo");
-  if (video) video.srcObject = null;
-  document.getElementById("cameraModal")?.classList.add("is-hidden");
-  document.getElementById("scanSerial")?.focus();
-}
-
-function initCamera() {
-  document.getElementById("cameraBtn")?.addEventListener("click", openCamera);
-  document
-    .getElementById("cameraClose")
-    ?.addEventListener("click", closeCamera);
-  bindBackdropClose(document.getElementById("cameraModal"), closeCamera);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && cameraStream) closeCamera();
-  });
-}
-
-// ============================================================
 // ---- Export (Excel .xlsx & CSV) ---- //
 // Columns: No, Item Name, Serial Number
 // ============================================================
@@ -1071,7 +991,6 @@ function initList() {
 document.addEventListener("DOMContentLoaded", async () => {
   initList();
   initScanner();
-  initCamera();
   initAddAsset();
   initImport();
   await fetchAssets();
