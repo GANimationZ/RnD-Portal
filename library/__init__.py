@@ -75,7 +75,6 @@ def _register_blueprints(app):
 
 
 def _register_context_processors(app):
-    """Expose the logged-in user's role to every template."""
 
     from flask import session
 

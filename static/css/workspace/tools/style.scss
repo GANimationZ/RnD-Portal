@@ -1,8 +1,5 @@
 @use "../../base" as *;
 
-// Integrated Tools -- kumpulan pintasan ke situs eksternal (tool & material).
-// Semua entri dibuka di tab baru, jadi kartu menampilkan host tujuannya.
-
 $line: #e4e7ec;
 $list-columns: 28px minmax(0, 1fr) 90px 150px;
 $list-columns-narrow: 28px minmax(0, 1fr) 92px;

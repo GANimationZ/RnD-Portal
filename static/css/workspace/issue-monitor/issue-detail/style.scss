@@ -1,11 +1,5 @@
 @use "../../../base" as *;
 
-// Issue Monitor -- Detail
-// Dipakai 2 tampilan:
-//   .issue-detail         -> halaman detail penuh   (templates/workspace/issue_detail.html)
-//   .issue-inline-detail  -> overlay/modal detail   (templates/workspace/issue_monitor.html)
-// Base style (tabel, badge, filter, dll) ada di ../issue-main/style.scss
-
 $detail-border: #e0e0e0;
 $detail-meta-bg: #fafafa;
 $detail-meta-border: #eee;
@@ -15,7 +9,7 @@ $detail-label: #9a9a9a;
 $detail-chip-bg: #f5f5f7;
 $detail-chip-border: #e4e7ec;
 
-// ==================== Mixins (dipakai bersama page & overlay) ====================
+// ==================== Mixins ====================
 @mixin card {
   background-color: white;
   border: 1px solid $detail-border;

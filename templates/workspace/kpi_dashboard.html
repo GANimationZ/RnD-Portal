@@ -20,9 +20,7 @@
             <button type="button" class="range-tabs__btn" data-range="year">Last Year</button>
         </div>
     {% endmacro %}
-    {# ---- Header title, shared by employee_panel & team_panel so both
-     titles ("Employee Performance" & "Team Summary") are identical in style:
-     always OUTSIDE the card/table, not squeezed inside .employees ---- #}
+    {# ---- Header title ---- #}
     {% macro panel_header(title, icon, scope, show_range) %}
         <div class="panel-header">
             <span class="panel-header__title"><i class="bxf {{ icon }}"></i> {{ title }}</span>

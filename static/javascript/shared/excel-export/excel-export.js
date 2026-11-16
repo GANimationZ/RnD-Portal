@@ -1,26 +1,3 @@
-// ====================================================================
-// Shared styled Excel (.xlsx) export -- window.exportStyledExcel(options)
-// Requires the vendored ExcelJS (static/vendor/exceljs/exceljs.min.js).
-//
-// Every Excel export in the portal goes through this helper so they all share
-// one look: a coloured title bar, a subtitle line (export time / filters),
-// a clear header row, striped rows, status colours, a frozen header, filters
-// and print-ready page setup.
-//
-// options = {
-//   fileName:  "issue-list_20261104.xlsx",
-//   sheetName: "Issue List",
-//   title:     "Issue List",
-//   subtitle:  "Exported 04-11-2026 10:30  |  25 rows",
-//   columns: [{ header: "No", width: 6, align: "center" }, ...],   // align: left|center|right
-//   rows:    [[1, "Title", ...], ...],                             // same order as columns
-//   // Optional colouring of cells by column header + cell value:
-//   //   colors: { Status: { Open: "blue", Closed: "green" } }
-//   colors: {},
-//   // Optional total line under the table: { label: "Total", values: { 2: 10 } }
-// }
-// Colour names: red | yellow | green | blue | gray
-// ====================================================================
 (function () {
   const BRAND = "FFA50034";
   const BRAND_DARK = "FF700023";
@@ -29,7 +6,6 @@
   const BORDER_COLOR = "FFD9DDE3";
   const FONT = "Calibri";
 
-  // [fill, text] pairs -- same hues as the badges in the UI
   const TONES = {
     red: ["FFFDE2E1", "FFB42318"],
     yellow: ["FFFEF0C7", "FF93370D"],

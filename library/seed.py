@@ -1,20 +1,3 @@
-"""Seeds two demo accounts (Super Admin + QA Admin) so the User
-Management flow can be tried immediately. No Issue/KPI/Tool dummy data --
-all of that comes from real usage through the UI. The only sample data besides
-the accounts is a small PV asset list (see ASSET_SEED) so the Assets page can be
-tried right away.
-
-Display names are derived from the emails (see library/naming.py):
-super.admin@... -> "Super Admin", qa.admin@... -> "Qa Admin".
-Log in with the EMAIL.
-
-Usage:
-    from library.seed import seed_dummy_data
-    with app.app_context():
-        db.create_all()
-        seed_dummy_data()   # idempotent, no-op if users already exist
-"""
-
 from datetime import datetime
 
 from library.extensions import db

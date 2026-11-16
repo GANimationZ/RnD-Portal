@@ -3,12 +3,7 @@
 {% block error_icon %}bx-upload{% endblock %}
 {% block error_code %}413{% endblock %}
 {% block error_heading %}File Too Large{% endblock %}
-
 {% block error_body %}
-  <p class="error-card__text">
-    {{ detail or "Ukuran file maksimal 10 MB." }}
-  </p>
-  <p class="error-card__hint">
-    Coba kompres filenya atau unggah dalam beberapa file yang lebih kecil.
-  </p>
+    <p class="error-card__text">{{ detail or "Maximum file upload up to 10 MB." }}</p>
+    <p class="error-card__hint">Try Compress the file or reduce the file size and upload again.</p>
 {% endblock %}

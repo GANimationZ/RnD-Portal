@@ -1,9 +1,6 @@
 // ====================================================================
-// Notifikasi custom (toast + confirm dialog) -- pengganti alert()/
+// Custom Notification / Confirmation Dialogs
 // ====================================================================
-
-// Escape teks yang berasal dari data (nama user, judul issue, dll.) sebelum
-// disisipkan ke template string yang dipakai untuk innerHTML.
 window.escapeHtml = function escapeHtml(value) {
   return String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
     "&": "&amp;",
@@ -14,16 +11,6 @@ window.escapeHtml = function escapeHtml(value) {
   })[ch]);
 };
 
-// ============================================================
-// bindBackdropClose(overlay, onClose)
-// Closes a popup when the dark area around it is clicked -- but ONLY when the
-// press AND the release both happened on that dark area.
-//
-// Without this, selecting text inside the popup and dragging the cursor past
-// the edge of the dialog counted as a "click on the backdrop" (the browser
-// fires `click` on the common ancestor, i.e. the overlay) and closed the popup
-// in the middle of the selection.
-// ============================================================
 window.bindBackdropClose = function bindBackdropClose(overlay, onClose) {
   if (!overlay) return;
   let pressedOnBackdrop = false;
