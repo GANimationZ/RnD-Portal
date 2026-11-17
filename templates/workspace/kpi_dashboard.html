@@ -86,11 +86,53 @@
         <div class="body" data-panel="team">
             {{ team_panel('team', 'teamSummary', 'teamComparisonChart', 'teamLeaderboard') }}
         </div>
-        {# ---- Panel History ---- #}
+        {# ---- Panel History: list of recorded files -> open one -> charts & stats ---- #}
         <div class="body" data-panel="history">
-            <div class="history-panel__header">
-                <span class="history-panel__title"><i class="bxf bx-history"></i> Monthly History</span>
-                <div class="history-panel__actions">
+
+            {# ===== View 1: table of recorded (archived) files ===== #}
+            <div class="history-view" id="historyListView">
+                <div class="history-panel__header">
+                    <span class="history-panel__title"><i class="bxf bx-history"></i> Recorded Files</span>
+                    <span class="history-panel__hint">Open a file to see its charts and statistics.</span>
+                </div>
+                <div class="history-table-wrap">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Period</th>
+                                <th>File</th>
+                                <th>Recorded</th>
+                                <th>Size</th>
+                                <th class="history-table__actions-col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyFileTableBody"
+                               data-export-individual="{{ url_for('kpi_dashboard.export_individual') }}"
+                               data-export-team="{{ url_for('kpi_dashboard.export_team') }}">
+                            <tr><td colspan="5" class="history-table__empty">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {# ===== View 2: one opened file (hidden until a row is opened) ===== #}
+            <div class="history-view is-hidden" id="historyDetailView">
+                <div class="history-detail__bar">
+                    <button type="button" class="history-back-btn" id="historyBackBtn">
+                        <i class="bxf bx-chevron-left"></i> Back to files
+                    </button>
+                    <div class="history-detail__title">
+                        <strong id="historyDetailTitle">-</strong>
+                        <span id="historyDetailMeta"></span>
+                    </div>
+                    <div class="history-detail__nav">
+                        <button type="button" class="history-nav-btn" id="historyPrevBtn" title="Older file">
+                            <i class="bxf bx-chevron-left"></i>
+                        </button>
+                        <button type="button" class="history-nav-btn" id="historyNextBtn" title="Newer file">
+                            <i class="bxf bx-chevron-right"></i>
+                        </button>
+                    </div>
                     <div class="export-menu" id="exportMenu">
                         <button type="button"
                                 class="btn-export"
@@ -103,64 +145,38 @@
                         </button>
                         <div class="export-menu__list is-hidden" id="exportMenuList" role="menu">
                             <span class="export-menu__group">Individual</span>
-                            <a role="menuitem"
-                               data-export-link
+                            <a role="menuitem" data-export-link
                                href="{{ url_for('kpi_dashboard.export_individual') }}">
                                 <i class="bxf bx-table"></i> Excel (.xlsx)
                             </a>
-                            <a role="menuitem"
-                               data-export-link
+                            <a role="menuitem" data-export-link
                                href="{{ url_for('kpi_dashboard.export_individual', format='pdf') }}">
                                 <i class="bxf bx-file"></i> PDF
                             </a>
                             <span class="export-menu__group">Team</span>
-                            <a role="menuitem"
-                               data-export-link
+                            <a role="menuitem" data-export-link
                                href="{{ url_for('kpi_dashboard.export_team') }}">
                                 <i class="bxf bx-table"></i> Excel (.xlsx)
                             </a>
-                            <a role="menuitem"
-                               data-export-link
+                            <a role="menuitem" data-export-link
                                href="{{ url_for('kpi_dashboard.export_team', format='pdf') }}">
                                 <i class="bxf bx-file"></i> PDF
                             </a>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="history-controls">
-                <div class="history-controls__select">
-                    <label for="historyMonthSelect">Archive Month</label>
-                    <button type="button"
-                            class="history-nav-btn"
-                            id="historyPrevBtn"
-                            title="Previous month">
-                        <i class="bxf bx-chevron-left"></i>
-                    </button>
-                    <select id="historyMonthSelect"></select>
-                    <button type="button"
-                            class="history-nav-btn"
-                            id="historyNextBtn"
-                            title="Next month">
-                        <i class="bxf bx-chevron-right"></i>
-                    </button>
+                <div class="history-controls">
+                    <div class="history-subnav">
+                        <button type="button" class="history-subnav__btn active" data-subtab="individual">Individual</button>
+                        <button type="button" class="history-subnav__btn" data-subtab="team">Team</button>
+                    </div>
                 </div>
-                <div class="history-subnav">
-                    <button type="button"
-                            class="history-subnav__btn active"
-                            data-subtab="individual">Individual</button>
-                    <button type="button" class="history-subnav__btn" data-subtab="team">Team</button>
+                <div class="history-subpanel active" data-subpanel="individual">
+                    {{ employee_panel("history-individual", "historyEmployeeTableBody", "historyEmployeeInsights", "historyEmpTrendChart", "historyEmpContent", show_range=false) }}
                 </div>
-            </div>
-            {# ---- Sub-panel: Individual, same layout & data as the panel above,
-         but WITHOUT range_tabs (show_range=false) since Archive Month
-         already covers that ---- #}
-            <div class="history-subpanel active" data-subpanel="individual">
-                {{ employee_panel("history-individual", "historyEmployeeTableBody", "historyEmployeeInsights", "historyEmpTrendChart", "historyEmpContent", show_range=false) }}
-            </div>
-            {# ---- Sub-panel: Team, sama alasannya, TANPA range_tabs ---- #}
-            <div class="history-subpanel" data-subpanel="team" style="display: none">
-                {{ team_panel("history-team", "historyTeamSummary", "historyTeamComparisonChart", "historyTeamLeaderboard", show_range=false) }}
+                <div class="history-subpanel" data-subpanel="team" style="display: none">
+                    {{ team_panel("history-team", "historyTeamSummary", "historyTeamComparisonChart", "historyTeamLeaderboard", show_range=false) }}
+                </div>
             </div>
         </div>
     </div>

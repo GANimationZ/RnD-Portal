@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from library.extensions import db
 
 ROLE_CHOICES = ["Super Admin", "Admin", "Member"]
@@ -163,7 +165,10 @@ class Issue(db.Model):
     image_filename = db.Column(db.String(255), nullable=True)
     owner_name = db.Column(db.String(120), nullable=False, default="Admin")
     assignee_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    # UTC, set by the app -- the same clock as closed_at. (The database's own
+    # now() is in the server's local time zone on PostgreSQL, which made
+    # "closed" earlier than "created" by the UTC offset.)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, server_default=db.func.now())
     closed_at = db.Column(db.DateTime, nullable=True)
 
     assignee = db.relationship("User", foreign_keys=[assignee_id])

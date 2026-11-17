@@ -356,10 +356,10 @@ function createTeamPanelController(ids, rangeScope, getMonth) {
 
 // ==================== Controller instances ====================
 
-// Archive month chosen in History ("2026-11"), or "" before the list has loaded.
+// Archive file currently opened in History ("2026-11"), or "" while the list is showing.
+let historyCurrent = "";
 function selectedHistoryMonth() {
-  const select = el("historyMonthSelect");
-  return select && select.value ? select.value.replace(".xlsx", "") : "";
+  return historyCurrent;
 }
 
 const individualPanel = createEmployeePanelController(
@@ -402,105 +402,162 @@ const historyTeamPanel = createTeamPanelController(
   selectedHistoryMonth,
 );
 
-// ==================== Monthly Excel archive (Export per selected month) ====================
+// ==================== History: recorded files table -> opened file ====================
 let historySnapshots = [];
-let historyMonthsLoaded = false;
 
 function currentMonthFilename() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}.xlsx`;
 }
 
-function renderHistoryMonthOptions() {
-  const select = el("historyMonthSelect");
-  if (!select) return;
+function formatFileSize(bytes) {
+  if (!bytes && bytes !== 0) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function monthKeyOf(snap) {
+  return snap.filename.replace(".xlsx", "");
+}
+
+// "?month=YYYY-MM" added to an export URL (PDF urls already carry ?format=pdf).
+function exportUrl(base, monthKey, format) {
+  const url = new URL(base, window.location.origin);
+  if (monthKey) url.searchParams.set("month", monthKey);
+  if (format) url.searchParams.set("format", format);
+  return url.pathname + url.search;
+}
+
+function rowExportMenu(monthKey, body) {
+  const ind = body.dataset.exportIndividual;
+  const team = body.dataset.exportTeam;
+  const link = (href, icon, text) =>
+    `<a role="menuitem" href="${escapeHtml(href)}"><i class="bxf ${icon}"></i> ${text}</a>`;
+  return `
+    <div class="export-menu" data-row-menu>
+      <button type="button" class="btn-export" data-row-menu-btn aria-haspopup="true" aria-expanded="false">
+        <i class="bxf bx-arrow-to-bottom"></i> Export
+        <i class="bxf bx-chevron-down export-menu__caret"></i>
+      </button>
+      <div class="export-menu__list is-hidden" role="menu">
+        <span class="export-menu__group">Individual</span>
+        ${link(exportUrl(ind, monthKey), "bx-table", "Excel (.xlsx)")}
+        ${link(exportUrl(ind, monthKey, "pdf"), "bx-file", "PDF")}
+        <span class="export-menu__group">Team</span>
+        ${link(exportUrl(team, monthKey), "bx-table", "Excel (.xlsx)")}
+        ${link(exportUrl(team, monthKey, "pdf"), "bx-file", "PDF")}
+      </div>
+    </div>`;
+}
+
+function renderHistoryTable() {
+  const body = el("historyFileTableBody");
+  if (!body) return;
 
   if (historySnapshots.length === 0) {
-    select.innerHTML = '<option value="">No archive yet</option>';
+    body.innerHTML =
+      '<tr><td colspan="5" class="history-table__empty">No recorded files yet.</td></tr>';
     return;
   }
 
   const thisMonth = currentMonthFilename();
-  const byYear = new Map();
-  historySnapshots.forEach((snap) => {
-    const year = snap.filename.split("-")[0];
-    if (!byYear.has(year)) byYear.set(year, []);
-    byYear.get(year).push(snap);
-  });
-
-  select.innerHTML = [...byYear.entries()]
-    .map(([year, snaps]) => {
-      const options = snaps
-        .map((snap) => {
-          const label =
-            snap.filename === thisMonth
-              ? `${snap.label} (This month)`
-              : snap.label;
-          return `<option value="${escapeHtml(snap.filename)}">${escapeHtml(label)}</option>`;
-        })
-        .join("");
-      return `<optgroup label="${escapeHtml(year)}">${options}</optgroup>`;
+  body.innerHTML = historySnapshots
+    .map((snap) => {
+      const key = monthKeyOf(snap);
+      const badge =
+        snap.filename === thisMonth
+          ? '<span class="history-badge">This month</span>'
+          : "";
+      return `
+        <tr class="history-row" data-month="${escapeHtml(key)}">
+          <td><span class="history-period">${escapeHtml(snap.label)}</span>${badge}</td>
+          <td><span class="history-file">kpi-${escapeHtml(key)}.xlsx</span></td>
+          <td>${escapeHtml(snap.createdAt || "-")}</td>
+          <td>${formatFileSize(snap.sizeBytes)}</td>
+          <td>
+            <div class="history-table__actions">
+              <button type="button" class="btn-open" data-open-month="${escapeHtml(key)}">Open</button>
+              ${rowExportMenu(key, body)}
+            </div>
+          </td>
+        </tr>`;
     })
     .join("");
 }
 
-// Every item of the Export dropdown (Individual / Team, Excel / PDF) exports
-// the month currently chosen in the Archive Month dropdown ("YYYY-MM" is sent
-// as ?month=; the PDF links already carry ?format=pdf).
-function updateExportLinks() {
-  const select = el("historyMonthSelect");
-  const monthKey = select && select.value ? select.value.replace(".xlsx", "") : "";
+async function loadHistoryList() {
+  const body = el("historyFileTableBody");
+  if (!body) return;
+  try {
+    const data = await fetchJSON(HISTORY_LIST_ENDPOINT);
+    historySnapshots = data.snapshots || [];
+    renderHistoryTable();
+  } catch (err) {
+    console.error(err);
+    body.innerHTML =
+      '<tr><td colspan="5" class="history-table__empty">Failed to load recorded files.</td></tr>';
+  }
+}
 
+// Every item of the Export dropdown in the opened file exports THAT file's month.
+function updateExportLinks() {
   document.querySelectorAll("[data-export-link]").forEach((link) => {
     if (!link.dataset.baseHref) link.dataset.baseHref = link.getAttribute("href");
     const url = new URL(link.dataset.baseHref, window.location.origin);
-    if (monthKey) url.searchParams.set("month", monthKey);
+    if (historyCurrent) url.searchParams.set("month", historyCurrent);
     link.href = url.pathname + url.search;
   });
 }
 
-// ---- Export dropdown: open / close ----
+// ---- Export dropdowns: open / close (opened-file menu and the per-row menus) ----
+function closeAllExportMenus(except) {
+  document.querySelectorAll(".export-menu").forEach((menu) => {
+    if (menu === except) return;
+    const list = menu.querySelector(".export-menu__list");
+    const btn = menu.querySelector(".btn-export");
+    if (list) list.classList.add("is-hidden");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+    menu.classList.remove("is-open");
+  });
+}
+
 function initExportMenu() {
-  const menu = el("exportMenu");
-  const btn = el("exportMenuBtn");
-  const list = el("exportMenuList");
-  if (!menu || !btn || !list) return;
-
-  const setOpen = (open) => {
-    list.classList.toggle("is-hidden", !open);
-    btn.setAttribute("aria-expanded", String(open));
-    menu.classList.toggle("is-open", open);
-  };
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    setOpen(list.classList.contains("is-hidden"));
-  });
-  // Choosing an item starts the download and closes the menu
-  list.addEventListener("click", (e) => {
-    if (e.target.closest("[data-export-link]")) setOpen(false);
-  });
   document.addEventListener("click", (e) => {
-    if (!menu.contains(e.target)) setOpen(false);
+    const btn = e.target.closest(".btn-export");
+    const menu = btn && btn.closest(".export-menu");
+    if (btn && menu) {
+      e.stopPropagation();
+      const list = menu.querySelector(".export-menu__list");
+      const open = list.classList.contains("is-hidden");
+      closeAllExportMenus(menu);
+      list.classList.toggle("is-hidden", !open);
+      btn.setAttribute("aria-expanded", String(open));
+      menu.classList.toggle("is-open", open);
+      return;
+    }
+    // choosing an item (download starts) or clicking elsewhere closes them
+    closeAllExportMenus();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") setOpen(false);
+    if (e.key === "Escape") closeAllExportMenus();
   });
 }
 
-function selectHistoryMonthByIndex(index) {
-  const select = el("historyMonthSelect");
-  if (!select || historySnapshots[index] == null) return;
-
-  select.value = historySnapshots[index].filename;
-  onHistoryMonthChanged();
+function showHistoryView(view) {
+  const list = el("historyListView");
+  const detail = el("historyDetailView");
+  if (list) list.classList.toggle("is-hidden", view !== "list");
+  if (detail) detail.classList.toggle("is-hidden", view !== "detail");
 }
 
-// A different archive month: refresh export links, arrows AND the data shown.
-function onHistoryMonthChanged() {
-  updateExportLinks();
-  updateHistoryNavButtons();
-  reloadHistoryPanels();
+function updateHistoryNavButtons() {
+  const prevBtn = el("historyPrevBtn");
+  const nextBtn = el("historyNextBtn");
+  if (!prevBtn || !nextBtn) return;
+  const index = historySnapshots.findIndex((s) => monthKeyOf(s) === historyCurrent);
+  prevBtn.disabled = index === -1 || index >= historySnapshots.length - 1; // older
+  nextBtn.disabled = index <= 0; // newer
 }
 
 function reloadHistoryPanels() {
@@ -511,34 +568,30 @@ function reloadHistoryPanels() {
   }
 }
 
-function updateHistoryNavButtons() {
-  const select = el("historyMonthSelect");
-  const prevBtn = el("historyPrevBtn");
-  const nextBtn = el("historyNextBtn");
-  if (!select || !prevBtn || !nextBtn) return;
+// Open one recorded file: the view is shown FIRST so the charts can measure
+// their container, then charts & statistics for that month are loaded.
+function openHistoryFile(monthKey) {
+  const snap = historySnapshots.find((s) => monthKeyOf(s) === monthKey);
+  if (!snap) return;
 
-  const index = historySnapshots.findIndex((s) => s.filename === select.value);
-  prevBtn.disabled = index === -1 || index >= historySnapshots.length - 1;
-  nextBtn.disabled = index <= 0;
+  historyCurrent = monthKey;
+  const title = el("historyDetailTitle");
+  const meta = el("historyDetailMeta");
+  if (title) title.textContent = snap.label;
+  if (meta) {
+    meta.textContent = `kpi-${monthKey}.xlsx · recorded ${snap.createdAt || "-"} · ${formatFileSize(snap.sizeBytes)}`;
+  }
+
+  updateExportLinks();
+  updateHistoryNavButtons();
+  showHistoryView("detail");
+  reloadHistoryPanels();
 }
 
-async function loadHistoryMonths() {
-  const select = el("historyMonthSelect");
-  if (!select) return;
-
-  try {
-    const data = await fetchJSON(HISTORY_LIST_ENDPOINT);
-    historySnapshots = data.snapshots || [];
-
-    renderHistoryMonthOptions();
-    if (historySnapshots.length === 0) return;
-
-    updateExportLinks();
-    updateHistoryNavButtons();
-  } catch (err) {
-    console.error(err);
-    select.innerHTML = '<option value="">Failed to load archive</option>';
-  }
+function closeHistoryFile() {
+  historyCurrent = "";
+  closeAllExportMenus();
+  showHistoryView("list");
 }
 
 // ==================== History sub-tabs: Individual / Team ====================
@@ -555,23 +608,24 @@ function setHistorySubtab(subtab) {
     panel.style.display = panel.dataset.subpanel === subtab ? "" : "none";
   });
 
-  if (subtab === "team") {
-    historyTeamPanel.load();
-  } else {
-    historyIndividualPanel.load();
-  }
+  if (!historyCurrent) return;
+  reloadHistoryPanels();
 }
 
 // ==================== Wire up to panel-switcher.js ====================
 
-// The month list must be loaded first: the panels below it show the month
-// that is selected in the dropdown.
+// Showing History always refreshes the file list (the current month's file is
+// rebuilt on the server). A file that is already open stays open.
 async function openHistory() {
-  if (!historyMonthsLoaded) {
-    historyMonthsLoaded = true;
-    await loadHistoryMonths();
+  await loadHistoryList();
+  if (historyCurrent) {
+    if (historySnapshots.some((s) => monthKeyOf(s) === historyCurrent)) {
+      updateHistoryNavButtons();
+      reloadHistoryPanels();
+    } else {
+      closeHistoryFile();
+    }
   }
-  reloadHistoryPanels();
 }
 
 document.addEventListener("panel:show", (e) => {
@@ -592,30 +646,28 @@ document.addEventListener("panel:show", (e) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   initExportMenu();
+  showHistoryView("list");
 
-  const monthSelect = el("historyMonthSelect");
-  if (monthSelect) {
-    monthSelect.addEventListener("change", onHistoryMonthChanged);
+  const tableBody = el("historyFileTableBody");
+  if (tableBody) {
+    tableBody.addEventListener("click", (e) => {
+      const openBtn = e.target.closest("[data-open-month]");
+      if (openBtn) openHistoryFile(openBtn.dataset.openMonth);
+    });
   }
 
+  const backBtn = el("historyBackBtn");
+  if (backBtn) backBtn.addEventListener("click", closeHistoryFile);
+
+  const step = (delta) => {
+    const index = historySnapshots.findIndex((s) => monthKeyOf(s) === historyCurrent);
+    const target = historySnapshots[index + delta];
+    if (index !== -1 && target) openHistoryFile(monthKeyOf(target));
+  };
   const prevBtn = el("historyPrevBtn");
   const nextBtn = el("historyNextBtn");
-  if (prevBtn) {
-    prevBtn.addEventListener("click", () => {
-      const index = historySnapshots.findIndex(
-        (s) => s.filename === el("historyMonthSelect").value,
-      );
-      if (index !== -1) selectHistoryMonthByIndex(index + 1);
-    });
-  }
-  if (nextBtn) {
-    nextBtn.addEventListener("click", () => {
-      const index = historySnapshots.findIndex(
-        (s) => s.filename === el("historyMonthSelect").value,
-      );
-      if (index !== -1) selectHistoryMonthByIndex(index - 1);
-    });
-  }
+  if (prevBtn) prevBtn.addEventListener("click", () => step(1)); // older
+  if (nextBtn) nextBtn.addEventListener("click", () => step(-1)); // newer
 
   document.querySelectorAll(".history-subnav__btn").forEach((btn) => {
     btn.addEventListener("click", () => setHistorySubtab(btn.dataset.subtab));

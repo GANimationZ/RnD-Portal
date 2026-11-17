@@ -394,9 +394,11 @@ def build_team_workbook(employees, period_label=None):
         chart.type = "bar"           # horizontal bars: names stay readable
         chart.grouping = "stacked"
         chart.overlap = 100
-        chart.title = "Completed vs Available vs Pending vs Overdue per Person"
+        # No chart title / axis title: they collided with each other. The
+        # heading is a normal cell above the chart instead (see below).
+        chart.title = None
         chart.style = 10
-        chart.y_axis.title = "Number of issues"
+        chart.y_axis.title = None
         chart.x_axis.scaling.orientation = "maxMin"  # first employee on top
         chart.y_axis.delete = False
         chart.x_axis.delete = False
@@ -413,7 +415,13 @@ def build_team_workbook(employees, period_label=None):
         chart.legend.position = "b"
         chart.width = 26
         chart.height = max(7.5, 2.2 + 1.1 * len(rows))
-        ws.add_chart(chart, f"A{lb_last + 3}")
+        heading_row = lb_last + 2
+        ws.merge_cells(start_row=heading_row, start_column=1, end_row=heading_row, end_column=5)
+        heading = ws.cell(row=heading_row, column=1, value="Issues per Person")
+        heading.font = _font(13, bold=True, color=BRAND_DARK)
+        heading.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+        ws.row_dimensions[heading_row].height = 26
+        ws.add_chart(chart, f"A{heading_row + 1}")
 
     ws.freeze_panes = "A4"
     _page_setup(ws, landscape=False)
