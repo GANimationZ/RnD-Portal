@@ -6,6 +6,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 NAME_MAX = 120
+LOCATION_MAX = 120
 MAX_ROWS = 5000
 MAX_FILE_BYTES = 3 * 1024 * 1024  # 3 MB
 
@@ -14,6 +15,7 @@ SERIAL_RULE = "4 letters followed by 8 digits, without dashes or spaces (e.g. AB
 
 NAME_HEADERS = {"item name", "name", "item", "asset name", "nama barang", "nama"}
 SERIAL_HEADERS = {"serial number", "serial", "serial no", "serial no.", "serial #", "nomor seri", "no seri", "s/n", "sn"}
+LOCATION_HEADERS = {"location", "asset location", "lokasi", "lokasi barang", "place", "room"}
 HEADER_SEARCH_ROWS = 30
 
 class ImportFormatError(Exception):
@@ -63,6 +65,7 @@ def parse_assets_workbook(stream):
     ws = wb["PV Assets"] if "PV Assets" in wb.sheetnames else wb.worksheets[0]
 
     name_col = serial_col = None
+    location_col = None  # optional column
     rows = []
     for row_number, values in enumerate(ws.iter_rows(values_only=True), start=1):
         if name_col is None:
@@ -73,10 +76,16 @@ def parse_assets_workbook(stream):
             s = next((i for i, k in enumerate(keys) if k in SERIAL_HEADERS), None)
             if n is not None and s is not None:
                 name_col, serial_col = n, s
+                location_col = next((i for i, k in enumerate(keys) if k in LOCATION_HEADERS), None)
             continue
 
         name = collapse_spaces(_cell_text(values[name_col] if name_col < len(values) else None))
         serial_raw = _cell_text(values[serial_col] if serial_col < len(values) else None)
+        location = ""
+        if location_col is not None and location_col < len(values):
+            location = collapse_spaces(_cell_text(values[location_col]))
+            if location == "-":
+                location = ""
         if not name and not serial_raw:
             continue  # empty row
 
@@ -93,8 +102,10 @@ def parse_assets_workbook(stream):
             error = "Serial Number is empty."
         elif not is_valid_serial(serial):
             error = f"Serial Number \"{serial_raw}\" must be {SERIAL_RULE}."
+        elif len(location) > LOCATION_MAX:
+            error = f"Location is longer than {LOCATION_MAX} characters."
 
-        rows.append({"row": row_number, "name": name, "serial": serial, "error": error})
+        rows.append({"row": row_number, "name": name, "serial": serial, "location": location, "error": error})
 
     wb.close()
 
@@ -133,6 +144,12 @@ def analyze_rows(rows, mode, existing):
 
     new, unchanged, conflicts = [], [], []
     file_duplicates = 0
+    # serial -> Location from the file (first non-empty one). Applied to new
+    # assets and to existing ones; changing a location never conflicts.
+    locations = {}
+    for r in valid:
+        if r.get("location") and r["serial"] not in locations:
+            locations[r["serial"]] = r["location"]
 
     for serial, items in groups.items():
         distinct = OrderedDict()  # name_key -> {"name", "rows"}
@@ -175,6 +192,7 @@ def analyze_rows(rows, mode, existing):
             {"row": r["row"], "name": r["name"], "serial": r["serial"], "reason": r["error"]} for r in invalid
         ],
         "file_duplicates": file_duplicates,
+        "locations": locations,
     }
 
 
@@ -190,7 +208,7 @@ def build_template_workbook():
     thin = Side(style="thin", color="D9DDE3")
     border = Border(top=thin, bottom=thin, left=thin, right=thin)
 
-    for col, label in enumerate(["No", "Item Name", "Serial Number"], start=1):
+    for col, label in enumerate(["No", "Item Name", "Serial Number", "Location"], start=1):
         cell = ws.cell(row=1, column=col, value=label)
         cell.font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
         cell.fill = PatternFill("solid", fgColor=brand)
@@ -201,7 +219,7 @@ def build_template_workbook():
     # Rows 2-51 pre-formatted: Serial Number as text so Excel never turns it
     # into a number or drops characters.
     for r in range(2, 52):
-        for col in range(1, 4):
+        for col in range(1, 5):
             cell = ws.cell(row=r, column=col)
             cell.border = border
             cell.font = Font(name="Calibri", size=11)
@@ -211,6 +229,7 @@ def build_template_workbook():
     ws.column_dimensions["A"].width = 7
     ws.column_dimensions["B"].width = 48
     ws.column_dimensions["C"].width = 24
+    ws.column_dimensions["D"].width = 32
     ws.freeze_panes = "A2"
 
     guide = wb.create_sheet("Instructions")
@@ -220,10 +239,12 @@ def build_template_workbook():
         ("", False),
         ("1.  Column B  \"Item Name\"  - the name of the item (max. 120 characters).", False),
         (f"2.  Column C  \"Serial Number\"  - {SERIAL_RULE}.", False),
-        ("3.  Column A  \"No\"  is optional and ignored by the import.", False),
-        ("4.  Every Serial Number must be unique. If the same Serial Number appears twice with", False),
+        ("3.  Column D  \"Location\"  - where the asset is kept, e.g. \"Lab 2 - Shelf A\" (optional, max. 120 characters).", False),
+        ("     If an existing asset has a different Location in the file, its Location is updated.", False),
+        ("4.  Column A  \"No\"  is optional and ignored by the import.", False),
+        ("5.  Every Serial Number must be unique. If the same Serial Number appears twice with", False),
         ("     different names, the portal asks which name to keep during the import.", False),
-        ("5.  Do not change the header row (row 1).", False),
+        ("6.  Do not change the header row (row 1).", False),
         ("", False),
         ("Import modes in the portal:", True),
         ("   Merge    - keeps the current assets and adds / updates the ones from this file.", False),

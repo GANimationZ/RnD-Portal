@@ -38,6 +38,7 @@
                            id="scanSerial"
                            placeholder="Scan / type Serial Number (e.g. ABCD12345678)"
                            autocomplete="off"
+                           maxlength="12"
                            spellcheck="false"
                            required />
                     <input type="text"
@@ -66,6 +67,10 @@
                                 <span class="scan-result__label">Serial Number</span>
                                 <span class="scan-result__value" id="scanResultSerial">-</span>
                             </div>
+                            <div>
+                                <span class="scan-result__label">Location</span>
+                                <span class="scan-result__value" id="scanResultLocation">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -82,7 +87,7 @@
                         <label for="searchInput">ACTIVE FILTERS</label>
                         <input type="text"
                                id="searchInput"
-                               placeholder="Search item name or serial number" />
+                               placeholder="Search item name, serial number or location" />
                         <select class="status" id="filterStatus">
                             <option value="all" selected>All Status</option>
                             <option value="pending">Not Checked</option>
@@ -117,6 +122,7 @@
                             <th>No.</th>
                             <th>Item Name</th>
                             <th>Serial Number</th>
+                            <th>Location</th>
                             <th class="center">Scan Status</th>
                             <th class="center">Scanned At</th>
                             <th>Scanned By</th>
@@ -171,6 +177,11 @@
                        spellcheck="false"
                        placeholder="e.g. ABCD12345678" />
                 <span class="app-modal__hint">4 letters followed by 8 digits, without dashes or spaces.</span>
+                <label for="newAssetLocation">Location <span class="app-modal__optional">(optional)</span></label>
+                <input type="text"
+                       id="newAssetLocation"
+                       maxlength="120"
+                       placeholder="e.g. Lab 2 - Shelf A" />
                 <p class="app-modal__error" id="addAssetError"></p>
                 <div class="app-modal__actions">
                     <button type="button" class="app-modal__btn-secondary" id="addAssetCancel">Cancel</button>
@@ -196,7 +207,7 @@
                 <label for="importFile">Excel file (.xlsx)</label>
                 <input type="file" id="importFile" accept=".xlsx" />
                 <span class="app-modal__hint">
-                    Needs the columns <b>Item Name</b> and <b>Serial Number</b> (4 letters + 8 digits, no dashes).
+                    Needs the columns <b>Item Name</b> and <b>Serial Number</b> (4 letters + 8 digits, no dashes). An optional <b>Location</b> column is also read.
                     <a href="/workspace/assets/api/assets/import/template"
                        id="importTemplateLink">Download template</a>
                 </span>

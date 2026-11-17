@@ -326,6 +326,8 @@ class PvAsset(db.Model):
     # Nomor seri ternormalisasi (huruf besar, tanpa spasi) -- dipakai untuk
     # pencocokan hasil scan & mencegah duplikat.
     serial_key = db.Column(db.String(60), nullable=False, unique=True, index=True)
+    # Where the asset is kept (room / lab / shelf). Optional free text.
+    location = db.Column(db.String(120), nullable=True, index=True)
     scan_status = db.Column(db.String(20), nullable=False, default="pending")  # pending | match | mismatch
     scanned_at = db.Column(db.DateTime, nullable=True)
     scanned_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
@@ -340,6 +342,7 @@ class PvAsset(db.Model):
             "id": self.id,
             "name": self.name,
             "serial": self.serial_number,
+            "location": self.location or "",
             "scan_status": self.scan_status,
             # ISO (UTC) -- diformat ke zona waktu browser oleh JS
             "scanned_at": self.scanned_at.isoformat() + "Z" if self.scanned_at else None,

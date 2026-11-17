@@ -26,7 +26,8 @@ def _configure(app):
     app.config["SECRET_KEY"] = _get_or_create_secret_key(app)
     app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
-    database_url = os.environ.get("DATABASE_URL", "postgresql+psycopg2://postgres:furryfandom649@localhost:5432/rnd_portal")
+    # database_url = os.environ.get("DATABASE_URL", "postgresql+psycopg2://postgres:furryfandom649@localhost:5432/rnd_portal")
+    database_url = os.environ.get("DATABASE_URL", "sqlite:///database.db")
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 

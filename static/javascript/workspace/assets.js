@@ -103,7 +103,7 @@ function renderTable(flashId = null) {
   tbody.innerHTML = "";
 
   if (filteredData.length === 0) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">No assets match the current filters.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">No assets match the current filters.</td></tr>`;
     renderPaginationSummary(0, 0);
     renderPaginationPages();
     return;
@@ -122,6 +122,7 @@ function renderTable(flashId = null) {
       <td>${start + i + 1}</td>
       <td>${escapeHtml(asset.name)}</td>
       <td class="asset-serial">${escapeHtml(asset.serial)}</td>
+      <td>${escapeHtml(asset.location || "-")}</td>
       <td class="center"><span class="badge ${meta.badge}">${meta.label}</span></td>
       <td class="center">${escapeHtml(formatTime(asset.scanned_at))}</td>
       <td>${escapeHtml(asset.scanned_by || "-")}</td>
@@ -201,7 +202,8 @@ function applyFilters() {
       const inName = asset.name.toLowerCase().includes(searchVal);
       const inSerial =
         searchSerial && normalizeSerial(asset.serial).includes(searchSerial);
-      if (!inName && !inSerial) return false;
+      const inLocation = (asset.location || "").toLowerCase().includes(searchVal);
+      if (!inName && !inSerial && !inLocation) return false;
     }
     if (statusVal !== "all" && asset.scan_status !== statusVal) return false;
     return true;
@@ -258,6 +260,7 @@ function showScanResult(kind, { status, message, asset, serial }) {
   meta?.classList.remove("is-hidden");
   setText("scanResultName", asset ? asset.name : "- (not in the database)");
   setText("scanResultSerial", asset ? asset.serial : serial);
+  setText("scanResultLocation", asset && asset.location ? asset.location : "-");
 }
 
 function renderHistory(history) {
@@ -299,7 +302,7 @@ async function processScan(rawSerial, rawName) {
 
     if (data.result === "unknown") {
       showScanResult("unknown", {
-        status: "NOT A PV ASSET",
+        status: "INVALID SERIAL NUMBER",
         message: data.valid_format
           ? "This Serial Number was not found in the PV asset database."
           : "This is not a PV Serial Number: it does not match the format of 4 letters + 8 digits, and it was not found in the database.",
@@ -372,7 +375,11 @@ function initScanner() {
 // The same popup is used for Add and Edit; #editingAssetId is empty when
 // adding and holds the asset id when editing.
 // ============================================================
-const ADD_FIELD_IDS = { name: "newAssetName", serial: "newAssetSerial" };
+const ADD_FIELD_IDS = {
+  name: "newAssetName",
+  serial: "newAssetSerial",
+  location: "newAssetLocation",
+};
 
 function openAssetModal(asset = null) {
   const modal = document.getElementById("addAssetModal");
@@ -386,6 +393,7 @@ function openAssetModal(asset = null) {
   if (asset) {
     document.getElementById("newAssetName").value = asset.name;
     document.getElementById("newAssetSerial").value = asset.serial;
+    document.getElementById("newAssetLocation").value = asset.location || "";
   }
 
   modal.classList.remove("is-hidden");
@@ -492,6 +500,7 @@ function initAddAsset() {
           body: JSON.stringify({
             name: document.getElementById("newAssetName").value,
             serial: document.getElementById("newAssetSerial").value,
+            location: document.getElementById("newAssetLocation").value,
           }),
         },
       );
@@ -875,7 +884,7 @@ function initImport() {
 
 // ============================================================
 // ---- Export (Excel .xlsx & CSV) ---- //
-// Columns: No, Item Name, Serial Number
+// Columns: No, Item Name, Serial Number, Location
 // ============================================================
 
 // Prevents CSV formula injection: a cell starting with = + - @ runs as a
@@ -887,9 +896,9 @@ function sanitizeCell(value) {
 }
 
 function exportRows() {
-  const rows = [["No", "Item Name", "Serial Number"]];
+  const rows = [["No", "Item Name", "Serial Number", "Location"]];
   filteredData.forEach((asset, i) => {
-    rows.push([i + 1, asset.name, asset.serial]);
+    rows.push([i + 1, asset.name, asset.serial, asset.location || ""]);
   });
   return rows;
 }
@@ -916,6 +925,7 @@ async function exportExcel() {
         { header: "No", width: 7, align: "center" },
         { header: "Item Name", width: 48, align: "left" },
         { header: "Serial Number", width: 30, align: "left" },
+        { header: "Location", width: 30, align: "left" },
       ],
       rows: exportRows().slice(1),
     });

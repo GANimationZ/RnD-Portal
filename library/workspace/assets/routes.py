@@ -29,6 +29,7 @@ assets_bp = Blueprint("assets", __name__, url_prefix="/workspace/assets")
 ALLOWED_ROLES = ("Super Admin", "Member")
 
 NAME_MAX = 120
+LOCATION_MAX = 120
 HISTORY_LIMIT = 6
 
 
@@ -74,22 +75,26 @@ def api_list_assets():
 
 
 def _parse_asset_payload(data):
-    """Validate name + serial. Returns (name, serial, error_response_or_None)."""
+    """Validate name + serial (+ optional location).
+    Returns (name, serial, location, error_response_or_None)."""
     name = re.sub(r"\s+", " ", (data.get("name") or "")).strip()
     serial = (data.get("serial") or "").strip()
+    location = re.sub(r"\s+", " ", (data.get("location") or "")).strip()
 
     if not name and not serial:
-        return None, None, (jsonify({"message": "Item Name and Serial Number are required.", "fields": ["name", "serial"]}), 400)
+        return None, None, None, (jsonify({"message": "Item Name and Serial Number are required.", "fields": ["name", "serial"]}), 400)
     if not name:
-        return None, None, (jsonify({"message": "Item Name is required.", "fields": ["name"]}), 400)
+        return None, None, None, (jsonify({"message": "Item Name is required.", "fields": ["name"]}), 400)
     if not serial:
-        return None, None, (jsonify({"message": "Serial Number is required.", "fields": ["serial"]}), 400)
+        return None, None, None, (jsonify({"message": "Serial Number is required.", "fields": ["serial"]}), 400)
     if len(name) > NAME_MAX:
-        return None, None, (jsonify({"message": f"Item Name must be at most {NAME_MAX} characters.", "fields": ["name"]}), 400)
+        return None, None, None, (jsonify({"message": f"Item Name must be at most {NAME_MAX} characters.", "fields": ["name"]}), 400)
     serial = normalize_serial(serial)  # stored in upper case
     if not is_valid_serial(serial):
-        return None, None, (jsonify({"message": f"Serial Number must be {SERIAL_RULE}.", "fields": ["serial"]}), 400)
-    return name, serial, None
+        return None, None, None, (jsonify({"message": f"Serial Number must be {SERIAL_RULE}.", "fields": ["serial"]}), 400)
+    if len(location) > LOCATION_MAX:
+        return None, None, None, (jsonify({"message": f"Location must be at most {LOCATION_MAX} characters.", "fields": ["location"]}), 400)
+    return name, serial, location, None
 
 
 def _duplicate_response(duplicate):
@@ -103,7 +108,7 @@ def _duplicate_response(duplicate):
 @login_required
 @roles_required(*ALLOWED_ROLES)
 def api_create_asset():
-    name, serial, error = _parse_asset_payload(request.get_json(silent=True) or {})
+    name, serial, location, error = _parse_asset_payload(request.get_json(silent=True) or {})
     if error:
         return error
 
@@ -116,6 +121,7 @@ def api_create_asset():
         name=name,
         serial_number=serial,
         serial_key=key,
+        location=location or None,
         created_by_id=session.get("user_id"),
     )
     db.session.add(asset)
@@ -136,7 +142,7 @@ def api_update_asset(asset_id):
     if asset is None:
         return jsonify({"message": "Asset not found."}), 404
 
-    name, serial, error = _parse_asset_payload(request.get_json(silent=True) or {})
+    name, serial, location, error = _parse_asset_payload(request.get_json(silent=True) or {})
     if error:
         return error
 
@@ -151,6 +157,7 @@ def api_update_asset(asset_id):
     asset.name = name
     asset.serial_number = serial
     asset.serial_key = key
+    asset.location = location or None  # moving an asset does not reset its scan
     if changed:
         asset.scan_status = "pending"
         asset.scanned_at = None
@@ -308,7 +315,12 @@ def api_import_assets():
     if unresolved:
         return jsonify({"message": "Some conflicts have not been resolved yet.", "unresolved": unresolved}), 409
 
-    if not analysis["new"] and not analysis["conflicts"]:
+    file_locations = analysis.get("locations", {})
+    existing_locations = {a.serial_key: (a.location or "") for a in PvAsset.query.all()} if mode == "merge" else {}
+    location_changes = [s for s, loc in file_locations.items()
+                        if s in existing_locations and existing_locations[s] != loc]
+
+    if not analysis["new"] and not analysis["conflicts"] and not location_changes:
         if mode == "replace":
             return jsonify({"message": "The file has no valid assets, so nothing was replaced."}), 400
         return jsonify({"message": "Nothing to import: no new assets or changes were found in the file."}), 400
@@ -319,6 +331,7 @@ def api_import_assets():
         "unchanged": len(analysis["unchanged"]),
         "skipped": len(analysis["invalid"]),
         "deleted": 0,
+        "relocated": 0,
     }
 
     try:
@@ -333,7 +346,8 @@ def api_import_assets():
 
         for item in analysis["new"]:
             db.session.add(PvAsset(name=item["name"], serial_number=item["serial"],
-                                   serial_key=item["serial"], created_by_id=user_id))
+                                   serial_key=item["serial"], created_by_id=user_id,
+                                   location=file_locations.get(item["serial"]) or None))
             result["added"] += 1
 
         for conflict in analysis["conflicts"]:
@@ -342,7 +356,8 @@ def api_import_assets():
             asset = current.get(serial)
             if asset is None:
                 db.session.add(PvAsset(name=final, serial_number=serial,
-                                       serial_key=serial, created_by_id=user_id))
+                                       serial_key=serial, created_by_id=user_id,
+                                       location=file_locations.get(serial) or None))
                 result["added"] += 1
             elif name_key(final) == name_key(asset.name):
                 result["kept"] += 1
@@ -354,6 +369,13 @@ def api_import_assets():
                 asset.scanned_by_id = None
                 result["updated"] += 1
 
+        # Locations from the file for assets that already exist (name conflicts
+        # above are resolved separately; a location never needs a choice).
+        if mode == "merge" and location_changes:
+            for asset in PvAsset.query.filter(PvAsset.serial_key.in_(location_changes)).all():
+                asset.location = file_locations[asset.serial_key]
+                result["relocated"] += 1
+
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
@@ -364,6 +386,8 @@ def api_import_assets():
         parts.append(f"{result['updated']} updated")
     if result["kept"]:
         parts.append(f"{result['kept']} kept as is")
+    if result["relocated"]:
+        parts.append(f"{result['relocated']} location{'s' if result['relocated'] != 1 else ''} updated")
     if result["unchanged"]:
         parts.append(f"{result['unchanged']} unchanged")
     if result["skipped"]:

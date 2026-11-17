@@ -668,3 +668,9 @@ select {
     overflow-x: auto;
   }
 }/*# sourceMappingURL=style.css.map */
+/* "(optional)" next to a field label in the Add/Edit popup */
+.app-modal__optional {
+  font-weight: 400;
+  color: #8a8f98;
+  font-size: 11.5px;
+}

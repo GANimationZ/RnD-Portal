@@ -797,3 +797,10 @@ $danger-bg: rgba(226, 75, 74, 0.12);
     }
   }
 }
+
+// "(optional)" next to a field label in the Add/Edit popup
+.app-modal__optional {
+  font-weight: 400;
+  color: #8a8f98;
+  font-size: 11.5px;
+}
