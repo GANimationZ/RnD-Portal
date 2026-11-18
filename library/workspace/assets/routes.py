@@ -11,7 +11,9 @@ from library.extensions import db
 from library.models import PvAsset, PvAssetScan
 
 from .importer import (
+    DEFAULT_OWNER,
     MAX_FILE_BYTES,
+    OWNER_MAX,
     SERIAL_RULE,
     ImportFormatError,
     analyze_rows,
@@ -30,7 +32,7 @@ ALLOWED_ROLES = ("Super Admin", "Member")
 
 NAME_MAX = 120
 LOCATION_MAX = 120
-HISTORY_LIMIT = 6
+HISTORY_LIMIT = 3  # "Recent scans" shows only the last 3
 
 
 def serial_key(value):
@@ -39,11 +41,66 @@ def serial_key(value):
 
 
 def _history():
-    rows = PvAssetScan.query.order_by(PvAssetScan.id.desc()).limit(HISTORY_LIMIT).all()
+    # "invalid" is never recorded now; the filter hides any left from before.
+    rows = (PvAssetScan.query.filter(PvAssetScan.result != "invalid")
+            .order_by(PvAssetScan.id.desc()).limit(HISTORY_LIMIT).all())
     return [r.to_dict() for r in rows]
 
 
+def owner_resolver():
+    """Returns f(raw) -> the owner exactly as already stored (matched without
+    regard to case, so "sqa" and "SQA" are one owner), or the cleaned raw text
+    for a brand-new owner. New owners are remembered, so one import / request
+    keeps a single spelling."""
+    known = {DEFAULT_OWNER.lower(): DEFAULT_OWNER}  # "pv" is always "PV"
+    for (value,) in db.session.query(PvAsset.owner).distinct():
+        if value:
+            known.setdefault(value.lower(), value)
+
+    def resolve(raw):
+        cleaned = re.sub(r"\s+", " ", raw or "").strip()
+        if not cleaned:
+            return ""
+        return known.setdefault(cleaned.lower(), cleaned)
+
+    return resolve
+
+
+def owner_resolver_empty():
+    known = {DEFAULT_OWNER.lower(): DEFAULT_OWNER}
+
+    def resolve(raw):
+        cleaned = re.sub(r"\s+", " ", raw or "").strip()
+        return known.setdefault(cleaned.lower(), cleaned) if cleaned else ""
+
+    return resolve
+
+
+def purge_scans(asset_ids=(), serial_keys=()):
+    """Delete scan records that are no longer true after an asset changed:
+    the scans of those assets, and scans (of no asset) of those serial numbers.
+    This is what makes "Not PV" / Recent scans follow an edit the same way a
+    Replace import resets everything."""
+    asset_ids = {i for i in asset_ids if i}
+    serial_keys = {k for k in serial_keys if k}
+    if not asset_ids and not serial_keys:
+        return 0
+    removed = 0
+    for scan in PvAssetScan.query.all():
+        if (scan.asset_id in asset_ids) or (
+            scan.asset_id is None and serial_key(scan.scanned_serial) in serial_keys
+        ):
+            db.session.delete(scan)
+            removed += 1
+    return removed
+
+
+def _scan_state():
+    return {"unknown_count": _unknown_count(), "history": _history()}
+
+
 def _unknown_count():
+    # Scans of a valid-format serial that is not a registered PV asset
     return PvAssetScan.query.filter_by(result="unknown").count()
 
 
@@ -75,26 +132,36 @@ def api_list_assets():
 
 
 def _parse_asset_payload(data):
-    """Validate name + serial (+ optional location).
-    Returns (name, serial, location, error_response_or_None)."""
+    """Validate an asset. Owner and Location are required.
+    Returns (name, serial, owner, location, error_response_or_None)."""
     name = re.sub(r"\s+", " ", (data.get("name") or "")).strip()
     serial = (data.get("serial") or "").strip()
+    owner_raw = (data.get("owner") or "").strip()
     location = re.sub(r"\s+", " ", (data.get("location") or "")).strip()
 
-    if not name and not serial:
-        return None, None, None, (jsonify({"message": "Item Name and Serial Number are required.", "fields": ["name", "serial"]}), 400)
-    if not name:
-        return None, None, None, (jsonify({"message": "Item Name is required.", "fields": ["name"]}), 400)
-    if not serial:
-        return None, None, None, (jsonify({"message": "Serial Number is required.", "fields": ["serial"]}), 400)
+    def fail(message, *fields):
+        return None, None, None, None, (jsonify({"message": message, "fields": list(fields)}), 400)
+
+    missing = [(f, label) for f, label, value in (
+        ("name", "Item Name", name), ("serial", "Serial Number", serial),
+        ("owner", "Owner", owner_raw), ("location", "Location", location)) if not value]
+    if len(missing) > 1:
+        labels = [l for _, l in missing]
+        joined = labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + " and " + labels[-1]
+        return fail(f"{joined} are required.", *[f for f, _ in missing])
+    if missing:
+        return fail(f"{missing[0][1]} is required.", missing[0][0])
     if len(name) > NAME_MAX:
-        return None, None, None, (jsonify({"message": f"Item Name must be at most {NAME_MAX} characters.", "fields": ["name"]}), 400)
+        return fail(f"Item Name must be at most {NAME_MAX} characters.", "name")
     serial = normalize_serial(serial)  # stored in upper case
     if not is_valid_serial(serial):
-        return None, None, None, (jsonify({"message": f"Serial Number must be {SERIAL_RULE}.", "fields": ["serial"]}), 400)
+        return fail(f"Serial Number must be {SERIAL_RULE}.", "serial")
+    owner = owner_resolver()(owner_raw)
+    if len(owner) > OWNER_MAX:
+        return fail(f"Owner must be at most {OWNER_MAX} characters.", "owner")
     if len(location) > LOCATION_MAX:
-        return None, None, None, (jsonify({"message": f"Location must be at most {LOCATION_MAX} characters.", "fields": ["location"]}), 400)
-    return name, serial, location, None
+        return fail(f"Location must be at most {LOCATION_MAX} characters.", "location")
+    return name, serial, owner, location, None
 
 
 def _duplicate_response(duplicate):
@@ -108,7 +175,7 @@ def _duplicate_response(duplicate):
 @login_required
 @roles_required(*ALLOWED_ROLES)
 def api_create_asset():
-    name, serial, location, error = _parse_asset_payload(request.get_json(silent=True) or {})
+    name, serial, owner, location, error = _parse_asset_payload(request.get_json(silent=True) or {})
     if error:
         return error
 
@@ -121,17 +188,20 @@ def api_create_asset():
         name=name,
         serial_number=serial,
         serial_key=key,
-        location=location or None,
+        owner=owner,
+        location=location,
         created_by_id=session.get("user_id"),
     )
     db.session.add(asset)
+    # Earlier scans of this serial (when it was not registered) are outdated now
+    purge_scans(serial_keys={key})
     try:
         db.session.commit()
     except IntegrityError:  # two people adding the same serial at once
         db.session.rollback()
         return jsonify({"message": "This Serial Number is already registered.", "fields": ["serial"]}), 409
 
-    return jsonify({"message": "Asset added successfully.", "asset": asset.to_dict()}), 201
+    return jsonify({"message": "Asset added successfully.", "asset": asset.to_dict(), **_scan_state()}), 201
 
 
 @assets_bp.route("/api/assets/<int:asset_id>", methods=["PUT"])
@@ -142,7 +212,7 @@ def api_update_asset(asset_id):
     if asset is None:
         return jsonify({"message": "Asset not found."}), 404
 
-    name, serial, location, error = _parse_asset_payload(request.get_json(silent=True) or {})
+    name, serial, owner, location, error = _parse_asset_payload(request.get_json(silent=True) or {})
     if error:
         return error
 
@@ -151,17 +221,27 @@ def api_update_asset(asset_id):
     if duplicate:
         return _duplicate_response(duplicate)
 
-    # A previous scan verified the OLD name/serial, so any change to either
-    # sends the asset back to "Not Checked" and it has to be scanned again.
-    changed = name != asset.name or key != asset.serial_key
+    # Any change (name, serial, owner or location) means the earlier scan no
+    # longer describes this asset: it goes back to "Not Checked", its scan
+    # records are removed (so the Not PV count and Recent scans follow), and
+    # it has to be scanned again -- the same result as a Replace import.
+    old_key = asset.serial_key
+    changed = (
+        name != asset.name
+        or key != asset.serial_key
+        or owner != (asset.owner or "")
+        or location != (asset.location or "")
+    )
     asset.name = name
     asset.serial_number = serial
     asset.serial_key = key
-    asset.location = location or None  # moving an asset does not reset its scan
+    asset.owner = owner
+    asset.location = location
     if changed:
         asset.scan_status = "pending"
         asset.scanned_at = None
         asset.scanned_by_id = None
+        purge_scans(asset_ids={asset.id}, serial_keys={old_key, key})
 
     try:
         db.session.commit()
@@ -170,9 +250,11 @@ def api_update_asset(asset_id):
         return jsonify({"message": "This Serial Number is already registered.", "fields": ["serial"]}), 409
 
     return jsonify({
-        "message": "Asset updated successfully." if not changed else "Asset updated. Scan it again to re-verify.",
+        "message": "Asset updated successfully." if not changed else "Asset updated. Scan it again to verify it.",
         "asset": asset.to_dict(),
         "reset_scan": changed,
+        "old_serial": old_key,
+        **_scan_state(),
     })
 
 
@@ -200,44 +282,64 @@ def api_delete_asset(asset_id):
 def api_scan_asset():
     data = request.get_json(silent=True) or {}
     raw_serial = (data.get("serial") or "").strip()
-    input_name = re.sub(r"\s+", " ", (data.get("name") or "")).strip()
 
     key = serial_key(raw_serial)
     if not key:
         return jsonify({"message": "Serial Number is required."}), 400
-    if len(raw_serial) > 120 or len(input_name) > 120:
+    if len(raw_serial) > 120:
         return jsonify({"message": "Scanned value is too long."}), 400
 
     now = datetime.utcnow()
     user_id = session.get("user_id")
-    asset = PvAsset.query.filter_by(serial_key=key).first()
+    valid_format = is_valid_serial(key)
+
+    # Scanning uses the Serial Number ONLY. Results:
+    #   invalid  - not 4 letters + 8 digits (never looked up, NOT recorded)
+    #   unknown  - valid format, but not in the list OR owned by another team
+    #   match    - registered asset whose Owner is PV (marked Verified)
+    asset = PvAsset.query.filter_by(serial_key=key).first() if valid_format else None
 
     already_scanned = False
-    if asset is None:
+    not_pv = False
+    if not valid_format:
+        result = "invalid"
+    elif asset is None:
         result = "unknown"
+    elif (asset.owner or "").strip().lower() != DEFAULT_OWNER.lower():
+        # Registered, but owned by another team (QA, SQA, ...): not a PV asset,
+        # so it is NOT marked Verified (scan_status stays as it is). The time
+        # and the user are still recorded on the asset as proof of the scan.
+        result = "unknown"
+        not_pv = True
+        asset.scanned_at = now
+        asset.scanned_by_id = user_id
     else:
         already_scanned = asset.scan_status != "pending"
-        result = "mismatch" if input_name and name_key(input_name) != name_key(asset.name) else "match"
+        result = "match"
         asset.scan_status = result
         asset.scanned_at = now
         asset.scanned_by_id = user_id
 
-    db.session.add(PvAssetScan(
-        asset_id=asset.id if asset else None,
-        scanned_serial=raw_serial,
-        input_name=input_name or None,
-        result=result,
-        scanned_by_id=user_id,
-        scanned_at=now,
-    ))
-    db.session.commit()
+    # A badly formatted serial is only reported back: it is not a scan of
+    # anything, so it is not saved, not counted and not in Recent scans.
+    if result != "invalid":
+        db.session.add(PvAssetScan(
+            asset_id=asset.id if asset else None,
+            scanned_serial=raw_serial,
+            input_name=None,
+            result=result,
+            scanned_by_id=user_id,
+            scanned_at=now,
+        ))
+        db.session.commit()
 
     return jsonify({
         "result": result,
-        "valid_format": is_valid_serial(key),
+        "valid_format": valid_format,
+        "serial_rule": SERIAL_RULE,
         "already_scanned": already_scanned,
         "asset": asset.to_dict() if asset else None,
-        "input_name": input_name,
+        "not_pv": not_pv,
         "unknown_count": _unknown_count(),
         "history": _history(),
     })
@@ -287,7 +389,8 @@ def api_import_assets():
     except ImportFormatError as exc:
         return jsonify({"message": str(exc)}), 400
 
-    existing = {a.serial_key: a.name for a in PvAsset.query.all()}
+    existing = {a.serial_key: {"name": a.name, "owner": a.owner or "", "location": a.location or ""}
+                for a in PvAsset.query.all()}
     analysis = analyze_rows(rows, mode, existing)
 
     if dry_run:
@@ -301,29 +404,41 @@ def api_import_assets():
     except ValueError:
         return jsonify({"message": "Invalid conflict choices."}), 400
 
+    # Every conflict needs a full record (name, owner, location) to keep
     chosen = {}
     unresolved = []
     for conflict in analysis["conflicts"]:
         serial = conflict["serial"]
-        final = collapse_spaces(str(resolutions.get(serial) or ""))
-        if not final:
+        raw = resolutions.get(serial)
+        if not isinstance(raw, dict):
             unresolved.append(serial)
-        elif len(final) > NAME_MAX:
+            continue
+        final = {
+            "name": collapse_spaces(str(raw.get("name") or "")),
+            "owner": collapse_spaces(str(raw.get("owner") or "")),
+            "location": collapse_spaces(str(raw.get("location") or "")),
+        }
+        if not all(final.values()):
+            unresolved.append(serial)
+        elif len(final["name"]) > NAME_MAX:
             return jsonify({"message": f"Item Name for {serial} must be at most {NAME_MAX} characters."}), 400
+        elif len(final["owner"]) > OWNER_MAX:
+            return jsonify({"message": f"Owner for {serial} must be at most {OWNER_MAX} characters."}), 400
+        elif len(final["location"]) > LOCATION_MAX:
+            return jsonify({"message": f"Location for {serial} must be at most {LOCATION_MAX} characters."}), 400
         else:
             chosen[serial] = final
     if unresolved:
         return jsonify({"message": "Some conflicts have not been resolved yet.", "unresolved": unresolved}), 409
 
-    file_locations = analysis.get("locations", {})
-    existing_locations = {a.serial_key: (a.location or "") for a in PvAsset.query.all()} if mode == "merge" else {}
-    location_changes = [s for s, loc in file_locations.items()
-                        if s in existing_locations and existing_locations[s] != loc]
-
-    if not analysis["new"] and not analysis["conflicts"] and not location_changes:
+    if not analysis["new"] and not analysis["conflicts"]:
         if mode == "replace":
             return jsonify({"message": "The file has no valid assets, so nothing was replaced."}), 400
         return jsonify({"message": "Nothing to import: no new assets or changes were found in the file."}), 400
+
+    # In Replace mode the old assets (and their owners) are deleted first, so
+    # the owners of the file start from scratch.
+    resolve_owner = owner_resolver() if mode == "merge" else owner_resolver_empty()
 
     user_id = session.get("user_id")
     result = {
@@ -331,7 +446,6 @@ def api_import_assets():
         "unchanged": len(analysis["unchanged"]),
         "skipped": len(analysis["invalid"]),
         "deleted": 0,
-        "relocated": 0,
     }
 
     try:
@@ -344,37 +458,44 @@ def api_import_assets():
         else:
             current = {a.serial_key: a for a in PvAsset.query.all()}
 
+        touched_ids, touched_keys = set(), set()
+
         for item in analysis["new"]:
             db.session.add(PvAsset(name=item["name"], serial_number=item["serial"],
                                    serial_key=item["serial"], created_by_id=user_id,
-                                   location=file_locations.get(item["serial"]) or None))
+                                   owner=resolve_owner(item["owner"]), location=item["location"]))
+            touched_keys.add(item["serial"])
             result["added"] += 1
 
         for conflict in analysis["conflicts"]:
             serial = conflict["serial"]
             final = chosen[serial]
+            owner = resolve_owner(final["owner"])
             asset = current.get(serial)
             if asset is None:
-                db.session.add(PvAsset(name=final, serial_number=serial,
+                db.session.add(PvAsset(name=final["name"], serial_number=serial,
                                        serial_key=serial, created_by_id=user_id,
-                                       location=file_locations.get(serial) or None))
+                                       owner=owner, location=final["location"]))
+                touched_keys.add(serial)
                 result["added"] += 1
-            elif name_key(final) == name_key(asset.name):
-                result["kept"] += 1
+            elif (name_key(final["name"]), name_key(owner), name_key(final["location"])) == (
+                name_key(asset.name), name_key(asset.owner), name_key(asset.location)
+            ):
+                result["kept"] += 1  # chose the current data: nothing changes
             else:
-                asset.name = final
-                # The old verification was for the old name -> scan again
+                asset.name = final["name"]
+                asset.owner = owner
+                asset.location = final["location"]
+                # The old verification described the old data -> scan again
                 asset.scan_status = "pending"
                 asset.scanned_at = None
                 asset.scanned_by_id = None
+                touched_ids.add(asset.id)
+                touched_keys.add(serial)
                 result["updated"] += 1
 
-        # Locations from the file for assets that already exist (name conflicts
-        # above are resolved separately; a location never needs a choice).
-        if mode == "merge" and location_changes:
-            for asset in PvAsset.query.filter(PvAsset.serial_key.in_(location_changes)).all():
-                asset.location = file_locations[asset.serial_key]
-                result["relocated"] += 1
+        if mode == "merge":
+            purge_scans(asset_ids=touched_ids, serial_keys=touched_keys)
 
         db.session.commit()
     except IntegrityError:
@@ -386,8 +507,6 @@ def api_import_assets():
         parts.append(f"{result['updated']} updated")
     if result["kept"]:
         parts.append(f"{result['kept']} kept as is")
-    if result["relocated"]:
-        parts.append(f"{result['relocated']} location{'s' if result['relocated'] != 1 else ''} updated")
     if result["unchanged"]:
         parts.append(f"{result['unchanged']} unchanged")
     if result["skipped"]:

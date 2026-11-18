@@ -23,7 +23,7 @@
                     <span class="pv_text">NOT CHECKED</span><span class="pv_number" id="totalPending">0</span>
                 </div>
                 <div class="ttl_issues red">
-                    <span class="pv_text">MISMATCH / NOT PV</span><span class="pv_number" id="totalRejected">0</span>
+                    <span class="pv_text">NOT PV</span><span class="pv_number" id="totalRejected">0</span>
                 </div>
             </div>
             {# ---- Scanner ---- #}
@@ -38,13 +38,8 @@
                            id="scanSerial"
                            placeholder="Scan / type Serial Number (e.g. ABCD12345678)"
                            autocomplete="off"
-                           maxlength="12"
                            spellcheck="false"
                            required />
-                    <input type="text"
-                           id="scanName"
-                           placeholder="Item Name (optional, to check for a match)"
-                           autocomplete="off" />
                     <button type="submit" class="asset-scan__submit" id="scanSubmit">
                         <i class="bxf bx-search"></i> Check Asset
                     </button>
@@ -68,6 +63,10 @@
                                 <span class="scan-result__value" id="scanResultSerial">-</span>
                             </div>
                             <div>
+                                <span class="scan-result__label">Owner</span>
+                                <span class="scan-result__value" id="scanResultOwner">-</span>
+                            </div>
+                            <div>
                                 <span class="scan-result__label">Location</span>
                                 <span class="scan-result__value" id="scanResultLocation">-</span>
                             </div>
@@ -87,13 +86,15 @@
                         <label for="searchInput">ACTIVE FILTERS</label>
                         <input type="text"
                                id="searchInput"
-                               placeholder="Search item name, serial number or location" />
+                               placeholder="Search item name, serial number, owner or location" />
+                        <select class="status" id="filterOwner">
+                            <option value="all" selected>All Owners</option>
+                        </select>
                         <select class="status" id="filterStatus">
                             <option value="all" selected>All Status</option>
                             <option value="pending">Not Checked</option>
                             <option value="match">Verified</option>
-                            <option value="mismatch">Name Mismatch</option>
-                        </select>
+                                                    </select>
                     </form>
                 </div>
                 <div class="btns">
@@ -122,6 +123,7 @@
                             <th>No.</th>
                             <th>Item Name</th>
                             <th>Serial Number</th>
+                            <th>Owner</th>
                             <th>Location</th>
                             <th class="center">Scan Status</th>
                             <th class="center">Scanned At</th>
@@ -177,7 +179,17 @@
                        spellcheck="false"
                        placeholder="e.g. ABCD12345678" />
                 <span class="app-modal__hint">4 letters followed by 8 digits, without dashes or spaces.</span>
-                <label for="newAssetLocation">Location <span class="app-modal__optional">(optional)</span></label>
+                <label for="newAssetOwner">Owner</label>
+                <select id="newAssetOwner">
+                    <option value="">Select owner...</option>
+                </select>
+                <input type="text"
+                       id="newAssetOwnerNew"
+                       class="is-hidden"
+                       maxlength="20"
+                       placeholder="New owner name, e.g. SQA" />
+                <span class="app-modal__hint">Pick an existing owner, or choose "+ New owner..." to add one. New owners then appear in every list.</span>
+                <label for="newAssetLocation">Location</label>
                 <input type="text"
                        id="newAssetLocation"
                        maxlength="120"
@@ -207,7 +219,7 @@
                 <label for="importFile">Excel file (.xlsx)</label>
                 <input type="file" id="importFile" accept=".xlsx" />
                 <span class="app-modal__hint">
-                    Needs the columns <b>Item Name</b> and <b>Serial Number</b> (4 letters + 8 digits, no dashes). An optional <b>Location</b> column is also read.
+                    Needs the columns <b>Item Name</b> and <b>Serial Number</b> (4 letters + 8 digits, no dashes). Also required: <b>Owner</b> (e.g. PV, QA, SQA; new owners are created from the file) and <b>Location</b>. Rows missing them are skipped and reported.
                     <a href="/workspace/assets/api/assets/import/template"
                        id="importTemplateLink">Download template</a>
                 </span>
@@ -247,7 +259,7 @@
                                 <button type="button" id="importUseAllNew">Use file version for all</button>
                             </span>
                         </div>
-                        <p class="import-section__hint">The same Serial Number appears with different names. For each one, choose the name to keep, or type a new name.</p>
+                        <p class="import-section__hint">A Serial Number can only have one Item Name, Owner and Location. These Serial Numbers appear with different details. For each one, keep the current data, use the version from the file, or type new details. A changed asset must be scanned again.</p>
                         <div id="importConflicts"></div>
                     </div>
                     <div class="import-section is-hidden" id="importInvalidWrap">

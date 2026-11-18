@@ -12,11 +12,20 @@ from library.extensions import db
 
 # table -> [(column, SQL type)]
 NEW_COLUMNS = {
-    "pv_assets": [("location", "VARCHAR(120)")],
+    "pv_assets": [("location", "VARCHAR(120)"), ("owner", "VARCHAR(20)")],
 }
 
 
 def ensure_columns():
+    _upgrade_columns()
+    # Scanning is by Serial Number only now, so the old "mismatch" status no
+    # longer exists: those assets simply go back to "Not Checked".
+    if "pv_assets" in set(inspect(db.engine).get_table_names()):
+        with db.engine.begin() as conn:
+            conn.execute(text("UPDATE pv_assets SET scan_status = 'pending' WHERE scan_status = 'mismatch'"))
+
+
+def _upgrade_columns():
     inspector = inspect(db.engine)
     existing_tables = set(inspector.get_table_names())
     for table, columns in NEW_COLUMNS.items():

@@ -10,7 +10,6 @@ const API_BASE = "/workspace/assets/api";
 const SCAN_STATUS = {
   pending: { label: "Not Checked", badge: "badge-gray" },
   match: { label: "Verified", badge: "badge-green" },
-  mismatch: { label: "Name Mismatch", badge: "badge-yellow" },
 };
 
 // ------------------------------------------------------------
@@ -81,17 +80,53 @@ async function fetchAssets() {
 // ============================================================
 // ---- Summary ---- //
 // ============================================================
+// ---- Owners: not a fixed list. They come from the data (Excel imports and
+// Add/Edit); "PV" is always offered. Every owner dropdown is rebuilt from it.
+const DEFAULT_OWNER = "PV";
+const NEW_OWNER_VALUE = "__new__";
+
+function ownerList() {
+  const byKey = new Map([[DEFAULT_OWNER.toLowerCase(), DEFAULT_OWNER]]);
+  assetData.forEach((a) => {
+    const o = (a.owner || "").trim();
+    if (o && !byKey.has(o.toLowerCase())) byKey.set(o.toLowerCase(), o);
+  });
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+}
+
+function fillOwnerSelect(select, firstLabel, extraOptions = "", firstValue = "") {
+  if (!select) return;
+  const keep = select.value;
+  select.innerHTML =
+    `<option value="${firstValue}">${escapeHtml(firstLabel)}</option>` +
+    ownerList()
+      .map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`)
+      .join("") +
+    extraOptions;
+  if ([...select.options].some((o) => o.value === keep)) select.value = keep;
+}
+
+function refreshOwnerOptions() {
+  fillOwnerSelect(document.getElementById("filterOwner"), "All Owners", "", "all");
+}
+
+// Only assets owned by PV are "PV assets"; other owners' assets are listed
+// in the table but are not counted here.
+function isPvAsset(asset) {
+  return (asset.owner || "").trim().toLowerCase() === DEFAULT_OWNER.toLowerCase();
+}
+
 function renderSummary() {
-  const total = assetData.length;
-  const matched = assetData.filter((a) => a.scan_status === "match").length;
-  const mismatched = assetData.filter(
-    (a) => a.scan_status === "mismatch",
-  ).length;
+  refreshOwnerOptions();
+  const pvAssets = assetData.filter(isPvAsset);
+  const total = pvAssets.length;
+  const matched = pvAssets.filter((a) => a.scan_status === "match").length;
 
   setText("totalAssets", total);
   setText("totalMatched", matched);
-  setText("totalPending", total - matched - mismatched);
-  setText("totalRejected", mismatched + unknownScanCount);
+  setText("totalPending", total - matched);
+  // Scans of a valid-format serial that is not a PV asset (invalid formats are not recorded)
+  setText("totalRejected", unknownScanCount);
 }
 
 // ============================================================
@@ -103,7 +138,7 @@ function renderTable(flashId = null) {
   tbody.innerHTML = "";
 
   if (filteredData.length === 0) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">No assets match the current filters.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="9">No assets match the current filters.</td></tr>`;
     renderPaginationSummary(0, 0);
     renderPaginationPages();
     return;
@@ -113,7 +148,10 @@ function renderTable(flashId = null) {
   const pageData = filteredData.slice(start, start + rowsPerPage);
 
   pageData.forEach((asset, i) => {
-    const meta = SCAN_STATUS[asset.scan_status] || SCAN_STATUS.pending;
+    // Assets of other owners are never scanned as PV assets
+    const meta = isPvAsset(asset)
+      ? SCAN_STATUS[asset.scan_status] || SCAN_STATUS.pending
+      : { label: "Not PV", badge: "badge-gray" };
 
     const row = document.createElement("tr");
     row.dataset.assetId = asset.id;
@@ -122,6 +160,7 @@ function renderTable(flashId = null) {
       <td>${start + i + 1}</td>
       <td>${escapeHtml(asset.name)}</td>
       <td class="asset-serial">${escapeHtml(asset.serial)}</td>
+      <td>${asset.owner ? `<span class="owner-tag">${escapeHtml(asset.owner)}</span>` : "-"}</td>
       <td>${escapeHtml(asset.location || "-")}</td>
       <td class="center"><span class="badge ${meta.badge}">${meta.label}</span></td>
       <td class="center">${escapeHtml(formatTime(asset.scanned_at))}</td>
@@ -196,6 +235,7 @@ function applyFilters() {
     .toLowerCase();
   const searchSerial = normalizeSerial(searchVal);
   const statusVal = document.getElementById("filterStatus")?.value || "all";
+  const ownerVal = document.getElementById("filterOwner")?.value || "all";
 
   filteredData = assetData.filter((asset) => {
     if (searchVal) {
@@ -203,9 +243,11 @@ function applyFilters() {
       const inSerial =
         searchSerial && normalizeSerial(asset.serial).includes(searchSerial);
       const inLocation = (asset.location || "").toLowerCase().includes(searchVal);
-      if (!inName && !inSerial && !inLocation) return false;
+      const inOwner = (asset.owner || "").toLowerCase().includes(searchVal);
+      if (!inName && !inSerial && !inLocation && !inOwner) return false;
     }
     if (statusVal !== "all" && asset.scan_status !== statusVal) return false;
+    if (ownerVal !== "all" && (asset.owner || "").toLowerCase() !== ownerVal.toLowerCase()) return false;
     return true;
   });
 
@@ -236,16 +278,17 @@ function revealRow(assetId) {
 // ============================================================
 const RESULT_ICON = {
   match: "bx-check-circle",
-  mismatch: "bx-info-circle",
   unknown: "bx-x-circle",
-  idle: "bx-scan-barcode",
+  invalid: "bx-error-circle",
+  idle: "bx-qr-scan",
 };
 
 function showScanResult(kind, { status, message, asset, serial }) {
   const box = document.getElementById("scanResult");
   if (!box) return;
 
-  box.className = `scan-result is-${kind}`;
+  // An invalid serial looks like "not a PV asset" (red); only its text differs.
+  box.className = `scan-result is-${kind === "invalid" ? "unknown" : kind}`;
   const iconEl = box.querySelector(".scan-result__icon i");
   if (iconEl) iconEl.className = `bxf ${RESULT_ICON[kind] || RESULT_ICON.idle}`;
 
@@ -258,7 +301,9 @@ function showScanResult(kind, { status, message, asset, serial }) {
     return;
   }
   meta?.classList.remove("is-hidden");
-  setText("scanResultName", asset ? asset.name : "- (not in the database)");
+  const notFound = kind === "invalid" ? "- (invalid Serial Number)" : "- (not in the database)";
+  setText("scanResultName", asset ? asset.name : notFound);
+  setText("scanResultOwner", asset && asset.owner ? asset.owner : "-");
   setText("scanResultSerial", asset ? asset.serial : serial);
   setText("scanResultLocation", asset && asset.location ? asset.location : "-");
 }
@@ -277,12 +322,12 @@ function renderHistory(history) {
   list.innerHTML = history
     .map(
       (h) =>
-        `<li class="is-${escapeHtml(h.result)}" title="${escapeHtml(formatTime(h.scanned_at))}">${escapeHtml(h.serial)}</li>`,
+        `<li class="is-${h.result === "invalid" ? "unknown" : escapeHtml(h.result)}" title="${escapeHtml(formatTime(h.scanned_at))}">${escapeHtml(h.serial)}</li>`,
     )
     .join("");
 }
 
-async function processScan(rawSerial, rawName) {
+async function processScan(rawSerial) {
   const serial = (rawSerial || "").trim();
   if (!normalizeSerial(serial) || isScanning) return false;
 
@@ -294,18 +339,29 @@ async function processScan(rawSerial, rawName) {
     const data = await request("/assets/scan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serial, name: (rawName || "").trim() }),
+      body: JSON.stringify({ serial }),
     });
 
     unknownScanCount = data.unknown_count;
     renderHistory(data.history || []);
 
+    if (data.result === "invalid") {
+      showScanResult("invalid", {
+        status: "INVALID SERIAL NUMBER",
+        message: `"${serial}" is not a valid Serial Number. A PV Serial Number is ${data.serial_rule}. Check the label or the scanner and try again.`,
+        serial,
+      });
+      renderSummary();
+      return true;
+    }
+
     if (data.result === "unknown") {
       showScanResult("unknown", {
-        status: "INVALID SERIAL NUMBER",
-        message: data.valid_format
-          ? "This Serial Number was not found in the PV asset database."
-          : "This is not a PV Serial Number: it does not match the format of 4 letters + 8 digits, and it was not found in the database.",
+        status: "NOT A PV ASSET",
+        message: data.asset
+          ? `This Serial Number is registered, but its owner is "${data.asset.owner || "not set"}", so it is not a PV asset.`
+          : "The Serial Number format is valid, but it was not found in the PV asset database.",
+        asset: data.asset,
         serial,
       });
       renderSummary();
@@ -316,21 +372,13 @@ async function processScan(rawSerial, rawName) {
     const idx = assetData.findIndex((a) => a.id === data.asset.id);
     if (idx >= 0) assetData[idx] = data.asset;
 
-    if (data.result === "mismatch") {
-      showScanResult("mismatch", {
-        status: "MISMATCH",
-        message: `The Serial Number is a registered PV asset, but the item name does not match (entered: "${data.input_name}").`,
-        asset: data.asset,
-      });
-    } else {
-      showScanResult("match", {
-        status: "PV ASSET - MATCH",
-        message: data.already_scanned
-          ? "This asset was already scanned before. The scan time has been updated."
-          : "The Serial Number and Item Name match the database.",
-        asset: data.asset,
-      });
-    }
+    showScanResult("match", {
+      status: "PV ASSET - VERIFIED",
+      message: data.already_scanned
+        ? "This asset was already scanned before. The scan time has been updated."
+        : "This Serial Number is registered in the PV asset database.",
+      asset: data.asset,
+    });
 
     renderSummary();
     revealRow(data.asset.id);
@@ -348,7 +396,6 @@ async function processScan(rawSerial, rawName) {
 function initScanner() {
   const form = document.getElementById("scanForm");
   const serialInput = document.getElementById("scanSerial");
-  const nameInput = document.getElementById("scanName");
   if (!form || !serialInput) return;
 
   form.addEventListener("submit", async (e) => {
@@ -358,11 +405,8 @@ function initScanner() {
       serialInput.focus();
       return;
     }
-    const ok = await processScan(serialInput.value, nameInput?.value);
-    if (ok) {
-      serialInput.value = "";
-      if (nameInput) nameInput.value = "";
-    }
+    const ok = await processScan(serialInput.value);
+    if (ok) serialInput.value = "";
     serialInput.focus();
   });
 
@@ -378,6 +422,7 @@ function initScanner() {
 const ADD_FIELD_IDS = {
   name: "newAssetName",
   serial: "newAssetSerial",
+  owner: "newAssetOwner",
   location: "newAssetLocation",
 };
 
@@ -386,6 +431,12 @@ function openAssetModal(asset = null) {
   if (!modal) return;
 
   document.getElementById("addAssetForm")?.reset();
+  fillOwnerSelect(
+    document.getElementById("newAssetOwner"),
+    "Select owner...",
+    `<option value="${NEW_OWNER_VALUE}">+ New owner...</option>`,
+  );
+  document.getElementById("newAssetOwnerNew")?.classList.add("is-hidden");
   showAddError("");
   document.getElementById("editingAssetId").value = asset ? asset.id : "";
   setText("assetModalTitle", asset ? "Edit Asset" : "Add Asset");
@@ -393,11 +444,21 @@ function openAssetModal(asset = null) {
   if (asset) {
     document.getElementById("newAssetName").value = asset.name;
     document.getElementById("newAssetSerial").value = asset.serial;
+    document.getElementById("newAssetOwner").value = asset.owner || "";
     document.getElementById("newAssetLocation").value = asset.location || "";
   }
 
   modal.classList.remove("is-hidden");
   document.getElementById("newAssetName")?.focus();
+}
+
+// The Owner chosen in the Add/Edit popup (or the new one typed in).
+function selectedOwnerValue() {
+  const select = document.getElementById("newAssetOwner");
+  if (select && select.value === NEW_OWNER_VALUE) {
+    return document.getElementById("newAssetOwnerNew")?.value || "";
+  }
+  return select ? select.value : "";
 }
 
 function closeAddAsset() {
@@ -485,6 +546,14 @@ function initAddAsset() {
     if (btn.dataset.action === "delete") deleteAsset(asset);
   });
 
+  // "+ New owner..." reveals a text box for the new owner's name
+  document.getElementById("newAssetOwner")?.addEventListener("change", (e) => {
+    const input = document.getElementById("newAssetOwnerNew");
+    const isNew = e.target.value === NEW_OWNER_VALUE;
+    input?.classList.toggle("is-hidden", !isNew);
+    if (isNew) input?.focus();
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const saveBtn = document.getElementById("addAssetSave");
@@ -500,6 +569,7 @@ function initAddAsset() {
           body: JSON.stringify({
             name: document.getElementById("newAssetName").value,
             serial: document.getElementById("newAssetSerial").value,
+            owner: selectedOwnerValue(),
             location: document.getElementById("newAssetLocation").value,
           }),
         },
@@ -510,6 +580,22 @@ function initAddAsset() {
         if (idx >= 0) assetData[idx] = data.asset;
       } else {
         assetData.push(data.asset);
+      }
+
+      // The server removed the outdated scan records: follow its numbers
+      if (data.unknown_count !== undefined) unknownScanCount = data.unknown_count;
+      if (data.history) renderHistory(data.history);
+
+      // The result card must not keep showing a scan of the old data
+      const shown = document.getElementById("scanResultSerial")?.textContent;
+      if (
+        shown &&
+        (shown === data.asset.serial || shown === (data.old_serial || ""))
+      ) {
+        showScanResult("idle", {
+          status: "Waiting for scan...",
+          message: "The asset check result will appear here.",
+        });
       }
 
       closeAddAsset();
@@ -535,8 +621,9 @@ function initAddAsset() {
 // ---- Import from Excel ---- //
 // Step 1: choose a file and Merge / Replace  ->  the server checks the file
 //         (dry run) and reports new rows, conflicts and rows with errors.
-// Step 2: review. Every conflict (same Serial Number, different names) needs a
-//         choice: keep one of the names or type a new one. Then apply.
+// Step 2: review. Every conflict (same Serial Number, different Item Name,
+//         Owner or Location) needs a choice: keep the current data, use the
+//         file, or type new details. Then apply.
 // The file is sent again when applying, so what is reviewed is what is saved.
 // ============================================================
 const importState = { analysis: null, mode: "merge", currentCount: 0 };
@@ -698,24 +785,33 @@ function renderImportConflicts(a) {
             <input type="radio" name="conflict-${i}" value="${j}" ${j === 0 ? "checked" : ""} />
             <span class="import-choice__text">
               <span class="import-choice__name">${escapeHtml(cand.name)}</span>
+              <span class="import-choice__detail">Owner: ${escapeHtml(cand.owner || "-")} &middot; Location: ${escapeHtml(cand.location || "-")}</span>
               <span class="import-choice__source">${escapeHtml(cand.source)}</span>
             </span>
           </label>`,
         )
         .join("");
 
+      // Which of Item Name / Owner / Location differ between the versions
+      const differs = ["name", "owner", "location"]
+        .filter((f) => new Set(c.candidates.map((x) => (x[f] || "").trim().toLowerCase())).size > 1)
+        .map((f) => ({ name: "Item Name", owner: "Owner", location: "Location" })[f]);
+
+      const first = c.candidates[0];
       return `
         <div class="import-conflict" data-index="${i}">
           <div class="import-conflict__head">
             <span class="import-conflict__serial">${escapeHtml(c.serial)}</span>
-            <span class="import-conflict__count">${c.candidates.length} different names</span>
+            <span class="import-conflict__count">different ${escapeHtml(differs.join(", "))}</span>
           </div>
           ${choices}
           <label class="import-choice import-choice--edit">
             <input type="radio" name="conflict-${i}" value="edit" />
             <span class="import-choice__text">
-              <span class="import-choice__source">Edit - type the name to use</span>
-              <input type="text" class="import-edit" maxlength="120" placeholder="Item name" autocomplete="off" />
+              <span class="import-choice__source">Edit - type the details to use</span>
+              <input type="text" class="import-edit" data-field="name" maxlength="120" placeholder="Item name" value="${escapeHtml(first.name)}" autocomplete="off" />
+              <input type="text" class="import-edit" data-field="owner" maxlength="20" placeholder="Owner" value="${escapeHtml(first.owner || "")}" autocomplete="off" />
+              <input type="text" class="import-edit" data-field="location" maxlength="120" placeholder="Location" value="${escapeHtml(first.location || "")}" autocomplete="off" />
             </span>
           </label>
         </div>`;
@@ -780,23 +876,32 @@ function collectImportResolutions() {
     if (!checked) return;
 
     if (checked.value === "edit") {
-      const input = checked.closest("label").querySelector(".import-edit");
-      const name = input.value.replace(/\s+/g, " ").trim();
-      if (!name) {
-        input.classList.add("is-invalid");
-        firstInvalid = firstInvalid || input;
-      } else {
-        resolutions[c.serial] = name;
-      }
+      const record = {};
+      checked
+        .closest("label")
+        .querySelectorAll(".import-edit")
+        .forEach((input) => {
+          record[input.dataset.field] = input.value.replace(/\s+/g, " ").trim();
+          if (!record[input.dataset.field]) {
+            input.classList.add("is-invalid");
+            firstInvalid = firstInvalid || input;
+          }
+        });
+      resolutions[c.serial] = record;
     } else {
-      resolutions[c.serial] = c.candidates[Number(checked.value)].name;
+      const cand = c.candidates[Number(checked.value)];
+      resolutions[c.serial] = {
+        name: cand.name,
+        owner: cand.owner,
+        location: cand.location,
+      };
     }
   });
 
   if (firstInvalid) {
     firstInvalid.focus();
     return {
-      error: 'Please type a name for every conflict where you chose "Edit".',
+      error: 'Please fill in the Item Name, Owner and Location for every conflict where you chose "Edit".',
     };
   }
   return { resolutions };
@@ -884,7 +989,7 @@ function initImport() {
 
 // ============================================================
 // ---- Export (Excel .xlsx & CSV) ---- //
-// Columns: No, Item Name, Serial Number, Location
+// Columns: No, Item Name, Serial Number, Owner, Location
 // ============================================================
 
 // Prevents CSV formula injection: a cell starting with = + - @ runs as a
@@ -896,9 +1001,9 @@ function sanitizeCell(value) {
 }
 
 function exportRows() {
-  const rows = [["No", "Item Name", "Serial Number", "Location"]];
+  const rows = [["No", "Item Name", "Serial Number", "Owner", "Location"]];
   filteredData.forEach((asset, i) => {
-    rows.push([i + 1, asset.name, asset.serial, asset.location || ""]);
+    rows.push([i + 1, asset.name, asset.serial, asset.owner || "", asset.location || ""]);
   });
   return rows;
 }
@@ -925,6 +1030,7 @@ async function exportExcel() {
         { header: "No", width: 7, align: "center" },
         { header: "Item Name", width: 48, align: "left" },
         { header: "Serial Number", width: 30, align: "left" },
+        { header: "Owner", width: 12, align: "center" },
         { header: "Location", width: 30, align: "left" },
       ],
       rows: exportRows().slice(1),
@@ -973,6 +1079,9 @@ function initList() {
     ?.addEventListener("input", applyFilters);
   document
     .getElementById("filterStatus")
+    ?.addEventListener("change", applyFilters);
+  document
+    .getElementById("filterOwner")
     ?.addEventListener("change", applyFilters);
 
   document

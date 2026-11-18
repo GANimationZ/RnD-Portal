@@ -32,6 +32,14 @@ SQLAlchemy==2.1.8
 openpyxl==3.1.5
 et_xmlfile==2.0.0
 
+# ========== PDF ==========
+# [Main]
+reportlab==5.1.0
+
+# [Dependencies]
+Pillow==13.0.0
+charset-normalizer==3.5.2
+
 # ========== Waitress ==========
 # [Main]
 waitress==3.0.2

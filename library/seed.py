@@ -1,8 +1,10 @@
+import os
 from datetime import datetime
 
 from library.extensions import db
 from library.models import PvAsset, User
 from library.naming import name_from_email
+from library.workspace.assets.importer import ImportFormatError, parse_assets_workbook
 
 USER_SEED = [
     {
@@ -35,35 +37,24 @@ def seed_users():
     db.session.commit()
 
 
-# Sample PV assets so the Assets page can be tried right away. Only inserted
-# when the table is empty; delete/replace freely once real data is entered.
-# Serial Number format: 4 letters + 8 digits, no dashes (e.g. ABCD12345678).
-ASSET_SEED = [
-    ("Digital Multimeter Fluke 87V", "FLKE48210931"),
-    ("Oscilloscope Tektronix MSO44", "TEKT01278450"),
-    ("DC Power Supply Keysight E36313A", "KEYS61004521"),
-    ("Color Analyzer Konica Minolta CA-410", "KMCA30417761"),
-    ("Spectroradiometer Konica Minolta CS-2000", "KMCS20153398"),
-    ("Hipot Tester GW Instek GPT-9803", "GWIN09123450"),
-    ("Thermal Chamber ESPEC SU-262", "ESPC00457810"),
-    ("Video Signal Generator Astro VG-879", "ASTR77912040"),
-    ("HDMI Analyzer Quantum Data 780", "QDAT11820090"),
-    ("Torque Screwdriver Kolver FAB12", "KOLV55209140"),
-    ("ESD Wrist Strap Tester", "ESDT00120930"),
-    ("Infrared Thermometer Fluke 568", "FLKI61827340"),
-    ("Clamp Meter Hioki CM4375", "HIOK23098164"),
-    ("LCR Meter Hioki IM3536", "HIOL22071450"),
-    ("Spectrum Analyzer R&S FPC1500", "RSFP10392800"),
-    ("Logic Analyzer Saleae Logic Pro 16", "SALE00418237"),
-    ("Sound Level Meter Rion NL-62", "RION00871234"),
-    ("Luminance Meter Konica Minolta LS-150", "KMLS10094478"),
-    ("Colorimeter X-Rite i1Pro 3", "XRIT00291700"),
-    ("Soldering Station Hakko FX-951", "HAKK95107730"),
-    ("Digital Caliper Mitutoyo 500-196", "MITU18040215"),
-    ("Vibration Tester", "VIBT00033910"),
-    ("Remote Control Tester", "RCTL00012700"),
-    ("Test Jig TV 55 Inch", "JIGT00920000"),
-]
+# Dummy PV assets so the Assets page can be tried right away. They are read
+# from library/seed_data/pv_assets.xlsx -- the same layout as the Import
+# template (No, Item Name, Serial Number, Owner, Location). To change the dummy
+# data, edit that Excel file; no code changes needed. Only inserted when the
+# asset table is empty.
+ASSET_SEED_FILE = os.path.join(os.path.dirname(__file__), "seed_data", "pv_assets.xlsx")
+
+
+def load_asset_seed():
+    """[(name, serial, owner, location)] from the Excel file; invalid rows are skipped."""
+    if not os.path.exists(ASSET_SEED_FILE):
+        return []
+    try:
+        rows = parse_assets_workbook(ASSET_SEED_FILE)
+    except ImportFormatError:
+        return []
+    return [(r["name"], r["serial"], r["owner"], r["location"]) for r in rows if not r["error"]]
+
 
 # The first version of the sample data used serials with dashes
 # (e.g. FLK-87V-48210931). Databases that already contain those rows get them
@@ -109,15 +100,32 @@ def _migrate_legacy_asset_serials():
 
 
 def seed_assets():
+    seed = load_asset_seed()
+
     if PvAsset.query.first():
         _migrate_legacy_asset_serials()
+        # Databases created before Owner / Location existed: fill them in for
+        # the dummy assets (only blanks; anything already entered is kept).
+        changed = False
+        for name, serial, owner, location in seed:
+            asset = PvAsset.query.filter_by(serial_key=serial).first()
+            if asset is None:
+                continue
+            if not asset.owner:
+                asset.owner, changed = owner, True
+            if not asset.location:
+                asset.location, changed = location, True
+        if changed:
+            db.session.commit()
         return
 
-    for name, serial in ASSET_SEED:
+    for name, serial, owner, location in seed:
         db.session.add(PvAsset(
             name=name,
             serial_number=serial,
             serial_key=serial,
+            owner=owner,
+            location=location,
         ))
     db.session.commit()
 
