@@ -367,3 +367,76 @@
 .is-hidden {
   display: none !important;
 }
+
+.um-toolbar {
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.um-filters {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+.um-filters input,
+.um-filters select {
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #b7bcc6;
+  border-radius: 6px;
+  background: #fff;
+}
+.um-filters input {
+  flex: 0 1 280px;
+  min-width: 0;
+}
+
+.um-list .list__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+  color: #666;
+}
+.um-list .pagination__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.um-list .pagination__info select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.um-list .pagination__pages {
+  display: flex;
+  gap: 4px;
+}
+.um-list .pagination__pages button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #444;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.um-list .pagination__pages button:hover:not(:disabled) {
+  background: #f3dfe5;
+}
+.um-list .pagination__pages button.is-active {
+  background: #a50034;
+  color: white;
+  border-color: #a50034;
+}
+.um-list .pagination__pages button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

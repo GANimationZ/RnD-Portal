@@ -81,14 +81,27 @@ def _window_param():
     return range_window(value if value in VALID_RANGES else DEFAULT_RANGE)
 
 
-def _all_employees():
-    return User.query.filter_by(role="Member").order_by(User.id).all()
+def _all_employees(window=None):
+    """Members shown on the KPI dashboard.
+
+    Active Members always appear. A deactivated Member (contract ended,
+    resigned) or a Member still waiting for approval only appears for a
+    period in which they actually had issues, so history of past months is
+    kept but they no longer clutter current charts with zeros."""
+    members = User.query.filter_by(role="Member").order_by(User.id).all()
+    if window is None:
+        return members
+    summaries = {s["id"]: s for s in employee_list_summary(members, window)}
+    return [
+        m for m in members
+        if m.is_active or summaries[m.id]["totalAssigned"] > 0
+    ]
 
 
 def get_employees_for_export(window):
     """Flat dicts (name/role/totalAssigned/...) for kpi_excel.py to write
     into .xlsx -- sourced from the real DB, not a static dummy list."""
-    summaries = employee_list_summary(_all_employees(), window)
+    summaries = employee_list_summary(_all_employees(window), window)
     return [
         {
             "name": s["name"],
@@ -187,7 +200,7 @@ def api_employees():
     """Employee summary list for a given range. Used by the Individual
     panel table (live) and the History Individual sub-panel."""
     window = _window_param()
-    employees = _all_employees()
+    employees = _all_employees(window)
     summaries = employee_list_summary(employees, window)
 
     return jsonify(
@@ -216,7 +229,7 @@ def api_team():
     """Team summary (totals, comparison chart, leaderboard) for a given
     range or month. Used by the Team panel (live) and History Team sub-panel."""
     window = _window_param()
-    employees = _all_employees()
+    employees = _all_employees(window)
     return jsonify(team_summary(employees, window))
 
 

@@ -55,11 +55,8 @@ function deleteButton(item) {
     : "";
 }
 
-function renderCards(items) {
-  const container = el("toolCardContainer");
-  container.innerHTML = items
-    .map(
-      (item) => `
+function cardMarkup(item) {
+  return `
     <div class="tool-card">
       <a class="tool-card__link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
         <span class="tool-card__icon"><i class="bxf bx-cog"></i></span>
@@ -71,7 +68,29 @@ function renderCards(items) {
         <i class="bxf bx-link-alt tool-card__go"></i>
       </a>
       ${deleteButton(item)}
-    </div>`,
+    </div>`;
+}
+
+// Card view: one grid per category (cards sit side by side, wrapping).
+function renderCards(items) {
+  const container = el("toolCardContainer");
+  const groups = new Map();
+  items.forEach((item) => {
+    const key = item.category || "Other";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  });
+
+  container.innerHTML = [...groups.keys()]
+    .sort((a, b) => a.localeCompare(b))
+    .map(
+      (category) => `
+    <section class="tool-group">
+      <h3 class="tool-group__title">${escapeHtml(category)} <span class="tool-group__count">(${groups.get(category).length})</span></h3>
+      <div class="tool-group__grid">
+        ${groups.get(category).map(cardMarkup).join("")}
+      </div>
+    </section>`,
     )
     .join("");
 }

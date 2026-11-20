@@ -67,15 +67,66 @@ function scopeBadges(list, badgeClass) {
   return list.map((v) => `<span class="badge ${badgeClass}">${escapeHtml(v)}</span>`).join("");
 }
 
+let umCurrentPage = 1;
+let umRowsPerPage = 10;
+
+function renderUmPagination(total, start, shown) {
+  const summary = document.getElementById("umPaginationSummary");
+  if (summary) {
+    summary.textContent = `Showing ${total === 0 ? 0 : start + 1}-${start + shown} of ${total}`;
+  }
+  const pagesEl = document.getElementById("umPaginationPages");
+  if (!pagesEl) return;
+  pagesEl.innerHTML = "";
+
+  const totalPages = Math.max(1, Math.ceil(total / umRowsPerPage));
+  const addButton = (label, disabled, active, onClick) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = label;
+    btn.disabled = disabled;
+    if (active) btn.className = "is-active";
+    btn.addEventListener("click", onClick);
+    pagesEl.appendChild(btn);
+  };
+
+  addButton("Prev", umCurrentPage === 1, false, () => { umCurrentPage--; renderTable(); });
+  for (let p = 1; p <= totalPages; p++) {
+    addButton(String(p), false, p === umCurrentPage, () => { umCurrentPage = p; renderTable(); });
+  }
+  addButton("Next", umCurrentPage === totalPages, false, () => { umCurrentPage++; renderTable(); });
+}
+
 function renderTable() {
   const tbody = document.getElementById("userTableBody");
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  usersData.forEach((user, i) => {
+  const query = (document.getElementById("umSearch")?.value || "").trim().toLowerCase();
+  const roleFilter = document.getElementById("umFilterRole")?.value || "all";
+  const statusFilter = document.getElementById("umFilterStatus")?.value || "all";
+  const visible = usersData.filter((u) => {
+    if (query && !`${u.username} ${u.email}`.toLowerCase().includes(query)) return false;
+    if (roleFilter !== "all" && u.role !== roleFilter) return false;
+    if (statusFilter !== "all" && u.status_label !== statusFilter) return false;
+    return true;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / umRowsPerPage));
+  if (umCurrentPage > totalPages) umCurrentPage = totalPages;
+  const start = (umCurrentPage - 1) * umRowsPerPage;
+  const pageData = visible.slice(start, start + umRowsPerPage);
+  renderUmPagination(visible.length, start, pageData.length);
+
+  if (visible.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="center">No users found.</td></tr>';
+    return;
+  }
+
+  pageData.forEach((user, i) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${i + 1}</td>
+      <td>${start + i + 1}</td>
       <td>${escapeHtml(user.username)}</td>
       <td>${escapeHtml(user.email)}</td>
       <td><span class="badge ${ROLE_BADGE_CLASS[user.role] || "badge-grey"}">${escapeHtml(user.role)}</span></td>
@@ -496,6 +547,23 @@ function initForm() {
 // INIT
 // ------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
+  ["umSearch", "umFilterRole", "umFilterStatus"].forEach((id) => {
+    const node = document.getElementById(id);
+    if (node) {
+      node.addEventListener(node.tagName === "INPUT" ? "input" : "change", () => {
+        umCurrentPage = 1;
+        renderTable();
+      });
+    }
+  });
+  const rowsSelect = document.getElementById("umRowsPerPage");
+  if (rowsSelect) {
+    rowsSelect.addEventListener("change", () => {
+      umRowsPerPage = Number(rowsSelect.value) || 10;
+      umCurrentPage = 1;
+      renderTable();
+    });
+  }
   if (!document.getElementById("userForm")) return; // not this page
 
   initTableActions();
