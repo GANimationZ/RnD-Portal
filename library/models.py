@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from library.extensions import db
 
@@ -170,8 +170,35 @@ class Issue(db.Model):
     # "closed" earlier than "created" by the UTC offset.)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, server_default=db.func.now())
     closed_at = db.Column(db.DateTime, nullable=True)
+    # "On Hold" pauses the clock. `deadline` is never changed; instead
+    # hold_days collects the days of every finished hold and held_since is the
+    # day the current hold started (None when not on hold).
+    hold_days = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    held_since = db.Column(db.Date, nullable=True)
 
     assignee = db.relationship("User", foreign_keys=[assignee_id])
+
+    def total_hold_days(self, today=None):
+        """Days spent on hold so far, including a hold that is still running."""
+        today = today or date.today()
+        days = self.hold_days or 0
+        if self.status == "On Hold" and self.held_since is not None:
+            days += max(0, (today - self.held_since).days)
+        return days
+
+    def effective_deadline(self, today=None):
+        """Original deadline pushed back by the time spent on hold."""
+        return self.deadline + timedelta(days=self.total_hold_days(today))
+
+    def start_hold(self, today=None):
+        self.held_since = today or date.today()
+
+    def end_hold(self, today=None):
+        """Bank the running hold into hold_days (call when leaving On Hold)."""
+        today = today or date.today()
+        if self.held_since is not None:
+            self.hold_days = (self.hold_days or 0) + max(0, (today - self.held_since).days)
+        self.held_since = None
     attachments = db.relationship(
         "IssueAttachment", backref="issue", cascade="all, delete-orphan",
         order_by="IssueAttachment.id",
@@ -188,7 +215,10 @@ class Issue(db.Model):
             "event": self.event,
             "priority": self.priority,
             "status": self.status,
-            "deadline": self.deadline.strftime("%d-%m-%Y") if self.deadline else None,
+            # "deadline" is the effective one (original + days on hold)
+            "deadline": self.effective_deadline().strftime("%d-%m-%Y") if self.deadline else None,
+            "original_deadline": self.deadline.strftime("%d-%m-%Y") if self.deadline else None,
+            "hold_days": self.total_hold_days(),
             "created_at": self.created_at.strftime("%d-%m-%Y") if self.created_at else None,
             "owner": self.owner_name,
             "assignee_id": self.assignee_id,

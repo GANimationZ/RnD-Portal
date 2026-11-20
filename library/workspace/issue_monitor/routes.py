@@ -165,6 +165,11 @@ def api_update_status(issue_id):
                        "handled it before closing the issue."
         }), 400
 
+    # On Hold pauses the deadline: bank the finished hold, or start a new one.
+    if issue.status == "On Hold" and status != "On Hold":
+        issue.end_hold()
+    elif status == "On Hold" and issue.status != "On Hold":
+        issue.start_hold()
     issue.status = status
 
     if status == "Closed":

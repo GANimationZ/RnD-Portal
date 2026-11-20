@@ -13,6 +13,7 @@ from library.extensions import db
 # table -> [(column, SQL type)]
 NEW_COLUMNS = {
     "pv_assets": [("location", "VARCHAR(120)"), ("owner", "VARCHAR(20)")],
+    "issues": [("hold_days", "INTEGER DEFAULT 0"), ("held_since", "DATE")],
 }
 
 

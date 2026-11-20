@@ -67,6 +67,12 @@ function normalize(str) {
   return (str || "").toString().toLowerCase().replace(/[\s-]/g, "");
 }
 
+// Small note under the deadline when the issue has spent time on hold.
+function holdNote(issue) {
+  if (!issue.hold_days) return "";
+  return `<br><small class="hold-note" title="Original deadline ${escapeHtml(issue.original_deadline)}">+${issue.hold_days}d hold</small>`;
+}
+
 function parseDeadline(deadline) {
   // format: dd-mm-yyyy (from the API)
   const [day, month, year] = deadline.split("-").map(Number);
@@ -93,6 +99,11 @@ function urgencyMeta(daysLeft) {
 }
 
 function classifyIssue(issue) {
+  // Finished or paused issues are not "work to do": they only show up under
+  // CLOSED / ON HOLD, never in P1 - Do Now or P2 - Schedule.
+  if (issue.status === "Closed") return "closed";
+  if (issue.status === "On Hold") return "on-hold";
+
   const daysLeft = daysUntil(issue.deadline);
   const isUrgent = daysLeft <= 7;
   const isHighImpact = issue.priority !== "Low";
@@ -657,7 +668,7 @@ function renderTable() {
       <td class="center"><span class="badge ${PRIORITY_CLASS[issue.priority] || ""}">${escapeHtml(issue.priority)}</span></td>
       <td class="center">${escapeHtml(issue.category)}</td>
       <td class="center">${escapeHtml(issue.event)}</td>
-      <td class="center">${escapeHtml(issue.deadline)}</td>
+      <td class="center">${escapeHtml(issue.deadline)}${holdNote(issue)}</td>
       <td>${escapeHtml(issue.assignee_name || "-")}</td>
       <td class="center"><span class="badge ${STATUS_CLASS[issue.status] || ""}">${escapeHtml(issue.status)}</span></td>
       <td class="center">
@@ -965,7 +976,7 @@ function showInlineDetail(issueId) {
   setText("inlineDetailTitle", issue.title);
   setText("inlineDetailCategory", issue.category);
   setText("inlineDetailEvent", issue.event);
-  setText("inlineDetailDeadline", issue.deadline);
+  setText("inlineDetailDeadline", issue.hold_days ? `${issue.deadline} (original ${issue.original_deadline}, +${issue.hold_days} day${issue.hold_days === 1 ? "" : "s"} on hold)` : issue.deadline);
   setText("inlineDetailOwner", issue.owner);
   setText("inlineDetailAssignee", issue.assignee_name || "Unassigned");
   setText("inlineDetailDescription", issue.description || "-");

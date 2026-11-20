@@ -15,15 +15,15 @@ def _created_day(issue):
     return (issue.created_at or datetime.utcnow()).date()
 
 
-def midpoint_day(issue):
+def midpoint_day(issue, today=None):
     start = _created_day(issue)
-    return start + timedelta(days=(issue.deadline - start).days / 2)
+    return start + timedelta(days=(issue.effective_deadline(today) - start).days / 2)
 
 
 def elapsed_fraction(issue, today=None):
     today = today or date.today()
     start = _created_day(issue)
-    total = (issue.deadline - start).days
+    total = (issue.effective_deadline(today) - start).days
     if total <= 0:
         return 1.0
     return max(0.0, (today - start).days / total)
@@ -49,22 +49,24 @@ def stage_on(issue, day, today=None):
         return None
     if issue.closed_at is not None and issue.closed_at.date() <= day:
         return STAGE_CLOSED
-    if issue.deadline < day:
+    if issue.effective_deadline(today) < day:
         return STAGE_OVERDUE
     if day >= today:
         return STAGE_AVAILABLE if issue.status == "Open" else STAGE_PENDING
-    return STAGE_PENDING if day >= midpoint_day(issue) else STAGE_AVAILABLE
+    return STAGE_PENDING if day >= midpoint_day(issue, today) else STAGE_AVAILABLE
 
 
 def refresh_issues(today=None):
     """Called whenever issues or KPI are read (there is no background job).
 
+    * While "On Hold" the clock is paused (see Issue.effective_deadline): the
+      issue is not promoted to Pending and cannot become Overdue.
     * Open issues past their midpoint become Pending.
     * Priority is recalculated for every issue that is not closed. A closed
       issue keeps the priority it had when it was closed."""
     today = today or date.today()
     for issue in Issue.query.filter(Issue.status != "Closed").all():
-        if issue.status == "Open" and today >= midpoint_day(issue):
+        if issue.status == "Open" and today >= midpoint_day(issue, today):
             issue.status = "Pending"
         priority = compute_priority(issue, today)
         if issue.priority != priority:

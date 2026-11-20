@@ -172,8 +172,9 @@ def _counts_on(issues, window_start, day, today):
 def _avg_resolution_days(issues, window, as_of):
     # max(0, ...): rows saved before created_at moved to UTC can look "closed
     # before created" by the server's UTC offset; never report negative time.
+    # Days the issue spent "On Hold" are not the Member's working time.
     durations = [
-        max(0.0, (issue.closed_at - issue.created_at).total_seconds() / 86400)
+        max(0.0, (issue.closed_at - issue.created_at).total_seconds() / 86400 - (issue.hold_days or 0))
         for issue in issues
         if issue.closed_at is not None
         and issue.created_at is not None
