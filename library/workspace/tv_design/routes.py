@@ -99,3 +99,54 @@ def api_delete_asset(asset_id):
     db.session.delete(asset)
     db.session.commit()
     return jsonify({"message": "Entry deleted successfully."})
+
+
+@tv_design_bp.route("/api/assets/<int:asset_id>", methods=["PUT"])
+@login_required
+def api_update_asset(asset_id):
+    asset = TvDesignAsset.query.get_or_404(asset_id)
+
+    title = (request.form.get("title") or "").strip()
+    serial_number = (request.form.get("serial_number") or "").strip()
+    production = (request.form.get("production") or "").strip()
+    origin = (request.form.get("origin") or "").strip()
+    notes = (request.form.get("notes") or "").strip()
+    files = request.files.getlist("attachments")
+
+    if not title or not serial_number:
+        return jsonify({"message": "Title and Serial Number are required."}), 400
+
+    upload_error = validate_uploads(files)
+    if upload_error:
+        return jsonify({"message": upload_error}), 400
+
+    asset.title = title
+    asset.serial_number = serial_number
+    asset.production = production or None
+    asset.origin = origin or None
+    asset.notes = notes or None
+
+    # Attachments the user removed in the edit form (only ones of this entry).
+    upload_dir = get_upload_dir("tv-design")
+    remove_ids = {int(v) for v in request.form.getlist("remove_attachment_ids") if v.isdigit()}
+    for attachment in list(asset.attachments):
+        if attachment.id in remove_ids:
+            filepath = os.path.join(upload_dir, attachment.filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            db.session.delete(attachment)
+
+    for file in files:
+        if not (file and file.filename):
+            continue
+        filename = save_upload(file, "tv-design", "tv")
+        db.session.add(TvDesignAttachment(
+            asset_id=asset.id,
+            filename=filename,
+            original_name=file.filename,
+            file_type=get_file_type(file.filename),
+        ))
+
+    db.session.commit()
+    db.session.refresh(asset)
+    return jsonify({"message": "Entry updated successfully.", "asset": asset.to_dict()})

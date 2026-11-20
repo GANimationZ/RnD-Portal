@@ -33,7 +33,7 @@
     <div class="app-modal is-hidden" id="tvModal">
         <div class="app-modal__dialog">
             <div class="app-modal__head">
-                <span class="app-modal__title">Add Design Entry</span>
+                <span class="app-modal__title" id="tvModalTitle">Add Design Entry</span>
                 <button type="button"
                         class="app-modal__close"
                         id="tvModalClose"
@@ -51,6 +51,10 @@
                        id="tvOrigin"
                        placeholder="Origin (e.g. Vendor / Country)" />
                 <textarea id="tvNotes" placeholder="Additional notes (optional)"></textarea>
+                <div class="tv-existing is-hidden" id="tvExisting">
+                    <span class="app-modal__hint">Current attachments (click x to remove):</span>
+                    <div class="tv-existing__list" id="tvExistingList"></div>
+                </div>
                 <input type="file"
                        id="tvFiles"
                        accept="{{ upload_accept }}"

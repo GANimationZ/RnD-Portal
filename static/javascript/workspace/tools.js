@@ -3,6 +3,7 @@ const TOOLS_API = "/workspace/tools/api/items";
 let toolItems = [];
 let toolCategories = [];
 let toolView = "card";
+let editingToolId = null;
 
 const el = (id) => document.getElementById(id);
 
@@ -50,9 +51,13 @@ function filteredItems() {
 }
 
 function deleteButton(item) {
-  return item.can_delete
+  const edit = item.can_edit
+    ? `<button type="button" class="tool-edit" data-edit-id="${item.id}" title="Edit"><i class="bxf bx-edit"></i></button>`
+    : "";
+  const del = item.can_delete
     ? `<button type="button" class="tool-delete" data-delete-id="${item.id}" title="Delete"><i class="bxf bx-trash"></i></button>`
     : "";
+  return edit + del;
 }
 
 function cardMarkup(item) {
@@ -136,7 +141,17 @@ function setView(view) {
     view === "card" ? "bxf bx-list-ul" : "bxf bx-grid";
 }
 
-function openModal() {
+function openModal(item = null) {
+  editingToolId = item ? item.id : null;
+  el("toolForm").reset();
+  el("toolModalTitle").textContent = item ? "Edit Tool" : "Add Tool";
+  el("toolFormSubmit").value = item ? "Save Changes" : "Save";
+  if (item) {
+    el("toolFormName").value = item.name;
+    el("toolFormCategory").value = item.category;
+    el("toolFormUrl").value = item.url;
+    el("toolFormDescription").value = item.description || "";
+  }
   el("toolModal").classList.remove("is-hidden");
   el("toolFormName").focus();
 }
@@ -144,6 +159,7 @@ function openModal() {
 function closeModal() {
   el("toolModal").classList.add("is-hidden");
   el("toolForm").reset();
+  editingToolId = null;
 }
 
 async function submitForm(e) {
@@ -152,8 +168,10 @@ async function submitForm(e) {
   submitBtn.disabled = true;
 
   try {
-    const res = await fetch(TOOLS_API, {
-      method: "POST",
+    const res = await fetch(
+      editingToolId ? `${TOOLS_API}/${editingToolId}` : TOOLS_API,
+      {
+      method: editingToolId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: el("toolFormName").value,
@@ -161,7 +179,8 @@ async function submitForm(e) {
         url: el("toolFormUrl").value,
         description: el("toolFormDescription").value,
       }),
-    });
+      },
+    );
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to save.");
 
@@ -206,7 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setView(toolView === "card" ? "list" : "card"),
   );
 
-  el("toolAddBtn").addEventListener("click", openModal);
+  el("toolAddBtn").addEventListener("click", () => openModal());
   el("toolModalClose").addEventListener("click", closeModal);
   bindBackdropClose(el("toolModal"), closeModal);
   document.addEventListener("keydown", (e) => {
@@ -218,6 +237,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .querySelector(".main-body-content")
     .addEventListener("click", (e) => {
+      const editBtn = e.target.closest("[data-edit-id]");
+      if (editBtn) {
+        const item = toolItems.find((t) => t.id === Number(editBtn.dataset.editId));
+        if (item) openModal(item);
+        return;
+      }
       const btn = e.target.closest("[data-delete-id]");
       if (btn) handleDelete(btn.dataset.deleteId);
     });

@@ -14,6 +14,8 @@ const TV_ATTACHMENT_ICON = {
 };
 
 let tvAssets = [];
+let editingTvId = null;
+let removedAttachmentIds = new Set();
 
 async function fetchTvAssets(query = "") {
   try {
@@ -52,6 +54,9 @@ function renderTvGrid() {
     <div class="tv-card" data-asset-id="${asset.id}">
       <div class="tv-card__head">
         <span class="tv-card__title">${escapeHtml(asset.title)}</span>
+        <button type="button" class="tv-card__edit" data-edit-id="${asset.id}" title="Edit">
+          <i class="bxf bx-edit"></i>
+        </button>
         <button type="button" class="tv-card__delete" data-delete-id="${asset.id}" title="Delete">
           <i class="bxf bx-trash"></i>
         </button>
@@ -87,6 +92,14 @@ function renderTvGrid() {
     });
   });
 
+  grid.querySelectorAll("[data-edit-id]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const asset = tvAssets.find((a) => a.id === Number(btn.dataset.editId));
+      if (asset) openTvModal(asset);
+    });
+  });
+
   grid.querySelectorAll("[data-delete-id]").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -113,22 +126,65 @@ function renderTvGrid() {
   });
 }
 
-function openTvModal() {
+function renderExistingAttachments(asset) {
+  const wrap = document.getElementById("tvExisting");
+  const list = document.getElementById("tvExistingList");
+  if (!wrap || !list) return;
+  const remaining = asset
+    ? asset.attachments.filter((a) => !removedAttachmentIds.has(a.id))
+    : [];
+  wrap.classList.toggle("is-hidden", remaining.length === 0);
+  list.innerHTML = remaining
+    .map(
+      (att) => `
+    <span class="tv-existing__chip">
+      <i class="bxf ${TV_ATTACHMENT_ICON[att.type] || "bx-file"}"></i> ${escapeHtml(att.name)}
+      <button type="button" data-remove-att="${att.id}" title="Remove" aria-label="Remove ${escapeHtml(att.name)}">&times;</button>
+    </span>`,
+    )
+    .join("");
+  list.querySelectorAll("[data-remove-att]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      removedAttachmentIds.add(Number(btn.dataset.removeAtt));
+      renderExistingAttachments(asset);
+    });
+  });
+}
+
+function openTvModal(asset = null) {
   const modal = document.getElementById("tvModal");
   if (!modal) return;
   document.getElementById("tvForm")?.reset();
   const messageEl = document.getElementById("tvFormMessage");
   if (messageEl) messageEl.textContent = "";
+
+  editingTvId = asset ? asset.id : null;
+  removedAttachmentIds = new Set();
+  document.getElementById("tvModalTitle").textContent = asset
+    ? "Edit Design Entry"
+    : "Add Design Entry";
+  document.getElementById("tvSubmitBtn").value = asset
+    ? "Save Changes"
+    : "Save Entry";
+  if (asset) {
+    document.getElementById("tvTitle").value = asset.title || "";
+    document.getElementById("tvSerialNumber").value = asset.serial_number || "";
+    document.getElementById("tvProduction").value = asset.production || "";
+    document.getElementById("tvOrigin").value = asset.origin || "";
+    document.getElementById("tvNotes").value = asset.notes || "";
+  }
+  renderExistingAttachments(asset);
   modal.classList.remove("is-hidden");
   document.getElementById("tvTitle")?.focus();
 }
 
 function closeTvModal() {
   document.getElementById("tvModal")?.classList.add("is-hidden");
+  editingTvId = null;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("tvAddBtn")?.addEventListener("click", openTvModal);
+  document.getElementById("tvAddBtn")?.addEventListener("click", () => openTvModal());
   document
     .getElementById("tvModalClose")
     ?.addEventListener("click", closeTvModal);
@@ -180,27 +236,34 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
+      const isEdit = editingTvId !== null;
+      removedAttachmentIds.forEach((id) =>
+        formData.append("remove_attachment_ids", id),
+      );
+
       submitBtn.disabled = true;
       submitBtn.value = "Saving...";
 
       try {
-        const res = await fetch(`${TV_API_BASE}/assets`, {
-          method: "POST",
-          body: formData,
-        });
+        const res = await fetch(
+          isEdit ? `${TV_API_BASE}/assets/${editingTvId}` : `${TV_API_BASE}/assets`,
+          { method: isEdit ? "PUT" : "POST", body: formData },
+        );
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Failed to save entry.");
 
         form.reset();
         closeTvModal();
         showToast(data.message, "success");
-        await fetchTvAssets();
+        await fetchTvAssets(
+          document.getElementById("tvSearchInput")?.value.trim(),
+        );
       } catch (err) {
         messageEl.textContent = err.message;
         showToast(err.message, "error");
       } finally {
         submitBtn.disabled = false;
-        submitBtn.value = "Save Entry";
+        submitBtn.value = editingTvId !== null ? "Save Changes" : "Save Entry";
       }
     });
   }

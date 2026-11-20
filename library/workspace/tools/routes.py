@@ -14,11 +14,14 @@ def _is_valid_url(value):
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
+def _can_manage(item):
+    return session.get("role") == "Super Admin" or item.created_by_id == session.get("user_id")
+
+
 def _serialize(item):
     data = item.to_dict()
-    data["can_delete"] = (
-        session.get("role") == "Super Admin" or item.created_by_id == session.get("user_id")
-    )
+    data["can_delete"] = _can_manage(item)
+    data["can_edit"] = data["can_delete"]
     return data
 
 
@@ -82,3 +85,31 @@ def api_delete_item(item_id):
     db.session.delete(item)
     db.session.commit()
     return jsonify({"message": "Entry deleted successfully."})
+
+
+@tools_bp.route("/api/items/<int:item_id>", methods=["PUT"])
+@login_required
+def api_update_item(item_id):
+    item = ToolLink.query.get_or_404(item_id)
+
+    if not _can_manage(item):
+        return jsonify({"message": "Only the creator or a Super Admin can edit this entry."}), 403
+
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    category = (data.get("category") or "").strip()
+    url = (data.get("url") or "").strip()
+    description = (data.get("description") or "").strip()
+
+    if not name or not category or not url:
+        return jsonify({"message": "Name, category, and link are required."}), 400
+    if not _is_valid_url(url):
+        return jsonify({"message": "Link must be a valid http(s) URL."}), 400
+
+    item.name = name
+    item.category = category
+    item.url = url
+    item.description = description or None
+    db.session.commit()
+
+    return jsonify({"message": "Tool updated successfully.", "item": _serialize(item)})

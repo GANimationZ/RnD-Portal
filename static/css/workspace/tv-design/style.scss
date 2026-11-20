@@ -189,3 +189,58 @@
   color: #a50034;
   min-height: 16px;
 }
+
+.main-body-content .body .tv-card__edit {
+  border: none;
+  background: transparent;
+  color: #b3b7be;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 4px;
+}
+.main-body-content .body .tv-card__edit:hover {
+  background: rgba(165, 0, 52, 0.1);
+  color: #a50034;
+}
+.tv-existing {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tv-existing.is-hidden {
+  display: none;
+}
+.tv-existing__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tv-existing__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 3px 4px 3px 8px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background: #f7f8fa;
+  font-size: 12px;
+  color: #444;
+}
+.tv-existing__chip button {
+  border: none;
+  background: transparent;
+  color: #8a8f98;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.tv-existing__chip button:hover {
+  color: #e24b4a;
+}
+.main-body-content .body .tv-card__head .tv-card__title {
+  flex: 1;
+  min-width: 0;
+}
