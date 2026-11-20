@@ -10,6 +10,7 @@ const API_BASE = "/workspace/assets/api";
 const SCAN_STATUS = {
   pending: { label: "Not Checked", badge: "badge-gray" },
   match: { label: "Verified", badge: "badge-green" },
+  not_pv: { label: "Not PV", badge: "badge-red" },
 };
 
 // ------------------------------------------------------------
@@ -110,23 +111,26 @@ function refreshOwnerOptions() {
   fillOwnerSelect(document.getElementById("filterOwner"), "All Owners", "", "all");
 }
 
-// Only assets owned by PV are "PV assets"; other owners' assets are listed
-// in the table but are not counted here.
-function isPvAsset(asset) {
-  return (asset.owner || "").trim().toLowerCase() === DEFAULT_OWNER.toLowerCase();
+// Every asset is "Not Checked" until it has really been scanned. A scan then
+// decides: PV owner -> Verified, any other owner -> Not PV. (Editing an asset
+// clears the scan, so it goes back to Not Checked.)
+function scanState(asset) {
+  if (!asset.scanned_at) return "pending";
+  return asset.scan_status === "match" ? "match" : "not_pv";
 }
 
 function renderSummary() {
   refreshOwnerOptions();
-  const pvAssets = assetData.filter(isPvAsset);
-  const total = pvAssets.length;
-  const matched = pvAssets.filter((a) => a.scan_status === "match").length;
+  const total = assetData.length;
+  const matched = assetData.filter((a) => scanState(a) === "match").length;
+  const scannedNotPv = assetData.filter((a) => scanState(a) === "not_pv").length;
 
   setText("totalAssets", total);
   setText("totalMatched", matched);
-  setText("totalPending", total - matched);
-  // Scans of a valid-format serial that is not a PV asset (invalid formats are not recorded)
-  setText("totalRejected", unknownScanCount);
+  setText("totalPending", total - matched - scannedNotPv);
+  // NOT PV = scanned assets of another owner + scans of valid-format serials
+  // that are not registered at all. Invalid formats are not recorded.
+  setText("totalRejected", scannedNotPv + unknownScanCount);
 }
 
 // ============================================================
@@ -148,10 +152,7 @@ function renderTable(flashId = null) {
   const pageData = filteredData.slice(start, start + rowsPerPage);
 
   pageData.forEach((asset, i) => {
-    // Assets of other owners are never scanned as PV assets
-    const meta = isPvAsset(asset)
-      ? SCAN_STATUS[asset.scan_status] || SCAN_STATUS.pending
-      : { label: "Not PV", badge: "badge-gray" };
+    const meta = SCAN_STATUS[scanState(asset)];
 
     const row = document.createElement("tr");
     row.dataset.assetId = asset.id;
@@ -246,7 +247,7 @@ function applyFilters() {
       const inOwner = (asset.owner || "").toLowerCase().includes(searchVal);
       if (!inName && !inSerial && !inLocation && !inOwner) return false;
     }
-    if (statusVal !== "all" && asset.scan_status !== statusVal) return false;
+    if (statusVal !== "all" && scanState(asset) !== statusVal) return false;
     if (ownerVal !== "all" && (asset.owner || "").toLowerCase() !== ownerVal.toLowerCase()) return false;
     return true;
   });
@@ -364,7 +365,15 @@ async function processScan(rawSerial) {
         asset: data.asset,
         serial,
       });
-      renderSummary();
+      // A registered asset of another owner: its row now shows the scan
+      if (data.asset) {
+        const i = assetData.findIndex((a) => a.id === data.asset.id);
+        if (i >= 0) assetData[i] = data.asset;
+        renderSummary();
+        revealRow(data.asset.id);
+      } else {
+        renderSummary();
+      }
       return true;
     }
 

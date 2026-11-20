@@ -100,8 +100,10 @@ def _scan_state():
 
 
 def _unknown_count():
-    # Scans of a valid-format serial that is not a registered PV asset
-    return PvAssetScan.query.filter_by(result="unknown").count()
+    # Scans of a valid-format serial that is not registered at all. Registered
+    # assets owned by another team are counted from the asset list itself (the
+    # page adds them), so they are "Not PV" from the start, scanned or not.
+    return PvAssetScan.query.filter_by(result="unknown", asset_id=None).count()
 
 
 # ==================== Page ====================

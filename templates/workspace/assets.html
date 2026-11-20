@@ -14,7 +14,7 @@
             {# ---- Summary ---- #}
             <div class="preview_total">
                 <div class="ttl_issues blue">
-                    <span class="pv_text">TOTAL PV ASSETS</span><span class="pv_number" id="totalAssets">0</span>
+                    <span class="pv_text">TOTAL ASSETS</span><span class="pv_number" id="totalAssets">0</span>
                 </div>
                 <div class="ttl_issues green">
                     <span class="pv_text">VERIFIED</span><span class="pv_number" id="totalMatched">0</span>
@@ -38,6 +38,7 @@
                            id="scanSerial"
                            placeholder="Scan / type Serial Number (e.g. ABCD12345678)"
                            autocomplete="off"
+                           maxlength="12"
                            spellcheck="false"
                            required />
                     <button type="submit" class="asset-scan__submit" id="scanSubmit">
@@ -94,7 +95,8 @@
                             <option value="all" selected>All Status</option>
                             <option value="pending">Not Checked</option>
                             <option value="match">Verified</option>
-                                                    </select>
+                            <option value="not_pv">Not PV</option>
+                        </select>
                     </form>
                 </div>
                 <div class="btns">
